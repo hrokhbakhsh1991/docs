@@ -63,8 +63,8 @@
     },
     {
       "id": "G",
-      "status": "BLOCKED",
-      "reason": "P0-03/P1 and P5-P7 remain blocked. The first staging deployment attempt failed before release activation because the required A/B tenant surface-origin map was not configured; the deployed Caddy still has no :443 listener, so live runtime proof is not available.",
+      "status": "FAIL",
+      "reason": "The staging artifact is live on SHA bda726aaca7598a35adbf188823390197fd48ea7, but the web login smoke returned HTTP 500 because the origin-map JSON was mangled by shell sourcing. The fix is local and redeployment is pending.",
       "evidence": [
         "Read-only staging inventory and DNS/TLS probe recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md (P0-02/P0-03).",
         "Current staging release remains a685ad89c78a21faf367f6afe00e197f4a812a48; branch changes are not present there.",
@@ -75,7 +75,8 @@
         "PR #329 merged to dev as b7def71aa184ec3d0a31c665a6660ffa5dda5ccf; deploy workflow 40808855233 artifact build, tests, typecheck, lint, build, clean-checkout verification, SHA/digest verification and upload passed.",
         "Deploy job failed in Transfer, install, migrate, and standard seed: sync-staging-profile-b-public-urls.sh reported missing STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON; the workflow has no configured environment variable for it.",
         "Post-failure read-only VPS check: current still points to a685ad89c78a21faf367f6afe00e197f4a812a48; existing app-tour-api/web/marketing/portal and Caddy are active, while target app-tour-staging-* units remain inactive; Caddyfile SHA remains 962bcbf4aeb0dda803407b4d28c83e55503602d63cf3ec917cba1959d770fa27. The new release was extracted but not activated; deploy did not reach migration, seed, Caddy install, health verification or workspace adapter.",
-        "Follow-up installer hardening adds origin-map validation-only mode before stopping services and reads the persistent map from api.env. REG-STG-ENV-11/12 focused tests pass 12/12 locally; CI and retry remain pending."
+        "Follow-up installer hardening adds origin-map validation-only mode before stopping services and reads the persistent map from api.env. REG-STG-ENV-11/12 focused tests pass 12/12 locally; CI and retry remain pending.",
+        "Workflow run 40812548576: staging current symlink and four service working directories resolve to bda726aaca7598a35adbf188823390197fd48ea7; release-integrity.json records digest f50f5f50044390578b6387519f3fcb71ea51b8d54482206e08ed3125de465904. API/marketing/portal health returned HTTP 200; web /auth/login returned HTTP 500 with TENANT_SURFACE_ORIGIN_MAP_JSON parse failure."
       ],
       "depends_on": ["F"]
     },
@@ -90,8 +91,8 @@
     },
     {
       "id": "I",
-      "status": "PASS",
-      "reason": "Focused local verification and all required current-head CI checks passed for PR #329 before merge. Seven optional impact-classified checks were skipped and are not counted as passes; the subsequent staging deployment attempt failed before release activation, and runtime remains blocked in phase G.",
+      "status": "BLOCKED",
+      "reason": "The focused current-source regression suite passes 13/13 and shell syntax, diff whitespace and Prettier checks pass. Fresh PR CI for the env-quoting fix is pending; shellcheck is unavailable.",
       "evidence": [
         "14/14 focused web tests pass across admin ingress redirect, auth host isolation, and multi-level session binding.",
         "9/9 focused P2 tests pass for staging target guard and exact-ID/slug idempotence/collision behavior.",
@@ -135,7 +136,8 @@
         "Full local Caddy runtime on temporary ports and mock upstreams: strict CA and hostname verification pass; private B returns 503 when disabled, routes to matching staging mocks when enabled, and legacy public B remains 503 in both modes. Mock runtime is not staging integration proof.",
         "PR #329 workflow run 40792765528 completed success for SHA f585382b76408001d8b9bb649d2f3392122bbbb0; Phase 0 foundation and integration passed. Current private-ingress edits are not included in that SHA or CI run.",
         "Current PR #329 head 48e63f686177f2e77f235cc3f1a1fd03761065b4: all 28 non-skipped checks passed, including Phase 0 foundation/integration, Phase 1, Phase 4, Phase 5, Phase 6.6/6.7/fast-closure, Phase 7 adversarial, Phase 8 guards/regression/E2E, marketing Playwright, production readiness, deployment contract and PROD-6 security. Seven optional impact-classified checks were skipped; zero checks failed.",
-        "PR #329 merged as b7def71aa184ec3d0a31c665a6660ffa5dda5ccf. Deployment artifact build checks passed; the separate deployment job failed at the missing tenant surface-origin map precondition."
+        "PR #329 merged as b7def71aa184ec3d0a31c665a6660ffa5dda5ccf. Deployment artifact build checks passed; the separate deployment job failed at the missing tenant surface-origin map precondition.",
+        "node --test scripts/test/staging-env-contract.spec.mjs: 13/13 pass, including initial sync, idempotent resync, and Bash-source JSON parsing for api/web/marketing/portal. bash -n, git diff --check and pnpm exec prettier --check scripts/test/staging-env-contract.spec.mjs pass. shellcheck unavailable."
       ],
       "depends_on": ["F"]
     },
@@ -164,7 +166,8 @@
         "Fresh fixture adapter review: direct registration persistence creates no outbox rows, seeded payment mode is offline receipt, and all records are tenant/run scoped with collision preflight. Manifest-scoped cleanup tooling is implemented and typechecked, while DB cleanup/rollback and external-integration runtime checks are not exercised; P2-06 runtime and P5-P7 remain open.",
         "P2-06 code review found direct cascade risk through tour foreign keys; cleanup now uses Serializable RLS transaction and refuses linked registration/transport rows before deleting. Tenant, identities, and wizard config are preserved because the run manifest cannot prove their creation ownership. Staging database behavior remains unverified.",
         "Fresh cleanup review identified and closed a financial-history orphan risk with explicit dependency guards; focused tests, API lint/guards, and Prettier are green. The staging edge probe confirms verified TLS but HTTP 503 for all B hosts, so final runtime/route acceptance remains blocked.",
-        "Release source is commit ad9256ddcb31593ac46cebc1f6318b1c93107322; verified artifact digest 0d53f051ba87d45a023ba93b44c496372f2d2bf3e25141cd72d73194813e3992. Artifact self-check and clean-room verification passed. Existing build warnings recorded in execution ledger; no deployment/runtime proof is claimed."
+        "Release source is commit ad9256ddcb31593ac46cebc1f6318b1c93107322; verified artifact digest 0d53f051ba87d45a023ba93b44c496372f2d2bf3e25141cd72d73194813e3992. Artifact self-check and clean-room verification passed. Existing build warnings recorded in execution ledger; no deployment/runtime proof is claimed.",
+        "Fresh review of scripts/vps-deploy/sync-staging-profile-b-public-urls.sh and scripts/test/staging-env-contract.spec.mjs confirms shell-safe quoting, quote normalization for repeated deployment, an explicit apostrophe guard, and regression coverage; PR CI and runtime recheck remain pending."
       ],
       "depends_on": ["G", "I"]
     }

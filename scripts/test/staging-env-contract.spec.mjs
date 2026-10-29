@@ -254,6 +254,77 @@ describe("staging-env-contract", () => {
     }
   });
 
+  it("REG-STG-ENV-13 keeps the origin map valid when sourced by every staging service", () => {
+    const envDir = mkdtempSync(resolve(tmpdir(), "staging-origin-map-shell-env-"));
+    try {
+      const map = {
+        version: 1,
+        tenants: [
+          {
+            tenantId: "00000000-0000-4000-8000-000000000003",
+            origins: {
+              admin: "https://admin.denali.staging.test",
+              marketing: "https://denali.staging.test",
+              portal: "https://portal.denali.staging.test",
+            },
+            cookieDomain: "denali.staging.test",
+          },
+          {
+            tenantId: "f0ed9e65-2638-4351-847d-724f87ebbfce",
+            origins: {
+              admin: "https://admin.qa2.staging.test",
+              marketing: "https://qa2.staging.test",
+              portal: "https://portal.qa2.staging.test",
+            },
+            cookieDomain: "qa2.staging.test",
+          },
+        ],
+      };
+      const expected = JSON.stringify(map);
+      writeFileSync(resolve(envDir, "api.env"), `TENANT_SURFACE_ORIGIN_MAP_JSON=${expected}\n`);
+      for (const app of ["web", "marketing", "portal"]) {
+        writeFileSync(resolve(envDir, `${app}.env`), "PORT=23000\n");
+      }
+
+      const sync = spawnSync(
+        "bash",
+        [resolve(ROOT, "scripts/vps-deploy/sync-staging-profile-b-public-urls.sh")],
+        { encoding: "utf8", env: { ...process.env, ENV_DIR: envDir } }
+      );
+      assert.equal(sync.status, 0, sync.stderr);
+
+      const repeatSync = spawnSync(
+        "bash",
+        [resolve(ROOT, "scripts/vps-deploy/sync-staging-profile-b-public-urls.sh")],
+        { encoding: "utf8", env: { ...process.env, ENV_DIR: envDir } }
+      );
+      assert.equal(repeatSync.status, 0, repeatSync.stderr);
+
+      for (const app of ["api", "web", "marketing", "portal"]) {
+        const sourced = spawnSync(
+          "bash",
+          [
+            "-c",
+            "set -a; source \"$1\"; node -e 'JSON.parse(process.env.TENANT_SURFACE_ORIGIN_MAP_JSON)'",
+            "source-env-contract",
+            resolve(envDir, `${app}.env`),
+          ],
+          { encoding: "utf8" }
+        );
+        assert.equal(
+          sourced.status,
+          0,
+          `${app}.env did not preserve valid JSON: ${sourced.stderr}`
+        );
+      }
+
+      const stored = readFileSync(resolve(envDir, "api.env"), "utf8");
+      assert.ok(stored.includes(`TENANT_SURFACE_ORIGIN_MAP_JSON='${expected}'`));
+    } finally {
+      rmSync(envDir, { recursive: true, force: true });
+    }
+  });
+
   it("REG-STG-ENV-12 runs origin-map preflight before stopping staging units", () => {
     const install = read("scripts/vps-deploy/install-staging-artifact.sh");
     const validate = install.indexOf('sync-staging-profile-b-public-urls.sh" --validate-only');
