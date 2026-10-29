@@ -301,3 +301,10 @@ For each independent change: trace the requirement and callers → implement one
 - **PASS — staged diff review correction:** the runner now rejects 4xx for API and final browser responses; corrected the runbook text that still described the previous `<500` behavior. The six-case runner remains network/TLS/page-load coverage only, not authenticated tenant acceptance.
 - **UNVERIFIED — PR status/review:** local `gh` can read workflow runs, but the GitHub MCP status endpoint returned an authentication error. PR #336 review state was last recorded as no review; verify again when the current CI job completes.
 - **UNVERIFIED — staging runtime refresh:** no SSH refresh was attempted in this continuation; last known deployed SHA remains the pre-fix `3d51cf665b56cd3cc25d12834b0ac02229f1a281`, and the auth fix is not deployed.
+
+## Latest continuation — Phase 5 CI passed (2026-10-29 13:32 UTC)
+
+- **PASS — Phase 5 PR fast closure:** run `40875369631`, job `123452697967`, completed SUCCESS on PR #336 head `b0de67205bd4b9e7d110844d982df3288873b903`. The PR fast `test:changed + runtime-proof` step passed after PostgreSQL, app-role bootstrap, and Prisma migration setup. The workflow intentionally skipped the trunk full `pnpm test` job; that is NOT a full-suite PASS.
+- **PASS — PR checks snapshot:** PR #336 is OPEN with merge state CLEAN; required/observed active checks are green. Conditional skipped jobs remain SKIPPED, not PASS. No PR review is recorded.
+- **PASS — local runner/runbook follow-up commit:** commit `dee54f3f9ac0d84fb9bdb2aa13365f7fb14cf08c` includes the 4xx rejection fix, runbook scope correction, and evidence/ledger updates. Manual diff review, Prettier, JSON parse, and `git diff --cached --check` passed. This follow-up is not yet on the PR and has no CI result; push it to obtain fresh CI before merge/deploy.
+- **UNVERIFIED — staging auth fix:** the green Phase 5 gate is CI proof only. Last known deployed staging SHA remains `3d51cf665b56cd3cc25d12834b0ac02229f1a281`; post-fix auth is not deployed or re-probed.
