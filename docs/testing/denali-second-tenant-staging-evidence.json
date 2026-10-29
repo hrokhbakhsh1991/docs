@@ -18,9 +18,7 @@
         "docs/testing/denali-second-tenant-staging-plan.md sections 2 through 9.",
         "P0 baseline recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md."
       ],
-      "depends_on": [
-        "A"
-      ]
+      "depends_on": ["A"]
     },
     {
       "id": "C",
@@ -29,9 +27,7 @@
       "evidence": [
         "Changed files are apps/web/middleware.ts, apps/web/src/tenant/session-host-binding.ts, and focused tests."
       ],
-      "depends_on": [
-        "B"
-      ]
+      "depends_on": ["B"]
     },
     {
       "id": "D",
@@ -41,9 +37,7 @@
         "PlatformDomainRepository.findVerifiedActiveByHostname requires verified and active domain records (apps/api/src/platform/platform-domain.repository.ts:117-141).",
         "resolveAdminBootstrapForWebHost delegates to the guest-surface host bootstrap (apps/web/src/tenant/resolve-admin-bootstrap.server.ts:14-23)."
       ],
-      "depends_on": [
-        "B"
-      ]
+      "depends_on": ["B"]
     },
     {
       "id": "E",
@@ -53,9 +47,7 @@
         "apps/web/middleware.ts resolves dynamic production admin hosts via resolveAdminBootstrapForWebHost before session binding.",
         "apps/web/src/tenant/session-host-binding.ts compares resolved tenant IDs and rejects unresolved production admin hosts."
       ],
-      "depends_on": [
-        "D"
-      ]
+      "depends_on": ["D"]
     },
     {
       "id": "F",
@@ -67,23 +59,18 @@
         "scripts/vps-deploy/build-staging-artifact.sh bundles the guarded seed and artifact self-check requires its bundle and wrapper.",
         "P2 one-off staging seed wrapper validates exact staging target and B identity before admin client use; no staging mutation occurred."
       ],
-      "depends_on": [
-        "B",
-        "E"
-      ]
+      "depends_on": ["B", "E"]
     },
     {
       "id": "G",
       "status": "BLOCKED",
-      "reason": "The changed code is not deployed; proposed QA hostnames have no DNS/edge registration. The user input requested for Arvan/operator route access remains unanswered. Local checks do not establish staging behavior.",
+      "reason": "P0-03/P1 remain blocked: the three B hosts have no DNS records and SNI-pinned requests to the verified TLS edge return HTTP 503. Direct origin HTTP is reachable, so QA2 Caddy routes now return 503 unless explicitly enabled. No staging install, seed, or runtime proof has run.",
       "evidence": [
         "Read-only staging inventory and DNS/TLS probe recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md (P0-02/P0-03).",
         "Current staging release remains a685ad89c78a21faf367f6afe00e197f4a812a48; branch changes are not present there.",
         "Fresh direct DNS + strict curl probe 2026-10-29: all three proposed qa2.shenski.com hosts unresolved; curl exit 6 before TLS negotiation. This confirms P0-03 remains blocked."
       ],
-      "depends_on": [
-        "F"
-      ]
+      "depends_on": ["F"]
     },
     {
       "id": "H",
@@ -92,20 +79,17 @@
       "evidence": [
         "The acceptance work in this branch concerns middleware redirects and session/tenant authorization."
       ],
-      "depends_on": [
-        "F"
-      ]
+      "depends_on": ["F"]
     },
     {
       "id": "I",
-      "status": "PASS",
-      "reason": "Scoped local verification completed; CI and staging runtime are not run.",
+      "status": "IN PROGRESS",
+      "reason": "Local fail-closed route and renderer checks pass in the current worktree. Current pushed-head CI is still running; staging runtime proof is blocked by ingress.",
       "evidence": [
         "14/14 focused web tests pass across admin ingress redirect, auth host isolation, and multi-level session binding.",
         "9/9 focused P2 tests pass for staging target guard and exact-ID/slug idempotence/collision behavior.",
         "API lint/build and production web build exit 0. Web build emitted attempted-import warnings in finance encounter and BFF login-rate-limit modules.",
         "Seed bundled with esbuild and ran in dry-run mode using the pnpm deployed API dependency tree and fake local DB URLs; exited before database access.",
-        "API script/test ESLint syntax, Prettier, shell bash -n, changed-file checks, and git diff --check pass. No CI or staging runtime evidence.",
         "P4-01 local fixture manifest checks pass: 8/8 positive/negative tests; ESLint, Prettier, and web tsconfig type-check pass. The manifest uses HTTPS staging allowlist, exact tenant UUIDs, six unique surface origins, and runtime SHA.",
         "P4 fixture contract tests pass 8/8; ESLint, Prettier, and web TypeScript check pass. Playwright --list enumerated six DNS/TLS checks with a temporary fabricated manifest; no network requests were run.",
         "P3-05 cookie-domain subcheck: tenant-kernel suite 82/82 pass, including private A/B apex isolation and proposed shenski staging portal hosts remaining host-only; package TypeScript lint and Prettier pass.",
@@ -133,11 +117,13 @@
         "Staging release artifact NOT RUN: build-staging-artifact.sh rejects dirty working tree; no commit or deploy was made.",
         "Cleanup safety review found financial rows without OperatorRegistration foreign keys. Added tenant-scoped dependency gates for payments, refunds, reconciliation findings, schedules, commercial quotes, and payment holds; payment existence transitively protects receipts. Focused cleanup suite 6/6 PASS, API lint plus 26 guards PASS, Prettier PASS.",
         "Fresh edge SNI probe 2026-10-29 pinned staging-denali.shenski.com and all proposed qa2 hosts to 185.143.233.133: A marketing HTTP 200, B marketing/admin/portal HTTP 503, TLS verify 0 for all. B DNS is still unresolved; edge has no configured B routes. No staging mutation or deployment.",
-        "Release artifact build PASS from clean detached worktree at ad9256ddcb31593ac46cebc1f6318b1c93107322: build-staging-artifact.sh exit 0; migration preflight, workspace/API and all three Next builds pass; pre/post-extract artifact self-check and clean-room check PASS. SHA-256 0d53f051ba87d45a023ba93b44c496372f2d2bf3e25141cd72d73194813e3992; artifact retained at /tmp/denali-staging-release-ad9256dd/app-tour-staging-ad9256ddcb31593ac46cebc1f6318b1c93107322.tar.zst."
+        "Cleanup review fix at 652e4f38f7e52ce8519c02315e712e91153a5006 checks all expected run registration IDs when querying financial dependencies, including when registration rows are missing. Focused cleanup test 7/7 PASS; API lint/typecheck and 26 guards PASS; Prettier and git diff --check PASS.",
+        "Clean release artifact for 652e4f38f7e52ce8519c02315e712e91153a5006 built successfully. Migration preflight, workspace/API and all three Next production builds, artifact self-check before/after extraction, and clean-room check PASS. Artifact SHA-256 1cbb6c631fa20251243eaba567bda6182721b101185e55256de13b5f648514e0.",
+        "Current PR #329 CI at pushed SHA 37b0375: multiple checks PASS, 10 checks PENDING, 3 SKIPPED, and 0 failures at the latest snapshot. This predates the uncommitted fail-closed changes.",
+        "Fresh route probe: all three B names unresolved by DNS; with SNI pinned to existing edge 185.143.233.133 each returns HTTP 503 with TLS verification result 0. Direct origin 89.42.210.252:80 returned HTTP 200, proving origin reachability. QA2 Caddy routes now fail closed with 503 by default; the flag is only enabled after ingress controls are verified. No staging install, seed, identity creation, DB mutation, browser smoke, runtime SHA, restart persistence, or rollback has run.",
+        "Fail-closed local verification: staging-env-contract 7/7 PASS; renderer defaults false, rejects invalid values, and renders explicit true; Caddy 2.9 validates rendered config with the flag both false and true; bash -n, Prettier, and git diff --check PASS."
       ],
-      "depends_on": [
-        "F"
-      ]
+      "depends_on": ["F"]
     },
     {
       "id": "J",
@@ -166,10 +152,7 @@
         "Fresh cleanup review identified and closed a financial-history orphan risk with explicit dependency guards; focused tests, API lint/guards, and Prettier are green. The staging edge probe confirms verified TLS but HTTP 503 for all B hosts, so final runtime/route acceptance remains blocked.",
         "Release source is commit ad9256ddcb31593ac46cebc1f6318b1c93107322; verified artifact digest 0d53f051ba87d45a023ba93b44c496372f2d2bf3e25141cd72d73194813e3992. Artifact self-check and clean-room verification passed. Existing build warnings recorded in execution ledger; no deployment/runtime proof is claimed."
       ],
-      "depends_on": [
-        "G",
-        "I"
-      ]
+      "depends_on": ["G", "I"]
     }
   ]
 }

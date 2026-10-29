@@ -88,6 +88,9 @@ describe("staging-env-contract", () => {
     const caddy = read("deploy/vps/caddy/Caddyfile");
     assert.match(render, /STAGING_SECOND_TENANT_LABEL=.*STAGING_SECOND_TENANT_LABEL/);
     assert.match(render, /STAGING_SECOND_TENANT_LABEL=\$\{STAGING_SECOND_TENANT_LABEL\}/);
+    assert.match(render, /STAGING_SECOND_TENANT_ENABLED=\$\{STAGING_SECOND_TENANT_ENABLED\}/);
+    assert.match(render, /STAGING_SECOND_TENANT_ENABLED:-false/);
+    assert.match(render, /must be true or false/);
     assert.match(render, /invalid staging second tenant label/);
     assert.match(render, /STAGING_SECOND_TENANT_LABEL[\s\S]*?CANONICAL_TENANT_LABEL/);
     assert.match(render, /missing staging env directory/);
@@ -123,6 +126,18 @@ describe("staging-env-contract", () => {
       assert.match(block, /header_up X-Forwarded-Proto https/);
       assert.match(block, /header_up X-Forwarded-Host \{host\}/);
       assert.doesNotMatch(block, /PROD_(?:API|WEB|PORTAL|MARKETING)_PORT/);
+      assert.match(
+        block,
+        /@stagingSecondTenantDisabled expression `\{env\.STAGING_SECOND_TENANT_ENABLED\} != "true"`/
+      );
+      assert.match(
+        block,
+        /handle @stagingSecondTenantDisabled \{\s*respond "staging second tenant ingress is disabled" 503/s
+      );
+      assert.ok(
+        block.indexOf('respond "staging second tenant ingress is disabled" 503') <
+          block.indexOf("handle {")
+      );
       if (surface === "admin") {
         assert.match(block, /@stagingTelegramWebhook path \/webhooks\/telegram\/\*/);
         assert.match(block, /\{\$STAGING_API_PORT\}/);
