@@ -145,6 +145,28 @@ cp -a "${SCRIPT_DIR}/seed-denali-second-staging-identities-artifact.sh" \
   "${ARTIFACT_ROOT}/bin/seed-denali-second-staging-identities.sh"
 chmod +x "${ARTIFACT_ROOT}/bin/seed-denali-second-staging-identities.sh"
 
+log "bundle guarded Denali first-tenant staging identities seed"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-denali-first-staging-identities.ts" \
+  --bundle \
+  --platform=node \
+  --format=cjs \
+  --packages=external \
+  --outfile="${ARTIFACT_ROOT}/bin/seed-denali-first-staging-identities.cjs"
+cp -a "${SCRIPT_DIR}/seed-denali-first-staging-identities-artifact.sh" \
+  "${ARTIFACT_ROOT}/bin/seed-denali-first-staging-identities.sh"
+chmod +x "${ARTIFACT_ROOT}/bin/seed-denali-first-staging-identities.sh"
+
+log "bundle guarded Denali first-tenant staging identities cleanup"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/cleanup-denali-first-staging-identities.ts" \
+  --bundle \
+  --platform=node \
+  --format=cjs \
+  --packages=external \
+  --outfile="${ARTIFACT_ROOT}/bin/cleanup-denali-first-staging-identities.cjs"
+cp -a "${SCRIPT_DIR}/cleanup-denali-first-staging-identities-artifact.sh" \
+  "${ARTIFACT_ROOT}/bin/cleanup-denali-first-staging-identities.sh"
+chmod +x "${ARTIFACT_ROOT}/bin/cleanup-denali-first-staging-identities.sh"
+
 log "bundle guarded Denali second-tenant staging fixtures seed"
 pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-denali-second-staging-fixtures.ts" \
   --bundle --platform=node --format=cjs --target=node24 --packages=external \

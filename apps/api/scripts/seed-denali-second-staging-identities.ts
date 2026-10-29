@@ -1,7 +1,10 @@
 import { getPrismaAdmin } from "../src/db/prisma";
 import { withTenantRls } from "../src/db/with-tenant-rls";
 import { resolveLoginMobileLookupKeys } from "../src/identity/canonicalize-login-mobile";
-import { assertSecondStagingIdentityLoginPolicy } from "./lib/denali-second-staging-fixtures";
+import {
+  assertSecondStagingIdentityLoginPolicy,
+  assertStagingIdentityTenantExclusive,
+} from "./lib/denali-second-staging-fixtures";
 import { assertSecondTenantStagingTarget } from "./lib/denali-second-staging-target";
 import {
   planSecondStagingIdentityWrites,
@@ -79,6 +82,11 @@ async function main(): Promise<void> {
       )
     )
   );
+  const tenantMemberships = await prisma.userTenant.findMany({
+    where: { userId: { in: fixtures.map((fixture) => fixture.userId) } },
+    select: { userId: true, tenantId: true },
+  });
+  assertStagingIdentityTenantExclusive(fixtures, tenantMemberships);
   const plan = planSecondStagingIdentityWrites(fixtures, usersById, usersByMobile, memberships);
 
   if (plan.usersToCreate.length > 0) {
@@ -125,6 +133,11 @@ async function main(): Promise<void> {
       )
     )
   );
+  const finalTenantMemberships = await prisma.userTenant.findMany({
+    where: { userId: { in: fixtures.map((fixture) => fixture.userId) } },
+    select: { userId: true, tenantId: true },
+  });
+  assertStagingIdentityTenantExclusive(fixtures, finalTenantMemberships);
   const finalUsersById = await Promise.all(
     fixtures.map((fixture) =>
       prisma.user.findUnique({

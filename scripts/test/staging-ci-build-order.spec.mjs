@@ -44,7 +44,10 @@ test("build order materializes workspace-sdk runtime dependencies", () => {
     assert.notEqual(position, -1, `${name} missing from dependency build order`);
     return position;
   });
-  assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
+  assert.deepEqual(
+    positions,
+    [...positions].sort((a, b) => a - b)
+  );
 });
 
 test("staging exposes bounded focused test stages without broad globs", () => {
@@ -65,7 +68,10 @@ test("staging bounds each focused stage independently", () => {
   assert.match(workflow, /timeout[^\n]+10m bash scripts\/ci\/build-api-workspace-deps\.sh/);
   assert.match(workflow, /timeout[^\n]+5m pnpm run test:wallet-staging-deploy-guards/);
   assert.match(workflow, /timeout[^\n]+10m bash -c 'cd packages\/workspace-sdk/);
-  assert.match(workflow, /timeout[^\n]+5m node --test scripts\/test\/deployment-branch-contract\.spec\.mjs/);
+  assert.match(
+    workflow,
+    /timeout[^\n]+5m node --test scripts\/test\/deployment-branch-contract\.spec\.mjs/
+  );
 });
 
 test("staging verifies the downloaded artifact from its actual download layout", () => {
@@ -81,8 +87,38 @@ test("staging verifies the downloaded artifact from its actual download layout",
 test("staging passes the verified artifact through the transfer script contract", () => {
   assert.match(
     workflow,
-    /ARTIFACT="\$STAGING_ARTIFACT" bash scripts\/vps-deploy\/deploy-staging-artifact-remote\.sh/,
+    /ARTIFACT="\$STAGING_ARTIFACT" bash scripts\/vps-deploy\/deploy-staging-artifact-remote\.sh/
   );
+});
+
+test("staging artifact includes the guarded A-side identities seed entrypoint and wrapper", () => {
+  const build = read("scripts/vps-deploy/build-staging-artifact.sh");
+  const selfCheck = read("scripts/vps-deploy/lib/artifact-self-check.sh");
+  const wrapper = read("scripts/vps-deploy/seed-denali-first-staging-identities-artifact.sh");
+
+  assert.match(build, /seed-denali-first-staging-identities\.ts/);
+  assert.match(build, /seed-denali-first-staging-identities\.cjs/);
+  assert.match(build, /seed-denali-first-staging-identities-artifact\.sh/);
+  assert.match(selfCheck, /seed-denali-first-staging-identities\.cjs/);
+  assert.match(selfCheck, /seed-denali-first-staging-identities\.sh/);
+  assert.match(wrapper, /\/etc\/app-tour-staging\/api\.env/);
+  assert.match(wrapper, /\/opt\/app-tour-staging\/releases/);
+  assert.match(wrapper, /seed-denali-first-staging-identities\.cjs/);
+});
+
+test("staging artifact includes the exact-target A-side identities cleanup entrypoint", () => {
+  const build = read("scripts/vps-deploy/build-staging-artifact.sh");
+  const selfCheck = read("scripts/vps-deploy/lib/artifact-self-check.sh");
+  const wrapper = read("scripts/vps-deploy/cleanup-denali-first-staging-identities-artifact.sh");
+
+  assert.match(build, /cleanup-denali-first-staging-identities\.ts/);
+  assert.match(build, /cleanup-denali-first-staging-identities\.cjs/);
+  assert.match(build, /cleanup-denali-first-staging-identities-artifact\.sh/);
+  assert.match(selfCheck, /cleanup-denali-first-staging-identities\.cjs/);
+  assert.match(selfCheck, /cleanup-denali-first-staging-identities\.sh/);
+  assert.match(wrapper, /\/etc\/app-tour-staging\/api\.env/);
+  assert.match(wrapper, /\/opt\/app-tour-staging\/releases/);
+  assert.match(wrapper, /cleanup-denali-first-staging-identities\.cjs/);
 });
 
 test("staging deploys and reloads the Profile C edge after artifact install", () => {
@@ -91,24 +127,21 @@ test("staging deploys and reloads the Profile C edge after artifact install", ()
   assert.match(deploy, /deploy\/vps\/caddy\/Caddyfile/);
   assert.match(deploy, /CADDY_SOURCE_CONFIG=/);
   assert.ok(
-    deploy.indexOf('bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/install-staging-artifact.sh') <
-      deploy.indexOf('bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/install-caddy-profile-c.sh'),
-    "Caddy must be installed after artifact/env reconciliation",
+    deploy.indexOf("bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/install-staging-artifact.sh") <
+      deploy.indexOf("bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/install-caddy-profile-c.sh"),
+    "Caddy must be installed after artifact/env reconciliation"
   );
 });
 
 test("staging uploads the transfer manifest beside the artifact and checksum", () => {
   assert.match(
     workflow,
-    /dist\/staging-artifacts\/\$\{\{ steps\.manifest\.outputs\.artifact \}\}\.manifest\.json/,
+    /dist\/staging-artifacts\/\$\{\{ steps\.manifest\.outputs\.artifact \}\}\.manifest\.json/
   );
 });
 
 test("staging health verification uses the installed tooling layout", () => {
-  assert.match(
-    workflow,
-    /VPS_DEPLOY_PATH: \$\{\{ env\.STAGING_DEPLOY_ROOT \}\}\/tooling/,
-  );
+  assert.match(workflow, /VPS_DEPLOY_PATH: \$\{\{ env\.STAGING_DEPLOY_ROOT \}\}\/tooling/);
 });
 
 test("staging adapter receives VPS credentials and uses installed tooling", () => {

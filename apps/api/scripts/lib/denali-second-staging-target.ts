@@ -6,6 +6,8 @@ const STAGING_ADMIN_ROLE = "postgres";
 const APPLY_CONFIRMATIONS = {
   tenant: "provision-denali-qa2-to-tour_db_staging",
   identities: "seed-denali-qa2-identities-to-tour_db_staging",
+  aIdentities: "seed-denali-a-identities-to-tour_db_staging",
+  aIdentitiesCleanup: "cleanup-denali-a-identities-from-tour_db_staging",
   fixtures: "seed-denali-qa2-fixtures-to-tour_db_staging",
   cleanup: "cleanup-denali-qa2-fixtures-from-tour_db_staging",
 } as const;
@@ -53,9 +55,13 @@ export function assertSecondTenantStagingTarget(
       ? "DENALI_SECOND_TENANT_STAGING_CONFIRM"
       : mutation === "identities"
         ? "DENALI_SECOND_TENANT_STAGING_IDENTITIES_CONFIRM"
-        : mutation === "fixtures"
-          ? "DENALI_SECOND_TENANT_STAGING_FIXTURES_CONFIRM"
-          : "DENALI_SECOND_TENANT_STAGING_CLEANUP_CONFIRM";
+        : mutation === "aIdentities"
+          ? "DENALI_FIRST_STAGING_IDENTITIES_CONFIRM"
+          : mutation === "aIdentitiesCleanup"
+            ? "DENALI_FIRST_STAGING_IDENTITIES_CLEANUP_CONFIRM"
+            : mutation === "fixtures"
+              ? "DENALI_SECOND_TENANT_STAGING_FIXTURES_CONFIRM"
+              : "DENALI_SECOND_TENANT_STAGING_CLEANUP_CONFIRM";
   if (apply && env[confirmationVariable] !== APPLY_CONFIRMATIONS[mutation]) {
     throw new Error("DENALI_SECOND_TENANT_STAGING_CONFIRMATION_REQUIRED");
   }

@@ -75,6 +75,22 @@ artifact_self_check() {
     echo "artifact-self-check: missing executable second-tenant staging identities seed wrapper" >&2
     return 1
   }
+  [[ -f "${vroot}/bin/seed-denali-first-staging-identities.cjs" ]] || {
+    echo "artifact-self-check: missing first-tenant staging identities seed bundle" >&2
+    return 1
+  }
+  [[ -x "${vroot}/bin/seed-denali-first-staging-identities.sh" ]] || {
+    echo "artifact-self-check: missing executable first-tenant staging identities seed wrapper" >&2
+    return 1
+  }
+  [[ -f "${vroot}/bin/cleanup-denali-first-staging-identities.cjs" ]] || {
+    echo "artifact-self-check: missing first-tenant staging identities cleanup bundle" >&2
+    return 1
+  }
+  [[ -x "${vroot}/bin/cleanup-denali-first-staging-identities.sh" ]] || {
+    echo "artifact-self-check: missing executable first-tenant staging identities cleanup wrapper" >&2
+    return 1
+  }
   [[ -f "${vroot}/bin/seed-denali-second-staging-fixtures.cjs" ]] || {
     echo "artifact-self-check: missing second-tenant staging fixtures seed bundle" >&2
     return 1
