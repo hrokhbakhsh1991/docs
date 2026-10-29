@@ -135,7 +135,19 @@ The generic `scripts/vps-deploy/rollback-vps.sh` expects a Git checkout and is n
 
 The guarded seed path for synthetic A Owner and Finance identities is included in current staging release SHA `55a7085ddf52a5c7b90e29da46c2226649daf73e`. It uses fixed reserved user IDs, resolves mobiles only from `DENALI_FIRST_STAGING_OWNER_MOBILE` and `DENALI_FIRST_STAGING_FINANCE_MOBILE`, rejects cross-tenant memberships and identity/mobile collisions, and requires `DENALI_FIRST_STAGING_IDENTITIES_CONFIRM=seed-denali-a-identities-to-tour_db_staging` for apply. The seed also refuses to add accounts whose mobile has pre-existing OTP challenges. Read-only preflight confirmed the exact A identities are ACTIVE with exactly one A membership each and no other-tenant membership; strict-CA A Owner and Finance login/ability-context read-backs pass on this release. No account seed or cleanup was performed during the latest login checks.
 
-The latest `DENALI_SECOND_STAGING_FIXTURES_CONFIRM` apply retry for B run `qa2-20261029-acceptance-01` failed closed because the required `DENALI_SECOND_STAGING_*_MOBILE` inputs are absent from the staging API environment. No database writes occurred. Do not supply unrelated user numbers; obtain the approved synthetic fixture inputs before retrying. Current cleanup preview is available and read-only.
+The latest `DENALI_SECOND_STAGING_FIXTURES_CONFIRM` apply retry for B run `qa2-20261029-acceptance-01` failed closed because the required `DENALI_SECOND_STAGING_*_MOBILE` inputs are absent from the staging API environment. No database writes occurred. Do not supply unrelated user numbers. B Owner, Finance and Member test identities must each use a dedicated reserved `+1555` mobile and exact B-only membership. The manifest-scoped legacy B Owner remains read-only; never replace its enrolled mobile or reuse it for new authentication. The guarded identity seeder must use a distinct deterministic user ID for the synthetic Owner, and its cleanup path must include only that exact new identity. Current cleanup preview is available and read-only.
+
+### B synthetic Owner, Finance and Member identities
+
+The guarded B identity seeder now resolves three distinct test identities: Owner, Finance/Admin and Member. The Owner uses a new fixed user ID (`c51ad260-53cd-49c9-8d43-72fbc0129006`); the prior manifest Owner ID remains accepted only for historical cleanup. All three mobile values come from the private staging API environment (`DENALI_SECOND_STAGING_OWNER_MOBILE`, `DENALI_SECOND_STAGING_FINANCE_MOBILE`, `DENALI_SECOND_STAGING_MEMBER_MOBILE`) and must be distinct, unused `+1555` synthetic numbers. The seeder verifies global user-ID/mobile collisions, cross-tenant memberships and absence of prior OTP challenges for the configured mobiles in one Serializable transaction before creating any user or membership; then it verifies the exact B-only memberships. The fixture cleanup manifest for newly generated runs includes the new Owner ID; older manifests continue to validate against the explicit legacy ID tuple.
+
+After deploying an artifact containing this code, preview without mutation:
+
+```bash
+/opt/app-tour-staging/current/bin/seed-denali-second-staging-identities.sh
+```
+
+Apply requires all three approved synthetic mobile inputs and `DENALI_SECOND_TENANT_STAGING_IDENTITIES_CONFIRM=seed-denali-qa2-identities-to-tour_db_staging`; the wrapper pins `/etc/app-tour-staging`, `/opt/app-tour-staging`, and `tour_db_staging`. The current staging artifact predates this change, so do not claim the new Owner fixture exists until runtime SHA and the post-deploy seed result are recorded.
 
 The identity seed preview can be run from the release symlink:
 

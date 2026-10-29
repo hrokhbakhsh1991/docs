@@ -1,6 +1,6 @@
 {
   "scenario": "S2-E05",
-  "result": "PASS",
+  "result": "PARTIAL",
   "runtime_sha": "55a7085ddf52a5c7b90e29da46c2226649daf73e",
   "transport": "strict TLS with staging Caddy root CA and loopback host pinning on the VPS",
   "authentication": {
@@ -58,6 +58,7 @@
   "side_effects": "No business rows changed; static OTP used with outbound SMS disabled; temporary cookie jars were mode 0700 and deleted on exit.",
   "limitations": [
     "DNS resolution on the workstation and VPS is still not proven; tested host routing was pinned to loopback on the VPS.",
-    "This scenario does not cover stale browser cache, cross-surface UI behavior, or concurrent booking workflows."
+    "This scenario does not cover stale browser cache, cross-surface UI behavior, or concurrent booking workflows.",
+    "A read-only identity audit during the 2026-10-30 E06 preflight found the stored B Owner mobile outside the approved synthetic +1555 namespace. Preserve the recorded B Owner login/list observations as historical runtime evidence, but they do not satisfy the plan synthetic test-identity requirement. No fresh login was made with that number; repeat B-side acceptance with a dedicated approved synthetic Owner fixture before marking E05 PASS."
   ]
 }

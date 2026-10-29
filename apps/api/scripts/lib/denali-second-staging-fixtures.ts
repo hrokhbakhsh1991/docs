@@ -55,6 +55,7 @@ export type SecondStagingIdentityWritePlan = Readonly<{
 }>;
 
 const SECOND_STAGING_TEST_MOBILE_ENV = {
+  owner: "DENALI_SECOND_STAGING_OWNER_MOBILE",
   finance: "DENALI_SECOND_STAGING_FINANCE_MOBILE",
   member: "DENALI_SECOND_STAGING_MEMBER_MOBILE",
 } as const;
@@ -65,7 +66,7 @@ const FIRST_MOBILE_ENV = {
 } as const;
 
 export const SECOND_STAGING_IDENTITY_IDS: Readonly<Record<SecondStagingFixtureLabel, string>> = {
-  owner: "c51ad260-53cd-49c9-8d43-72fbc0129001",
+  owner: "c51ad260-53cd-49c9-8d43-72fbc0129006",
   finance: "c51ad260-53cd-49c9-8d43-72fbc0129004",
   member: "c51ad260-53cd-49c9-8d43-72fbc0129005",
 };
@@ -147,12 +148,19 @@ export function assertSecondStagingIdentityLoginPolicy(
   }
 }
 
-/** Resolves only new B Finance and Member identities in the reserved synthetic phone namespace. */
+/** Rejects a fixture mobile that already has an OTP challenge before creating its user. */
+export function assertSecondStagingIdentityOtpChallengesClear(challengeCount: number): void {
+  if (challengeCount !== 0) {
+    identityConflict("DENALI_SECOND_STAGING_IDENTITY_OTP_COLLISION");
+  }
+}
+
+/** Resolves only new B Owner, Finance and Member identities in the reserved synthetic namespace. */
 export function resolveSecondStagingIdentityFixtures(
   env: Readonly<Record<string, string | undefined>>
 ): readonly SecondStagingIdentityFixture[] {
   return resolveIdentityFixtures(env, {
-    labels: ["finance", "member"],
+    labels: ["owner", "finance", "member"],
     mobileEnv: SECOND_STAGING_TEST_MOBILE_ENV,
     identityIds: SECOND_STAGING_IDENTITY_IDS,
     tenantId: SECOND_STAGING_TENANT.id,

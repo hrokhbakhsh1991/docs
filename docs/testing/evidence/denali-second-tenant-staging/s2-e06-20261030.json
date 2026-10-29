@@ -1,0 +1,51 @@
+{
+  "scenario": "S2-E06",
+  "result": "PARTIAL",
+  "runtime_sha": "55a7085ddf52a5c7b90e29da46c2226649daf73e",
+  "endpoint": "GET /api/bookings/{registrationId}",
+  "transport": "strict TLS using the staging Caddy root CA and loopback host pinning on the VPS",
+  "target_preflight": {
+    "registration_present_in_tenant_B": true,
+    "registration_id": "84deb915-cd1f-5bec-b6d5-856e2564b999",
+    "tenant_B_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+    "database_query": "read-only transaction; exact id and tenant_id match"
+  },
+  "authentication": {
+    "actor": "A Owner",
+    "identity_namespace": "synthetic +1555",
+    "membership": "one active Owner membership for tenant A",
+    "otp_request_http": 200,
+    "login_http": 200,
+    "session_readback_http": 200,
+    "exact_user_tenant_role_match": true,
+    "sms_otp_enabled": false
+  },
+  "foreign_tenant_probe": {
+    "actor": "A Owner",
+    "target": "existing B-owned registration",
+    "method": "GET",
+    "response_http": 404,
+    "response_error_shape": "generic string envelope",
+    "foreign_registration_id_in_response": false,
+    "sensitive_field_names_in_response": 0
+  },
+  "B_positive_control_for_same_endpoint": {
+    "result": "NOT RUN",
+    "reason": "The B Owner fixture's stored mobile is outside the approved synthetic namespace and no live B session was available; no fresh login was made with that number. The earlier B Owner HTTP 200 is for the separate invoice endpoint, not this booking-detail endpoint."
+  },
+  "code_and_standards_review": {
+    "web_bff": "PASS: GET reads the session token, forwards it as a bearer token with the incoming tenant host, and uses no-store caching.",
+    "api_handler": "PASS: requires an operator session and runs the read under the authenticated request context.",
+    "service_and_repository": "PASS: service passes auth.tenantId to getById; Prisma lookup filters by both registration id and tenantId inside withTenantRls.",
+    "wrs_001": "Host-derived tenant context is consistent with WRS-001; this probe is implementation/runtime evidence for the A-to-B booking-detail direction.",
+    "test_scope": "One-way foreign read denial only; no claim of a complete two-way registration matrix."
+  },
+  "side_effects": "Three A synthetic static-OTP challenge/login attempts occurred because two temporary result parsers could not read the generic error envelope; all temporary cookie directories were removed. SMS_OTP_ENABLED was not true, static OTP was enabled under APP_INFRA_PROFILE=staging, and no outbound message or business-row write occurred.",
+  "remaining": [
+    "B Owner positive control for GET /api/bookings/{registrationId}",
+    "B-to-A registration detail replay",
+    "Cross-tenant child-ID reads and write denials",
+    "Receipt access and mutation denial",
+    "Other Finance operations and read-back"
+  ]
+}

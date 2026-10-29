@@ -3,6 +3,7 @@ import { applyTenantRlsSessionVars } from "../src/db/rls-session-vars";
 import { resolveLoginMobileLookupKeys } from "../src/identity/canonicalize-login-mobile";
 import {
   assertSecondStagingIdentityLoginPolicy,
+  assertSecondStagingIdentityOtpChallengesClear,
   assertStagingIdentityTenantExclusive,
 } from "./lib/denali-second-staging-fixtures";
 import { assertSecondTenantStagingTarget } from "./lib/denali-second-staging-target";
@@ -23,7 +24,7 @@ async function main(): Promise<void> {
 
   if (!apply) {
     console.log(
-      `DENALI_SECOND_STAGING_IDENTITIES_DRY_RUN_OK tenantId=${SECOND_STAGING_TENANT.id} identities=${fixtures.length} roles=finance:admin,member:member`
+      `DENALI_SECOND_STAGING_IDENTITIES_DRY_RUN_OK tenantId=${SECOND_STAGING_TENANT.id} identities=${fixtures.length} roles=${fixtures.map(({ label, role }) => `${label}:${role}`).join(",")}`
     );
     return;
   }
@@ -95,6 +96,12 @@ async function main(): Promise<void> {
         usersByMobile,
         memberships
       );
+      if (writePlan.usersToCreate.length > 0 || writePlan.membershipsToCreate.length > 0) {
+        const existingOtpChallenges = await tx.mobileOtpChallenge.count({
+          where: { mobile: { in: fixtures.map((fixture) => fixture.mobile) } },
+        });
+        assertSecondStagingIdentityOtpChallengesClear(existingOtpChallenges);
+      }
 
       for (const fixture of writePlan.usersToCreate) {
         await tx.user.create({ data: { id: fixture.userId, mobile: fixture.mobile } });
