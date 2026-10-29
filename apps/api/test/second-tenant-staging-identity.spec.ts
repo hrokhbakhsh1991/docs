@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { TenantProvisionConflictError } from "../src/internal/provisioning.errors";
-import { resolveSecondStagingTenantExistingRecord } from "../scripts/lib/denali-second-staging-identity";
+import {
+  resolveSecondStagingTenantExistingRecord,
+  toSecondStagingTenantProvisionInput,
+} from "../scripts/lib/denali-second-staging-identity";
 
 const expected = {
   id: "f0ed9e65-2638-4351-847d-724f87ebbfce",
@@ -13,6 +16,15 @@ const expected = {
 
 test("returns null when both the reserved B id and slug are unused", () => {
   assert.equal(resolveSecondStagingTenantExistingRecord(null, null, expected), null);
+});
+
+test("maps the reserved tenant id to the provisioning API tenantId field", () => {
+  assert.deepEqual(toSecondStagingTenantProvisionInput(expected), {
+    tenantId: expected.id,
+    subdomain: expected.subdomain,
+    workspaceType: expected.workspaceType,
+    status: expected.status,
+  });
 });
 
 test("accepts only the exact existing B record for idempotent reruns", () => {

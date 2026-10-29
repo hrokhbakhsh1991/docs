@@ -1,4 +1,5 @@
 import { TenantProvisionConflictError } from "../../src/internal/provisioning.errors";
+import type { ProvisionTenantInput } from "../../src/internal/provisioning.service";
 
 export type StagingTenantIdentityRecord = Readonly<{
   id: string;
@@ -6,6 +7,18 @@ export type StagingTenantIdentityRecord = Readonly<{
   workspaceType: string;
   status: string;
 }>;
+
+/** Maps the ledger's `id` shape to the provisioning API's required `tenantId` field. */
+export function toSecondStagingTenantProvisionInput(
+  expected: StagingTenantIdentityRecord
+): ProvisionTenantInput {
+  return {
+    tenantId: expected.id,
+    subdomain: expected.subdomain,
+    workspaceType: expected.workspaceType,
+    status: expected.status,
+  };
+}
 
 /** Accepts only the exact identity reserved for B; all ID or slug collisions fail closed. */
 export function resolveSecondStagingTenantExistingRecord(

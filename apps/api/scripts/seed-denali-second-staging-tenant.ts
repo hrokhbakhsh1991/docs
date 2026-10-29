@@ -4,7 +4,10 @@ import {
   getPlatformAdminClient,
 } from "../src/platform/platform-admin-client";
 import { assertSecondTenantStagingTarget } from "./lib/denali-second-staging-target";
-import { resolveSecondStagingTenantExistingRecord } from "./lib/denali-second-staging-identity";
+import {
+  resolveSecondStagingTenantExistingRecord,
+  toSecondStagingTenantProvisionInput,
+} from "./lib/denali-second-staging-identity";
 
 const TENANT_SUBDOMAIN = "denali-qa2";
 const TENANT_ID = "f0ed9e65-2638-4351-847d-724f87ebbfce";
@@ -56,7 +59,7 @@ async function main(): Promise<void> {
   const tenant =
     existing ??
     (await new ProvisioningService().provisionTenantProduction({
-      ...expected,
+      ...toSecondStagingTenantProvisionInput(expected),
       theme: TENANT_THEME,
     }));
   console.log(

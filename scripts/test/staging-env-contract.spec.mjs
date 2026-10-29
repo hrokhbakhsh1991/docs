@@ -343,6 +343,23 @@ describe("staging-env-contract", () => {
     assert.doesNotMatch(smoke, /\?\.origins\?\.admin/);
   });
 
+  it("REG-STG-ENV-15 separates four-process health smoke from app-role RLS audit", () => {
+    const workflow = read(".github/workflows/deploy-staging.yml");
+    const audit = read("scripts/vps-deploy/verify-staging-rls-remote.sh");
+    assert.match(
+      workflow,
+      /name: Staging four-process health smoke[\s\S]*?run: bash scripts\/p10-staging-remote-gate\.sh/
+    );
+    assert.match(
+      workflow,
+      /name: Staging app-role RLS catalog verification[\s\S]*?run: bash scripts\/vps-deploy\/verify-staging-rls-remote\.sh/
+    );
+    assert.match(audit, /tour_db_staging\|app_tour\|f\|f/);
+    assert.match(audit, /STAGING_RLS_CATALOG_OK core_tables=9/);
+    assert.match(audit, /NOT c\.relforcerowsecurity/);
+    assert.doesNotMatch(audit, /echo .*DATABASE_URL|printf .*DATABASE_URL/);
+  });
+
   it("REG-STG-ENV-12 runs origin-map preflight before stopping staging units", () => {
     const install = read("scripts/vps-deploy/install-staging-artifact.sh");
     const validate = install.indexOf('sync-staging-profile-b-public-urls.sh" --validate-only');
