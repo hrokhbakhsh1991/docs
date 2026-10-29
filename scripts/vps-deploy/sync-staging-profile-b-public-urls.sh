@@ -75,9 +75,15 @@ set_json_env_kv() {
     echo "sync-staging-profile-b-public-urls: $key must be a single-line JSON value" >&2
     exit 1
   }
+  [[ "$value" != *"'"* ]] || {
+    echo "sync-staging-profile-b-public-urls: $key cannot contain a single quote in a shell env file" >&2
+    exit 1
+  }
   [[ -f "$file" ]] || touch "$file"
   sed -i "/^${key}=/d" "$file"
-  printf '%s=%s\n' "$key" "$value" >>"$file"
+  # These env files are sourced by the systemd start scripts. Single quotes
+  # preserve the JSON's double quotes while keeping the assignment shell-safe.
+  printf "%s='%s'\n" "$key" "$value" >>"$file"
 }
 
 PUBLIC_HOST="$(resolve_public_host)"
@@ -89,7 +95,11 @@ PUBLIC_PORTAL_BASE_URL="${STAGING_PUBLIC_PORTAL_BASE_URL:-https://staging-portal
 STAGING_ADMIN_HOST="${STAGING_ADMIN_HOST:-staging-admin-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 # The explicit map keeps cross-surface egress and session cookies tenant-bound.
 # Supply it from the approved staging inventory; never infer tenant B's hosts.
-TENANT_SURFACE_ORIGIN_MAP_JSON="${STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON:-$(read_api_env TENANT_SURFACE_ORIGIN_MAP_JSON)}"
+API_TENANT_SURFACE_ORIGIN_MAP_JSON="$(read_api_env TENANT_SURFACE_ORIGIN_MAP_JSON)"
+if [[ "${API_TENANT_SURFACE_ORIGIN_MAP_JSON:0:1}" == "'" && "${API_TENANT_SURFACE_ORIGIN_MAP_JSON: -1}" == "'" ]]; then
+  API_TENANT_SURFACE_ORIGIN_MAP_JSON="${API_TENANT_SURFACE_ORIGIN_MAP_JSON:1:${#API_TENANT_SURFACE_ORIGIN_MAP_JSON}-2}"
+fi
+TENANT_SURFACE_ORIGIN_MAP_JSON="${STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON:-$API_TENANT_SURFACE_ORIGIN_MAP_JSON}"
 [[ -n "$TENANT_SURFACE_ORIGIN_MAP_JSON" ]] || {
   echo "sync-staging-profile-b-public-urls: TENANT_SURFACE_ORIGIN_MAP_JSON is required in ${API_ENV} or STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON" >&2
   exit 1
@@ -191,6 +201,7 @@ for app in marketing portal web; do
   sed -i '/^MEMBER_SESSION_COOKIE_DOMAIN=/d' "$target"
   set_json_env_kv "$target" TENANT_SURFACE_ORIGIN_MAP_JSON "$TENANT_SURFACE_ORIGIN_MAP_JSON"
 done
+set_json_env_kv "$API_ENV" TENANT_SURFACE_ORIGIN_MAP_JSON "$TENANT_SURFACE_ORIGIN_MAP_JSON"
 
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"
