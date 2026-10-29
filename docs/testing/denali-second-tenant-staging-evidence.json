@@ -64,7 +64,7 @@
     {
       "id": "G",
       "status": "FAIL",
-      "reason": "The staging artifact is live on SHA bda726aaca7598a35adbf188823390197fd48ea7, but the web login smoke returned HTTP 500 because the origin-map JSON was mangled by shell sourcing. The fix is local and redeployment is pending.",
+      "reason": "Staging run 40816177264 activated SHA 1314b404ef749b9f859e47f5211fc7b05ad5be28, but the deploy smoke failed because the web login probe used an invalid loopback Host; direct admin routing also needs mapped-host handling. The local repair is awaiting PR CI and redeployment.",
       "evidence": [
         "Read-only staging inventory and DNS/TLS probe recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md (P0-02/P0-03).",
         "Current staging release remains a685ad89c78a21faf367f6afe00e197f4a812a48; branch changes are not present there.",
@@ -77,7 +77,9 @@
         "Post-failure read-only VPS check: current still points to a685ad89c78a21faf367f6afe00e197f4a812a48; existing app-tour-api/web/marketing/portal and Caddy are active, while target app-tour-staging-* units remain inactive; Caddyfile SHA remains 962bcbf4aeb0dda803407b4d28c83e55503602d63cf3ec917cba1959d770fa27. The new release was extracted but not activated; deploy did not reach migration, seed, Caddy install, health verification or workspace adapter.",
         "Follow-up installer hardening adds origin-map validation-only mode before stopping services and reads the persistent map from api.env. REG-STG-ENV-11/12 focused tests pass 12/12 locally; CI and retry remain pending.",
         "Workflow run 40812548576: staging current symlink and four service working directories resolve to bda726aaca7598a35adbf188823390197fd48ea7; release-integrity.json records digest f50f5f50044390578b6387519f3fcb71ea51b8d54482206e08ed3125de465904. API/marketing/portal health returned HTTP 200; web /auth/login returned HTTP 500 with TENANT_SURFACE_ORIGIN_MAP_JSON parse failure.",
-        "Strict VPS-local TLS probes used Caddy internal root CA with curl --resolve host:443:127.0.0.1; all six private .staging.test hostnames verified CA and hostname identity. The three B routes returned HTTP 503 while the second-tenant flag remained disabled. Browser-profile trust/external client reachability is still unverified."
+        "Strict VPS-local TLS probes used Caddy internal root CA with curl --resolve host:443:127.0.0.1; all six private .staging.test hostnames verified CA and hostname identity. The three B routes returned HTTP 503 while the second-tenant flag remained disabled. Browser-profile trust/external client reachability is still unverified.",
+        "Workflow 40816177264 activated SHA 1314b404ef749b9f859e47f5211fc7b05ad5be28 with release manifest digest 9b858bfa3865184bcbbcfba09ff0b56d0d14effe022ee484adcd49e084e22ad1 and archive SHA-256 d2fa0a0d67a6ad74d69b641da168025d5bd09b2c4b7e232d6f70500eefc18f12. API/marketing/portal health passed; web smoke failed on localhost without the required mapped admin Host. B seed and later deploy steps did not run.",
+        "Follow-up code tracing found private A admin /auth/login returned 404 and the legacy public A admin alias returned 500. A local repair adds per-surface aliases with validated cookie scopes, mapped admin ingress recognition, async admin bootstrap on login, and a valid-host four-process smoke probe. Guest package build/tests 86/86, web focused tests 11/11, staging env contract 13/13, web lint/typecheck, shell syntax and diff checks pass; CI and redeployment are pending."
       ],
       "depends_on": ["F"]
     },
@@ -93,7 +95,7 @@
     {
       "id": "I",
       "status": "BLOCKED",
-      "reason": "The focused current-source regression suite passes 13/13 and shell syntax, diff whitespace and Prettier checks pass. Fresh PR CI for the env-quoting fix is pending; shellcheck is unavailable.",
+      "reason": "Local regression/build/lint checks for the admin ingress and staging smoke repair pass. Fresh PR CI is pending; shellcheck is unavailable.",
       "evidence": [
         "14/14 focused web tests pass across admin ingress redirect, auth host isolation, and multi-level session binding.",
         "9/9 focused P2 tests pass for staging target guard and exact-ID/slug idempotence/collision behavior.",
@@ -138,7 +140,8 @@
         "PR #329 workflow run 40792765528 completed success for SHA f585382b76408001d8b9bb649d2f3392122bbbb0; Phase 0 foundation and integration passed. Current private-ingress edits are not included in that SHA or CI run.",
         "Current PR #329 head 48e63f686177f2e77f235cc3f1a1fd03761065b4: all 28 non-skipped checks passed, including Phase 0 foundation/integration, Phase 1, Phase 4, Phase 5, Phase 6.6/6.7/fast-closure, Phase 7 adversarial, Phase 8 guards/regression/E2E, marketing Playwright, production readiness, deployment contract and PROD-6 security. Seven optional impact-classified checks were skipped; zero checks failed.",
         "PR #329 merged as b7def71aa184ec3d0a31c665a6660ffa5dda5ccf. Deployment artifact build checks passed; the separate deployment job failed at the missing tenant surface-origin map precondition.",
-        "node --test scripts/test/staging-env-contract.spec.mjs: 13/13 pass, including initial sync, idempotent resync, and Bash-source JSON parsing for api/web/marketing/portal. bash -n, git diff --check and pnpm exec prettier --check scripts/test/staging-env-contract.spec.mjs pass. shellcheck unavailable."
+        "node --test scripts/test/staging-env-contract.spec.mjs: 13/13 pass, including initial sync, idempotent resync, and Bash-source JSON parsing for api/web/marketing/portal. bash -n, git diff --check and pnpm exec prettier --check scripts/test/staging-env-contract.spec.mjs pass. shellcheck unavailable.",
+        "Current admin-ingress patch: guest-surface-host build PASS; guest package suite 86/86; web operator-admin-ingress plus login-brand tests 11/11; staging env contract 13/13; web lint/typecheck PASS; changed shell syntax and git diff --check PASS. Earlier failed test used a stale built package and passed after rebuilding."
       ],
       "depends_on": ["F"]
     },

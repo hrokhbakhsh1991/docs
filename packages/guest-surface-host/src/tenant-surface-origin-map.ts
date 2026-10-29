@@ -4,6 +4,9 @@ export type TenantSurfaceBinding = {
   readonly tenantId: string;
   readonly origins: Readonly<Record<TenantSurfaceName, string>>;
   readonly cookieDomain: string | null;
+  readonly aliases?: Readonly<
+    Partial<Record<TenantSurfaceName, readonly { origin: string; cookieDomain: string | null }[]>>
+  >;
 };
 
 type TenantSurfaceOriginMap = {
@@ -74,6 +77,7 @@ export function validateTenantSurfaceOriginMap(raw: unknown): TenantSurfaceOrigi
 
   const tenantIds = new Set<string>();
   const hostnames = new Set<string>();
+  const cookieDomainsByTenant: string[][] = [];
   const bindings: TenantSurfaceBinding[] = value.tenants.map((rawTenant, index) => {
     if (rawTenant === null || typeof rawTenant !== "object" || Array.isArray(rawTenant)) {
       throw new Error(`tenant entry ${index} must be an object`);
@@ -116,22 +120,74 @@ export function validateTenantSurfaceOriginMap(raw: unknown): TenantSurfaceOrigi
         }
       }
     }
-    return { tenantId, origins, cookieDomain };
+    const rawAliases = tenant.aliases === undefined ? {} : tenant.aliases;
+    if (rawAliases === null || typeof rawAliases !== "object" || Array.isArray(rawAliases)) {
+      throw new Error(`tenant ${tenantId} aliases must be an object`);
+    }
+    if (
+      Object.keys(rawAliases).some((surface) => !SURFACES.includes(surface as TenantSurfaceName))
+    ) {
+      throw new Error(`tenant ${tenantId} aliases contains an unknown surface`);
+    }
+    const aliases: Partial<
+      Record<TenantSurfaceName, readonly { origin: string; cookieDomain: string | null }[]>
+    > = {};
+    const tenantCookieDomains = cookieDomain === null ? [] : [cookieDomain];
+    for (const surface of SURFACES) {
+      const rawSurfaceAliases = (rawAliases as Record<string, unknown>)[surface] ?? [];
+      if (!Array.isArray(rawSurfaceAliases)) {
+        throw new Error(`tenant ${tenantId} aliases.${surface} must be an array`);
+      }
+      aliases[surface] = rawSurfaceAliases.map((rawAlias, aliasIndex) => {
+        if (rawAlias === null || typeof rawAlias !== "object" || Array.isArray(rawAlias)) {
+          throw new Error(`tenant ${tenantId} aliases.${surface}[${aliasIndex}] must be an object`);
+        }
+        const alias = rawAlias as Record<string, unknown>;
+        if (Object.keys(alias).some((key) => key !== "origin" && key !== "cookieDomain")) {
+          throw new Error(
+            `tenant ${tenantId} aliases.${surface}[${aliasIndex}] has unknown fields`
+          );
+        }
+        const origin = parseOrigin(
+          alias.origin,
+          `tenant ${tenantId} aliases.${surface}[${aliasIndex}].origin`
+        );
+        const aliasCookieDomain = normalizeCookieDomain(
+          alias.cookieDomain,
+          `tenant ${tenantId} aliases.${surface}[${aliasIndex}].cookieDomain`
+        );
+        const hostname = new URL(origin).hostname;
+        if (hostnames.has(hostname)) {
+          throw new Error(`duplicate tenant surface hostname: ${hostname}`);
+        }
+        hostnames.add(hostname);
+        if (
+          aliasCookieDomain !== null &&
+          hostname !== aliasCookieDomain &&
+          !hostname.endsWith(`.${aliasCookieDomain}`)
+        ) {
+          throw new Error(`cookieDomain ${aliasCookieDomain} is not a parent of ${hostname}`);
+        }
+        if (aliasCookieDomain !== null) tenantCookieDomains.push(aliasCookieDomain);
+        return { origin, cookieDomain: aliasCookieDomain };
+      });
+    }
+    cookieDomainsByTenant.push(tenantCookieDomains);
+    return { tenantId, origins, cookieDomain, aliases };
   });
 
-  for (let index = 0; index < bindings.length; index += 1) {
-    const domain = bindings[index]?.cookieDomain;
-    if (domain === undefined || domain === null) continue;
-    for (let otherIndex = index + 1; otherIndex < bindings.length; otherIndex += 1) {
-      const otherDomain = bindings[otherIndex]?.cookieDomain;
-      if (
-        otherDomain !== undefined &&
-        otherDomain !== null &&
-        (domain === otherDomain ||
-          domain.endsWith(`.${otherDomain}`) ||
-          otherDomain.endsWith(`.${domain}`))
-      ) {
-        throw new Error("tenant cookie domains must not overlap");
+  for (let index = 0; index < cookieDomainsByTenant.length; index += 1) {
+    for (let otherIndex = index + 1; otherIndex < cookieDomainsByTenant.length; otherIndex += 1) {
+      for (const domain of cookieDomainsByTenant[index] ?? []) {
+        for (const otherDomain of cookieDomainsByTenant[otherIndex] ?? []) {
+          if (
+            domain === otherDomain ||
+            domain.endsWith(`.${otherDomain}`) ||
+            otherDomain.endsWith(`.${domain}`)
+          ) {
+            throw new Error("tenant cookie domains must not overlap");
+          }
+        }
       }
     }
   }
@@ -184,18 +240,33 @@ export function resolveTenantSurfaceBindingForHost(
   if (map === null) return null;
   const hostname = normalizeIngressHostname(host);
   const binding = map.tenants.find((tenant) =>
-    SURFACES.some((surface) => new URL(tenant.origins[surface]).hostname === hostname)
+    SURFACES.some(
+      (surface) =>
+        new URL(tenant.origins[surface]).hostname === hostname ||
+        tenant.aliases?.[surface]?.some((alias) => new URL(alias.origin).hostname === hostname)
+    )
   );
   if (binding === undefined) throw new Error(`tenant surface host is not allowlisted: ${hostname}`);
-  if (
-    expectedSurface !== undefined &&
-    new URL(binding.origins[expectedSurface]).hostname !== hostname
-  ) {
+  const aliasSurface = SURFACES.find((surface) =>
+    binding.aliases?.[surface]?.some((alias) => new URL(alias.origin).hostname === hostname)
+  );
+  const alias =
+    aliasSurface === undefined
+      ? undefined
+      : binding.aliases?.[aliasSurface]?.find(
+          (entry) => new URL(entry.origin).hostname === hostname
+        );
+  const matchesExpectedSurface =
+    aliasSurface !== undefined
+      ? aliasSurface === expectedSurface
+      : expectedSurface === undefined ||
+        new URL(binding.origins[expectedSurface]).hostname === hostname;
+  if (expectedSurface !== undefined && !matchesExpectedSurface) {
     throw new Error(
       `tenant surface host does not match expected surface ${expectedSurface}: ${hostname}`
     );
   }
-  return binding;
+  return alias !== undefined ? { ...binding, cookieDomain: alias.cookieDomain } : binding;
 }
 
 export function resolveTenantSurfaceOriginFromHost(
