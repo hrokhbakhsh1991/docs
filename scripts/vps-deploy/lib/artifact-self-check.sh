@@ -107,6 +107,22 @@ artifact_self_check() {
     echo "artifact-self-check: missing executable second-tenant staging fixture cleanup wrapper" >&2
     return 1
   }
+  [[ -f "${vroot}/bin/seed-denali-first-staging-draft-tour.cjs" ]] || {
+    echo "artifact-self-check: missing first-tenant S2-E04 draft tour seed bundle" >&2
+    return 1
+  }
+  [[ -x "${vroot}/bin/seed-denali-first-staging-draft-tour.sh" ]] || {
+    echo "artifact-self-check: missing executable first-tenant S2-E04 draft tour seed wrapper" >&2
+    return 1
+  }
+  [[ -f "${vroot}/bin/cleanup-denali-first-staging-draft-tour.cjs" ]] || {
+    echo "artifact-self-check: missing first-tenant S2-E04 draft tour cleanup bundle" >&2
+    return 1
+  }
+  [[ -x "${vroot}/bin/cleanup-denali-first-staging-draft-tour.sh" ]] || {
+    echo "artifact-self-check: missing executable first-tenant S2-E04 draft tour cleanup wrapper" >&2
+    return 1
+  }
   for k in web portal marketing; do
     local runtime_json="${vroot}/${k}/RUNTIME.json"
     [[ -f "$runtime_json" ]] || {
@@ -175,6 +191,10 @@ with open(sys.argv[1], encoding="utf-8") as manifest_file:
     manifest = json.load(manifest_file)
     if manifest.get("denaliSecondStagingTenantSeedBundle") is not True:
         raise SystemExit("release manifest omits the second-tenant staging seed bundle")
+    if manifest.get("denaliFirstStagingDraftTourSeedBundle") is not True:
+        raise SystemExit("release manifest omits the first-tenant S2-E04 draft tour seed bundle")
+    if manifest.get("denaliFirstStagingDraftTourCleanupBundle") is not True:
+        raise SystemExit("release manifest omits the first-tenant S2-E04 draft tour cleanup bundle")
     print(manifest.get("releaseSha", ""))
 PY
     )"

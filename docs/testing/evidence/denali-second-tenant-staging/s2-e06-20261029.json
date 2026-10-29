@@ -1,0 +1,36 @@
+{
+  "scenario": "S2-E06",
+  "result": "PARTIAL",
+  "runtime_sha": "55a7085ddf52a5c7b90e29da46c2226649daf73e",
+  "endpoint": "GET /api/finance/invoices/{registrationId}",
+  "transport": "strict TLS with staging Caddy root CA and loopback host pinning on the VPS",
+  "positive_control": {
+    "actor": "B Owner",
+    "request_http": 200,
+    "exact_B_registration_id_in_invoice": true
+  },
+  "foreign_tenant_probe": {
+    "actor": "A Owner",
+    "target": "same B-owned registration ID",
+    "response_http": 404,
+    "response_error_code": "not_found",
+    "foreign_registration_id_in_denial_body": false
+  },
+  "finance_admin_policy_observation": {
+    "login_and_ability_context": "PASS: active B Finance/Admin identity returned its exact user, tenant and admin role",
+    "finance_bff_http": 403,
+    "error": "AUTH_OWNER_PANEL_ONLY",
+    "interpretation": "Expected under locked DEC-P9-018 owner-only web-panel policy; not an invoice isolation result. Backend Finance API separately accepts active admin|owner."
+  },
+  "code_review": {
+    "finance_service": "PASS: FinanceService.getRegistrationInvoice scopes lifecycle lookup by auth.tenantId and throws BOOKING_NOT_FOUND when no tenant-scoped registration exists.",
+    "web_middleware": "PASS: tenant-host match is checked before role policy; non-owner protected BFF calls are denied except explicitly team-enabled routes.",
+    "architecture_contract": "DEC-P9-018 and requireOperatorSessionWeb keep current (app)/ owner-only; no middleware exception was introduced."
+  },
+  "remaining": [
+    "Cross-tenant child IDs in registration reads/writes",
+    "Receipt access and mutation denial",
+    "Other Finance operations and read-back"
+  ],
+  "side_effects": "No business records were changed. Static OTP was used; no outbound message was enabled. Temporary cookies were stored in a mode-0700 directory and deleted on exit."
+}

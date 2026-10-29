@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "runId": "local-stg-20261029-64936efab2",
+  "runtimeSha": "55a7085ddf52a5c7b90e29da46c2226649daf73e",
+  "testSha": "64936efabc735b047ccf39606ae2c0705853b203",
+  "tenantLabels": [
+    "A",
+    "B"
+  ],
+  "status": "PASS",
+  "startedAt": "2026-10-29T19:15:40.952Z",
+  "endedAt": "2026-10-29T19:16:27.805Z",
+  "counts": {
+    "planned": 6,
+    "completed": 6,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "timedOut": 0,
+    "interrupted": 0,
+    "other": 0
+  },
+  "artifacts": []
+}
