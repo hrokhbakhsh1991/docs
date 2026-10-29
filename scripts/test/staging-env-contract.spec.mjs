@@ -2,7 +2,9 @@
  * Staging env/deploy contract guards — Denali Profile B (89.42.210.252).
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -200,5 +202,64 @@ describe("staging-env-contract", () => {
     assert.match(bootstrap, /MEMBER_SESSION_COOKIE_NAME atour_mb_session_staging/);
     assert.match(bootstrap, /MEMBER_SESSION_COOKIE_DOMAIN shenski\.com/);
     assert.match(bootstrap, /sed -i .*MEMBER_SESSION_COOKIE_HOST_ONLY=.*marketing\.env/);
+  });
+
+  it("REG-STG-ENV-11 validates the approved origin map from api.env without writing env files", () => {
+    const envDir = mkdtempSync(resolve(tmpdir(), "staging-origin-map-"));
+    try {
+      const map = {
+        version: 1,
+        tenants: [
+          {
+            tenantId: "00000000-0000-4000-8000-000000000003",
+            origins: {
+              admin: "https://admin.denali.staging.test",
+              marketing: "https://denali.staging.test",
+              portal: "https://portal.denali.staging.test",
+            },
+            cookieDomain: "denali.staging.test",
+          },
+          {
+            tenantId: "f0ed9e65-2638-4351-847d-724f87ebbfce",
+            origins: {
+              admin: "https://admin.qa2.staging.test",
+              marketing: "https://qa2.staging.test",
+              portal: "https://portal.qa2.staging.test",
+            },
+            cookieDomain: "qa2.staging.test",
+          },
+        ],
+      };
+      writeFileSync(
+        resolve(envDir, "api.env"),
+        `TENANT_SURFACE_ORIGIN_MAP_JSON=${JSON.stringify(map)}\n`
+      );
+      const result = spawnSync(
+        "bash",
+        [
+          resolve(ROOT, "scripts/vps-deploy/sync-staging-profile-b-public-urls.sh"),
+          "--validate-only",
+        ],
+        { encoding: "utf8", env: { ...process.env, ENV_DIR: envDir } }
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /tenant surface origin map valid/);
+      assert.deepEqual(
+        readFileSync(resolve(envDir, "api.env"), "utf8"),
+        `TENANT_SURFACE_ORIGIN_MAP_JSON=${JSON.stringify(map)}\n`
+      );
+      assert.deepEqual(readdirSync(envDir), ["api.env"]);
+    } finally {
+      rmSync(envDir, { recursive: true, force: true });
+    }
+  });
+
+  it("REG-STG-ENV-12 runs origin-map preflight before stopping staging units", () => {
+    const install = read("scripts/vps-deploy/install-staging-artifact.sh");
+    const validate = install.indexOf('sync-staging-profile-b-public-urls.sh" --validate-only');
+    const stop = install.indexOf('log "stop staging units"');
+    assert.ok(validate >= 0, "origin-map preflight exists");
+    assert.ok(stop >= 0, "service stop exists");
+    assert.ok(validate < stop, "invalid config must fail before stopping the stack");
   });
 });
