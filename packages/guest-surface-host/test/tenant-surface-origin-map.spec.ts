@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
 import {
+  lookupTenantSurfaceBindingForHost,
   resolveTenantSurfaceBindingForHost,
   resolveTenantSurfaceOriginFromHost,
   validateTenantSurfaceOriginMap,
@@ -62,10 +63,16 @@ describe("tenant surface origin map", () => {
       resolveTenantSurfaceBindingForHost("portal.qa2.staging.test")?.tenantId,
       "f0ed9e65-2638-4351-847d-724f87ebbfce"
     );
+    assert.equal(
+      lookupTenantSurfaceBindingForHost("admin.qa2.staging.test", "admin")?.tenantId,
+      "f0ed9e65-2638-4351-847d-724f87ebbfce"
+    );
   });
 
   it("fails closed for hosts absent from an enabled origin map", () => {
     process.env.TENANT_SURFACE_ORIGIN_MAP_JSON = JSON.stringify(map());
+    assert.equal(lookupTenantSurfaceBindingForHost("attacker.example", "admin"), null);
+    assert.equal(lookupTenantSurfaceBindingForHost("qa2.staging.test", "admin"), null);
     assert.throws(
       () => resolveTenantSurfaceOriginFromHost("attacker.example", "marketing"),
       /not allowlisted/

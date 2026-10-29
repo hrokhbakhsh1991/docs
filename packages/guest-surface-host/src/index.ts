@@ -11,6 +11,7 @@ export { isDevGuestHostAllowed, isDevWebSessionAllowed } from "./is-dev-guest-ho
 export { isLocalhostIngressHost } from "./is-localhost-ingress-host";
 export {
   isTenantSurfaceOriginMapConfigured,
+  lookupTenantSurfaceBindingForHost,
   resolveTenantSurfaceBindingForHost,
   resolveTenantSurfaceOriginFromHost,
   validateTenantSurfaceOriginMap,

@@ -1,3 +1,7 @@
+import {
+  isTenantSurfaceOriginMapConfigured,
+  lookupTenantSurfaceBindingForHost,
+} from "@app-tour/guest-surface-host";
 import { parseMultiLevelTenantHost } from "@app-tour/tenant-kernel/host-only";
 
 import { isDevWebSessionAllowed } from "./auth-env";
@@ -11,10 +15,15 @@ import { resolveProductionIngressLabelFromHost } from "./resolve-production-ingr
 
 /**
  * Expected tenant for the current Host header.
- * Dev: multi-level `{club}.admin.localhost` (WRS-001). Legacy `{club}.localhost` apex is not an admin host.
- * Production: host label resolution is ingress-owned — returns null (skip bind).
+ * Staging uses its explicit host map; development uses multi-level
+ * `{club}.admin.localhost` (WRS-001); production uses ingress-owned labels.
+ * Legacy `{club}.localhost` apex is not an admin host.
  */
 export function resolveExpectedTenantIdForHost(host: string): string | null {
+  if (isStagingSurfaceMapEnabled()) {
+    return lookupTenantSurfaceBindingForHost(host, "admin")?.tenantId ?? null;
+  }
+
   const hostMapped = resolveTenantIdFromDevHost(host);
   if (hostMapped !== null) {
     return hostMapped;
@@ -45,6 +54,17 @@ export function resolveExpectedTenantIdForHost(host: string): string | null {
   const envTenant =
     process.env.TOUR_OPS_DEV_TENANT_ID?.trim() ?? process.env.NEXT_PUBLIC_DEV_TENANT_ID?.trim();
   return envTenant !== undefined && envTenant.length > 0 ? envTenant : null;
+}
+
+export function shouldFailClosedForTenantHost(): boolean {
+  return !isDevWebSessionAllowed() || isStagingSurfaceMapEnabled();
+}
+
+function isStagingSurfaceMapEnabled(): boolean {
+  return (
+    process.env.APP_INFRA_PROFILE?.trim().toLowerCase() === "staging" &&
+    isTenantSurfaceOriginMapConfigured()
+  );
 }
 
 /** True when the session tenant matches static or registry-resolved host context. */
@@ -80,6 +100,6 @@ export function sessionTenantMatchesHost(
   }
 
   const failClosedWhenUnresolved =
-    options?.failClosedWhenUnresolved ?? !isDevWebSessionAllowed();
+    options?.failClosedWhenUnresolved ?? shouldFailClosedForTenantHost();
   return !failClosedWhenUnresolved;
 }
