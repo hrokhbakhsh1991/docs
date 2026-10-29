@@ -13,6 +13,7 @@ ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
 APP_USER="${APP_USER:-app-tour}"
 UNIT_PREFIX="${UNIT_PREFIX:-app-tour-staging}"
 TOOLING="${DEPLOY_ROOT}/tooling"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 log() { printf '[install-artifact] %s\n' "$*"; }
 
@@ -46,7 +47,6 @@ ensure_api_env_default() {
 ensure_api_env_default INTEGRATION_DELIVERY_ENABLED true
 ensure_api_env_default INTEGRATION_DELIVERY_WORKER_ENABLED true
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=ensure-staging-artifact-prerequisites.sh
 source "${SCRIPT_DIR}/ensure-staging-artifact-prerequisites.sh"
 
@@ -86,6 +86,9 @@ EXPECTED_ARTIFACT_DIGEST_SHA256="$(awk '{print $1}' "${ARTIFACT}.sha256")"
   echo "install-staging-artifact: artifact digest manifest does not match checksum file" >&2
   exit 1
 }
+
+log "preflight Profile B marketing↔portal public URLs before stopping staging units"
+ENV_DIR="$ENV_DIR" bash "${SCRIPT_DIR}/sync-staging-profile-b-public-urls.sh" --validate-only
 
 log "stop staging units"
 for u in ${UNIT_PREFIX}-{api,web,marketing,portal}; do

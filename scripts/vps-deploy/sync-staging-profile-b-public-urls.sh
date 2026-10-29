@@ -89,9 +89,9 @@ PUBLIC_PORTAL_BASE_URL="${STAGING_PUBLIC_PORTAL_BASE_URL:-https://staging-portal
 STAGING_ADMIN_HOST="${STAGING_ADMIN_HOST:-staging-admin-${CLUB_LABEL}.${PUBLIC_ROOT_DOMAIN}}"
 # The explicit map keeps cross-surface egress and session cookies tenant-bound.
 # Supply it from the approved staging inventory; never infer tenant B's hosts.
-TENANT_SURFACE_ORIGIN_MAP_JSON="${STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON:-}"
+TENANT_SURFACE_ORIGIN_MAP_JSON="${STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON:-$(read_api_env TENANT_SURFACE_ORIGIN_MAP_JSON)}"
 [[ -n "$TENANT_SURFACE_ORIGIN_MAP_JSON" ]] || {
-  echo "sync-staging-profile-b-public-urls: STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON is required" >&2
+  echo "sync-staging-profile-b-public-urls: TENANT_SURFACE_ORIGIN_MAP_JSON is required in ${API_ENV} or STAGING_TENANT_SURFACE_ORIGIN_MAP_JSON" >&2
   exit 1
 }
 TENANT_SURFACE_ORIGIN_MAP_JSON="$(node -e '
@@ -119,6 +119,14 @@ TENANT_SURFACE_ORIGIN_MAP_JSON="$(node -e '
   echo "sync-staging-profile-b-public-urls: invalid tenant surface origin map" >&2
   exit 1
 }
+if [[ "${1:-}" == "--validate-only" ]]; then
+  echo "sync-staging-profile-b-public-urls: tenant surface origin map valid"
+  exit 0
+fi
+if [[ $# -gt 0 ]]; then
+  echo "sync-staging-profile-b-public-urls: unexpected argument: $1" >&2
+  exit 2
+fi
 # Profile B uses sibling hosts instead of portal.{tenant}.{root}. The common
 # parent is explicit so the member session is readable by both staging
 # marketing and staging portal. The staging-only cookie name prevents it from
