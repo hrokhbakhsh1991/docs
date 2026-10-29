@@ -121,7 +121,7 @@
         "Clean release artifact for 652e4f38f7e52ce8519c02315e712e91153a5006 built successfully. Migration preflight, workspace/API and all three Next production builds, artifact self-check before/after extraction, and clean-room check PASS. Artifact SHA-256 1cbb6c631fa20251243eaba567bda6182721b101185e55256de13b5f648514e0.",
         "Current PR #329 CI at pushed SHA 37b0375: multiple checks PASS, 10 checks PENDING, 3 SKIPPED, and 0 failures at the latest snapshot. This predates the uncommitted fail-closed changes.",
         "Fresh route probe: all three B names unresolved by DNS; with SNI pinned to existing edge 185.143.233.133 each returns HTTP 503 with TLS verification result 0. Direct origin 89.42.210.252:80 returned HTTP 200, proving origin reachability. QA2 Caddy routes now fail closed with 503 by default; the flag is only enabled after ingress controls are verified. No staging install, seed, identity creation, DB mutation, browser smoke, runtime SHA, restart persistence, or rollback has run.",
-        "Fail-closed local verification: staging-env-contract 7/7 PASS; renderer defaults false, rejects invalid values, and renders explicit true; Caddy 2.9 validates rendered config with the flag both false and true; bash -n, Prettier, and git diff --check PASS."
+        "Fail-closed local verification: staging-env-contract 7/7 PASS; renderer defaults false, rejects invalid values, and renders explicit true; Caddy 2.9 validates rendered config with the flag both false and true; isolated Caddy runtime returns 503 when false and 200 when true; bash -n, Prettier, guard:doc-sync, and git diff --check PASS."
       ],
       "depends_on": ["F"]
     },
