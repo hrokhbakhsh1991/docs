@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import {
+  assertStagingRunnerCheckoutClean,
+  assertStagingTestShaMatchesCheckout,
   defineTwoTenantStagingConfig,
+  reserveStagingRunOutputDirectory,
   validateTwoTenantStagingManifest,
 } from "./fixtures/two-tenant-staging-config.mts";
 
@@ -36,6 +39,64 @@ const validManifest = () => ({
 });
 
 describe("two-tenant staging manifest", () => {
+  it("requires the recorded test SHA to match the current checkout", () => {
+    const sha = "a".repeat(40);
+    assert.doesNotThrow(() => assertStagingTestShaMatchesCheckout(sha, sha));
+    assert.throws(
+      () => assertStagingTestShaMatchesCheckout(sha, "b".repeat(40)),
+      /match the current Git checkout HEAD/
+    );
+  });
+
+  it("rejects modified or untracked files in a staging runner checkout", () => {
+    assert.doesNotThrow(() => assertStagingRunnerCheckoutClean(""));
+    assert.throws(
+      () => assertStagingRunnerCheckoutClean(" M apps/web/tests/e2e/example.spec.ts\n"),
+      /requires a clean Git checkout/
+    );
+  });
+
+  it("atomically reserves a run directory and permits only workers with its inherited nonce", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "two-tenant-run-reservation-"));
+    const outputDir = join(tempDir, "run-1");
+    const runEnvironment: NodeJS.ProcessEnv = {};
+
+    try {
+      reserveStagingRunOutputDirectory("run-1", outputDir, runEnvironment);
+      assert.match(runEnvironment.DENALI_TWO_TENANT_RUN_NONCE ?? "", /^[a-f0-9]{64}$/);
+      assert.doesNotThrow(() =>
+        reserveStagingRunOutputDirectory("run-1", outputDir, runEnvironment)
+      );
+
+      rmSync(outputDir, { recursive: true, force: true });
+      assert.doesNotThrow(() =>
+        reserveStagingRunOutputDirectory("run-1", outputDir, runEnvironment)
+      );
+      assert.equal(existsSync(outputDir), true);
+
+      assert.throws(
+        () => reserveStagingRunOutputDirectory("run-1", outputDir, { TEST_WORKER_INDEX: "0" }),
+        /already exists for run run-1/
+      );
+      assert.throws(
+        () =>
+          reserveStagingRunOutputDirectory("run-1", outputDir, {
+            DENALI_TWO_TENANT_RUN_NONCE: "forged",
+          }),
+        /not owned by this Playwright run/
+      );
+      assert.throws(
+        () =>
+          reserveStagingRunOutputDirectory("run-1", outputDir, {
+            DENALI_TWO_TENANT_RUN_NONCE: "another-run-nonce",
+          }),
+        /not owned by this Playwright run/
+      );
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("accepts six unique HTTPS staging origins with distinct tenant identities", () => {
     const manifest = validateTwoTenantStagingManifest(validManifest());
     assert.equal(manifest.tenants.A.tenantId, "00000000-0000-4000-8000-000000000003");
@@ -99,6 +160,7 @@ describe("two-tenant staging manifest", () => {
     const manifestPath = join(directory, "manifest.json");
     const oldManifestPath = process.env.DENALI_TWO_TENANT_STAGING_MANIFEST;
     const oldRunId = process.env.DENALI_TWO_TENANT_RUN_ID;
+    const oldRunNonce = process.env.DENALI_TWO_TENANT_RUN_NONCE;
     const oldTestSha = process.env.DENALI_TWO_TENANT_TEST_SHA;
     const oldExternalServers = process.env.PW_EXTERNAL_SERVERS;
     const oldTenantOriginMap = process.env.TENANT_SURFACE_ORIGIN_MAP_JSON;
@@ -155,11 +217,21 @@ describe("two-tenant staging manifest", () => {
           ),
           { recursive: true, force: true }
         );
+        rmSync(
+          join(
+            process.cwd(),
+            "test-results/two-tenant-staging",
+            `.${process.env.DENALI_TWO_TENANT_RUN_ID}.runner-lock`
+          ),
+          { recursive: true, force: true }
+        );
       }
       if (oldManifestPath === undefined) delete process.env.DENALI_TWO_TENANT_STAGING_MANIFEST;
       else process.env.DENALI_TWO_TENANT_STAGING_MANIFEST = oldManifestPath;
       if (oldRunId === undefined) delete process.env.DENALI_TWO_TENANT_RUN_ID;
       else process.env.DENALI_TWO_TENANT_RUN_ID = oldRunId;
+      if (oldRunNonce === undefined) delete process.env.DENALI_TWO_TENANT_RUN_NONCE;
+      else process.env.DENALI_TWO_TENANT_RUN_NONCE = oldRunNonce;
       if (oldTestSha === undefined) delete process.env.DENALI_TWO_TENANT_TEST_SHA;
       else process.env.DENALI_TWO_TENANT_TEST_SHA = oldTestSha;
       if (oldExternalServers === undefined) delete process.env.PW_EXTERNAL_SERVERS;

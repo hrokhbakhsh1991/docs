@@ -1,6 +1,8 @@
-import { existsSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { isIP } from "node:net";
-import { resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, devices, type PlaywrightTestConfig } from "@playwright/test";
 import { validateTenantSurfaceOriginMap } from "@app-tour/guest-surface-host";
@@ -194,6 +196,86 @@ type StagingRunArtifacts = {
   readonly outputDir: string;
 };
 
+export function assertStagingTestShaMatchesCheckout(testSha: string, checkoutSha: string): void {
+  if (!/^[a-f0-9]{40}$/i.test(checkoutSha) || testSha.toLowerCase() !== checkoutSha.toLowerCase()) {
+    throw new Error("DENALI_TWO_TENANT_TEST_SHA must match the current Git checkout HEAD");
+  }
+}
+
+export function assertStagingRunnerCheckoutClean(status: string): void {
+  if (status.length > 0) {
+    throw new Error("two-tenant staging runner requires a clean Git checkout");
+  }
+}
+
+const STAGING_RUN_NONCE_ENV = "DENALI_TWO_TENANT_RUN_NONCE";
+const STAGING_RUN_OWNER_FILE = ".runner-owner";
+
+export function reserveStagingRunOutputDirectory(
+  runId: string,
+  outputDir: string,
+  environment: NodeJS.ProcessEnv = process.env
+): void {
+  const outputParent = dirname(outputDir);
+  const lockDir = join(outputParent, `.${runId}.runner-lock`);
+  const ownerFile = join(lockDir, STAGING_RUN_OWNER_FILE);
+  const inheritedNonce = environment[STAGING_RUN_NONCE_ENV];
+
+  if (inheritedNonce) {
+    let existingNonce: string;
+    try {
+      existingNonce = readFileSync(ownerFile, "utf8");
+    } catch {
+      throw new Error(`staging artifact directory is not owned by this Playwright run ${runId}`);
+    }
+    if (existingNonce !== inheritedNonce) {
+      throw new Error(`staging artifact directory is not owned by this Playwright run ${runId}`);
+    }
+    mkdirSync(outputDir, { recursive: true, mode: 0o700 });
+    return;
+  }
+
+  mkdirSync(outputParent, { recursive: true });
+  if (existsSync(outputDir)) {
+    throw new Error(`staging artifact directory already exists for run ${runId}`);
+  }
+  try {
+    mkdirSync(lockDir, { mode: 0o700 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+      throw new Error(`staging artifact directory already exists for run ${runId}`);
+    }
+    throw error;
+  }
+
+  const nonce = randomBytes(32).toString("hex");
+  writeFileSync(ownerFile, nonce, { flag: "wx", mode: 0o600 });
+  mkdirSync(outputDir, { mode: 0o700 });
+  environment[STAGING_RUN_NONCE_ENV] = nonce;
+}
+
+export function assertStagingRunnerCheckout(testSha: string): void {
+  const webRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
+  let checkoutSha: string;
+  let checkoutStatus: string;
+  try {
+    checkoutSha = execFileSync("git", ["rev-parse", "--verify", "HEAD"], {
+      cwd: resolve(webRoot, "../.."),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    checkoutStatus = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], {
+      cwd: resolve(webRoot, "../.."),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    throw new Error("unable to verify the current Git checkout for staging evidence");
+  }
+  assertStagingRunnerCheckoutClean(checkoutStatus);
+  assertStagingTestShaMatchesCheckout(testSha, checkoutSha);
+}
+
 function resolveStagingRunArtifacts(): StagingRunArtifacts {
   const runId = process.env.DENALI_TWO_TENANT_RUN_ID?.trim() ?? "";
   if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(runId)) {
@@ -207,9 +289,7 @@ function resolveStagingRunArtifacts(): StagingRunArtifacts {
   }
   const webRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
   const outputDir = resolve(webRoot, "test-results", "two-tenant-staging", runId);
-  if (existsSync(outputDir)) {
-    throw new Error(`staging artifact directory already exists for run ${runId}`);
-  }
+  reserveStagingRunOutputDirectory(runId, outputDir);
   return { runId, testSha: testSha.toLowerCase(), outputDir };
 }
 
