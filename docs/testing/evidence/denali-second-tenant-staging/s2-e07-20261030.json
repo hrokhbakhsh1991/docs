@@ -1,0 +1,46 @@
+{
+  "scenario": "S2-E07",
+  "result": "PARTIAL",
+  "runner_sha": "9574b13c32ceef3a8fbe1d0db6ddab30b36c1abd",
+  "runtime_sha": "55a7085ddf52a5c7b90e29da46c2226649daf73e",
+  "transport": "Strict TLS with the staging Caddy root CA; A and B admin hosts pinned to VPS loopback; certificate and hostname verification remained enabled.",
+  "preflight": {
+    "release_sha_matches_current": true,
+    "api_web_marketing_portal_and_caddy_active": true,
+    "staging_static_otp_enabled": true,
+    "outbound_sms_disabled": true,
+    "A_owner_identity_matches_approved_synthetic_namespace": true
+  },
+  "authentication": {
+    "A_owner": {
+      "otp_request_http": 200,
+      "login_http": 200,
+      "session_readback_http": 200,
+      "user_tenant_role_match": true
+    },
+    "A_protected_bookings_summary_http": 200
+  },
+  "cross_host_replay": {
+    "method": "GET",
+    "path": "/api/bookings/summary",
+    "from_host": "admin.denali.staging.test",
+    "to_host": "admin.qa2.staging.test",
+    "session_cookie": "atour_op_session",
+    "http_status": 403,
+    "private_response_fields_absent": true
+  },
+  "code_and_standards_review": {
+    "codebase_memory_review": "PASS: the protected BFF route reads the operator session cookie and forwards its bearer token with the request host; staging middleware resolves the admin host tenant and rejects a session whose tenant differs. sessionTenantMatchesHost fails closed when staging host resolution is unavailable.",
+    "standard_review": "PASS: host-derived tenant context and session-to-host binding satisfy the tenant boundary expectation in WRS-001 for the tested A-to-B direction. No code exception or bypass was added.",
+    "reviewed_sources": [
+      "apps/web/app/api/bookings/summary/route.ts",
+      "apps/web/src/tenant/session-host-binding.ts",
+      "apps/web/middleware.ts"
+    ]
+  },
+  "side_effects": "No business rows or staging configuration changed. One approved synthetic A Owner OTP challenge was created and consumed; SMS was disabled. Tokens and identity phone were kept in a mode-0700 temporary directory and removed on exit.",
+  "remaining": [
+    "Current-release B-to-A operator replay has not been revalidated because the existing B Owner mobile does not match an approved synthetic test namespace.",
+    "Current-release portal/member replay, refresh behavior, and browser/UI tenant-switching acceptance remain open."
+  ]
+}
