@@ -73,7 +73,20 @@ sudo systemctl restart caddy
 
 **Port mapping:** `render-caddy-env.sh` reads both env directories and writes explicit `PROD_*_PORT` and `STAGING_*_PORT` values. Production domains route to `3000–3003`; staging domains route to `23000–23003`. It reads the production `PORTAL_PUBLIC_BASE_URL` (falling back to `marketing.env`) so custom production portal hosts route to the Portal upstream instead of the marketing wildcard. The site addresses are explicitly HTTP because Arvan terminates public HTTPS before the origin; `X-Forwarded-Proto` and `X-Forwarded-Host` remain set for the applications. Provisioning another workspace must update the public URL/env and reload Caddy; it does not broaden the session cookie to the platform root.
 
-The staging Profile C also defines exact admin, portal, and marketing hosts for `STAGING_SECOND_TENANT_LABEL` (default `qa2`). They return HTTP 503 by default because the origin can be reached directly; all three proxy to staging ports only after `STAGING_SECOND_TENANT_ENABLED=true` is explicitly set in the renderer environment or staging `web.env`. Enable it only after DNS, TLS, edge routing, and origin access controls are verified. Rendering fails if any staging app env file is missing, a staging port is invalid or duplicated, a staging port collides with production, or the enable flag is not exactly `true` or `false`. Enabling this Caddy flag does not create public DNS or TLS.
+The staging Profile C keeps exact public A hosts for the current staging tenant. Legacy public QA2 names always return HTTP 503 and never proxy, so they cannot fall through to production wildcard routes. The private QA2 hosts described below proxy to staging ports only after `STAGING_SECOND_TENANT_ENABLED=true` is explicitly set in the renderer environment or staging `web.env`. Rendering fails if any staging app env file is missing, a staging port is invalid or duplicated, a staging port collides with production, or the enable flag is not exactly `true` or `false`.
+
+### Private two-tenant staging ingress
+
+For isolated A/B browser tests, the Caddyfile also declares these exact HTTPS hosts under the reserved `.staging.test` suffix:
+
+| Tenant       | Admin                       | Portal                       | Marketing             |
+| ------------ | --------------------------- | ---------------------------- | --------------------- |
+| A (`denali`) | `admin.denali.staging.test` | `portal.denali.staging.test` | `denali.staging.test` |
+| B (`qa2`)    | `admin.qa2.staging.test`    | `portal.qa2.staging.test`    | `qa2.staging.test`    |
+
+These sites use Caddy's internal CA. They are for private test ingress: keep origin TCP/443 closed to the public internet and expose it only through an approved private runner/network path. Export only the public root certificate to an isolated test profile and trust it there; do not disable certificate validation or install the test CA into the workstation-wide trust store. Tenant B remains fail-closed with HTTP 503 until `STAGING_SECOND_TENANT_ENABLED=true`; enable it only after the tenant binding, exact host mapping, private TLS trust and origin access controls are verified. The private hostnames are not public DNS records and do not create public routes.
+
+The private test runner must resolve the six names to the approved origin without changing the browser's URL host. Its HTTPS requests must use the default port and validate both hostname and certificate chain. Record the runner's exact mapping, CA fingerprint and staging runtime SHA in the execution ledger; remove temporary host mappings and trust material when the run ends.
 
 ### 3. Configure DNS
 
@@ -191,12 +204,12 @@ sudo journalctl -u caddy -n 50
 ### TLS certificate errors
 
 ```bash
-# Check Caddy can reach Let's Encrypt
-sudo caddy trust
-
-# View certificate status
-sudo caddy list-certificates
+# Inspect Caddy logs and certificate storage without trusting the private CA globally
+sudo journalctl -u caddy -n 100 --no-pager
+sudo find /var/lib/caddy -type f -name '*.crt' -print
 ```
+
+For `.staging.test`, trust Caddy's public internal-CA root only inside the isolated test runner/profile. Never use `curl -k`, browser certificate-error bypasses, or workstation-wide `caddy trust` for this private staging CA.
 
 ### Apps not responding
 
@@ -232,9 +245,9 @@ http://<VPS_IP>:3003  # portal
 ## Security Notes
 
 1. **Loopback only:** Apps should NOT be accessible from `0.0.0.0` in production
-2. **Firewall:** Use UFW to block direct access to ports 3000-3003 from internet
+2. **Firewall:** Block direct access to ports 3000-3003. For private `.staging.test` ingress, keep origin 443 closed publicly; do not apply a broad `ufw allow 443/tcp` rule.
 3. **Headers:** Caddy forwards `X-Forwarded-Proto`, `X-Forwarded-Host` for session security
-4. **TLS:** Let's Encrypt provides free certificates with auto-renewal
+4. **TLS:** Public Arvan routes terminate TLS at the edge; private `.staging.test` routes use Caddy's internal CA and isolated runner trust.
 
 ## References
 

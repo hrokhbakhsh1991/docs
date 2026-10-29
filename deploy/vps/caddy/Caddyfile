@@ -64,30 +64,9 @@ http://staging-admin-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 	}
 }
 
-# Exact second-tenant route stays on the staging web upstream. The public edge
-# must separately provision DNS/TLS before this host is reachable externally.
+# Legacy public QA2 names must not fall through to production wildcard routes.
 http://staging-admin-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
-	@stagingSecondTenantDisabled expression `{env.STAGING_SECOND_TENANT_ENABLED} != "true"`
-	handle @stagingSecondTenantDisabled {
-		respond "staging second tenant ingress is disabled" 503
-	}
-	handle {
-		@stagingTelegramWebhook path /webhooks/telegram/*
-		handle @stagingTelegramWebhook {
-			reverse_proxy 127.0.0.1:{$STAGING_API_PORT} {
-				header_up Host {host}
-				header_up X-Forwarded-Proto https
-				header_up X-Forwarded-Host {host}
-				header_up X-Real-IP {remote_host}
-			}
-		}
-		reverse_proxy 127.0.0.1:{$STAGING_WEB_PORT} {
-			header_up Host {host}
-			header_up X-Forwarded-Proto https
-			header_up X-Forwarded-Host {host}
-			header_up X-Real-IP {remote_host}
-		}
-	}
+	respond "private staging ingress required" 503
 }
 
 http://*.portal.{$PLATFORM_ROOT_DOMAIN} {
@@ -131,6 +110,74 @@ http://staging-portal-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 }
 
 http://staging-portal-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+	respond "private staging ingress required" 503
+}
+
+http://staging-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+	reverse_proxy 127.0.0.1:{$STAGING_MARKETING_PORT} {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+}
+
+http://staging-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+	respond "private staging ingress required" 503
+}
+
+# Private A/B staging aliases use one parent domain for cookie-isolation tests.
+# Caddy issues certificates from its internal CA; only the SSH-tunneled runner
+# should reach origin :443, and the runner trusts the exported public root cert.
+https://admin.{$CANONICAL_TENANT_LABEL}.staging.test {
+	tls internal
+	@stagingTelegramWebhook path /webhooks/telegram/*
+	handle @stagingTelegramWebhook {
+		reverse_proxy 127.0.0.1:{$STAGING_API_PORT} {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+	handle {
+		reverse_proxy 127.0.0.1:{$STAGING_WEB_PORT} {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+}
+
+https://admin.{$STAGING_SECOND_TENANT_LABEL}.staging.test {
+	tls internal
+	@stagingSecondTenantDisabled expression `{env.STAGING_SECOND_TENANT_ENABLED} != "true"`
+	handle @stagingSecondTenantDisabled {
+		respond "staging second tenant ingress is disabled" 503
+	}
+	handle {
+		reverse_proxy 127.0.0.1:{$STAGING_WEB_PORT} {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+}
+
+https://portal.{$CANONICAL_TENANT_LABEL}.staging.test {
+	tls internal
+	reverse_proxy 127.0.0.1:{$STAGING_PORTAL_PORT} {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+}
+
+https://portal.{$STAGING_SECOND_TENANT_LABEL}.staging.test {
+	tls internal
 	@stagingSecondTenantDisabled expression `{env.STAGING_SECOND_TENANT_ENABLED} != "true"`
 	handle @stagingSecondTenantDisabled {
 		respond "staging second tenant ingress is disabled" 503
@@ -145,7 +192,8 @@ http://staging-portal-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 	}
 }
 
-http://staging-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+https://{$CANONICAL_TENANT_LABEL}.staging.test {
+	tls internal
 	reverse_proxy 127.0.0.1:{$STAGING_MARKETING_PORT} {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
@@ -154,7 +202,8 @@ http://staging-{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
 	}
 }
 
-http://staging-{$STAGING_SECOND_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+https://{$STAGING_SECOND_TENANT_LABEL}.staging.test {
+	tls internal
 	@stagingSecondTenantDisabled expression `{env.STAGING_SECOND_TENANT_ENABLED} != "true"`
 	handle @stagingSecondTenantDisabled {
 		respond "staging second tenant ingress is disabled" 503
