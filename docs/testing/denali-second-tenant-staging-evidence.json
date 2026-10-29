@@ -51,8 +51,8 @@
     },
     {
       "id": "F",
-      "status": "BLOCKED",
-      "reason": "Private staging resolution implementation and fresh code review are complete locally. PR CI, deployment of the new code/profile marker, and staging host-to-tenant proof remain necessary before F can close.",
+      "status": "PARTIAL",
+      "reason": "The original private-host resolver has been merged and is live: all six planned A/B hosts resolve to their intended tenant IDs and an unknown host returns 404. The follow-up staging session-binding correction is on PR #336 and awaits Phase 5 CI plus independent review; authenticated B session acceptance is still failing on the deployed pre-fix SHA.",
       "evidence": [
         "apps/web middleware resolves dynamic production admin tenant context and rejects unresolved hosts; root redirects preserve forwarded public ingress.",
         "apps/api/scripts/seed-denali-second-staging-tenant.ts pins the target and B identity, rejects UUID/slug collisions, and delegates creation to the existing certified production primitive.",
@@ -72,14 +72,15 @@
         "Added exact .staging.test resolution through the validated TENANT_SURFACE_ORIGIN_MAP_JSON only when APP_INFRA_PROFILE=staging; active tenant lookup is by configured UUID and returns the mapped surface.",
         "Public custom-domain resolution still uses tenant_domains and verified/active CNAME lifecycle. Private bindings fail closed if any tenant_domains row already owns the hostname.",
         "Fresh code review covered profile and suffix gates, normalized exact host matching, map validation, active tenant state, collision handling, and public-domain compatibility; no unresolved findings in this slice.",
-        "P1 private resolution implementation has not yet run in PR CI or on staging; no commit/deploy has been made."
+        "P1 private resolution implementation has not yet run in PR CI or on staging; no commit/deploy has been made.",
+        "CURRENT 2026-10-29 13:02 UTC: staging API matrix passes for all six private hosts; unknown host returns 404 TENANT_HOST_UNKNOWN. Follow-up fix commit b0de67205bd4b9e7d110844d982df3288873b903 is on open PR #336. Phase 5 job 123452697967 is in progress; no merge/deploy of this fix."
       ],
       "depends_on": ["B", "E"]
     },
     {
       "id": "G",
-      "status": "BLOCKED",
-      "reason": "Fresh staging release is 86e0cd2863ce9f55b91015b88c3ab3608e5ee5a6. Caddy is active and validates but its second-tenant flag is false; all B hosts return 503. Do not enable until private binding is implemented and host-to-tenant resolution can be proven.",
+      "status": "PARTIAL",
+      "reason": "Current staging ingress is enabled for the second tenant; Caddy and all five services are active, and API host-to-tenant routing passes. Authenticated B Owner session still fails with AUTH_TENANT_HOST_MISMATCH on deployed SHA 3d51cf665b56cd3cc25d12834b0ac02229f1a281; do not count end-to-end acceptance as closed.",
       "evidence": [
         "Read-only staging inventory and DNS/TLS probe recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md (P0-02/P0-03).",
         "At initial preflight, the existing release was a685ad89c78a21faf367f6afe00e197f4a812a48; later historical deployment attempts and the current successful run are recorded below.",
@@ -118,7 +119,8 @@
         "Strict TLS with the Caddy internal root CA: qa2.staging.test, admin.qa2.staging.test and portal.qa2.staging.test return 503 with the second-tenant flag false. On the pre-PR release, denali.staging.test and portal.denali.staging.test return 500, while admin.denali.staging.test returns 404; these A-private alias responses require post-deploy acceptance and are not evidence against the new resolver.",
         "Codebase Memory trace of handlePublicTenantContext: GET /public/tenant-context dispatches through resolvePublicIngressSubdomain to resolveTenantFromCustomDomainHost; use this route for tenant/surface assertions on all six hosts after deploy. The current release predates the PR.",
         "Fresh read-only UFW check: firewall active, default deny incoming, only TCP 22 and 80 allowed on IPv4/IPv6; TCP 443 is not publicly allowed. Internal strict-TLS probes to Caddy loopback succeed.",
-        "Read-only VPS inventory found no Chromium/Chrome/Firefox binary and no Playwright package in the deployed release; the VPS is not a browser runner. No package installation or firewall change has been made."
+        "Read-only VPS inventory found no Chromium/Chrome/Firefox binary and no Playwright package in the deployed release; the VPS is not a browser runner. No package installation or firewall change has been made.",
+        "CURRENT 2026-10-29 13:02 UTC: second-tenant flag is true in web and Caddy env; services API/web/marketing/portal/Caddy are active; six-host A/B map returns expected tenant UUIDs, unknown host 404. Runtime B Owner flow is still failing at membership-ability-context; auth correction is not deployed."
       ],
       "depends_on": ["F"]
     },
@@ -133,8 +135,8 @@
     },
     {
       "id": "I",
-      "status": "BLOCKED",
-      "reason": "Focused local tests, API lint/typecheck and architecture/tenant/import guards pass. Current implementation still needs PR CI and deployed staging host-to-tenant proof; browser and P5-P7 acceptance remain NOT RUN.",
+      "status": "IN PROGRESS",
+      "reason": "Local implementation and checks pass; most PR checks pass, but Phase 5 PostgreSQL CI is still running, independent review is not run, authenticated staging B remains failing, and P5 business isolation scenarios remain NOT RUN.",
       "evidence": [
         "14/14 focused web tests pass across admin ingress redirect, auth host isolation, and multi-level session binding.",
         "9/9 focused P2 tests pass for staging target guard and exact-ID/slug idempotence/collision behavior.",
@@ -190,14 +192,16 @@
         "Staging environment/deploy contract tests: 15/15 PASS, including idempotent sync, APP_INFRA_PROFILE marker persistence, and origin-map SHA fingerprint output.",
         "Guest-surface-host build, API lint/typecheck, API guards, root architecture/import guards, Prettier, documentation sync and git diff check PASS.",
         "PR #335 Phase 5 gate run 40846927366 FAILED: apps/api/test/package-boundary.spec.ts exact runtime dependency allowlist omitted the newly required @app-tour/guest-surface-host dependency; forbidden UI package import assertion was not the failing assertion.",
-        "Added @app-tour/guest-surface-host to the API runtime dependency allowlist and documented its tenant-surface-origin-map subpath use in docs/phase-15/platform-domains-ssl.mdoc. Focused rerun pnpm --filter @apps/api exec tsx --test test/package-boundary.spec.ts PASS 2/2; guard:doc-sync PASS and git diff --check PASS. Full PR CI has not yet rerun on a commit containing the fix."
+        "Added @app-tour/guest-surface-host to the API runtime dependency allowlist and documented its tenant-surface-origin-map subpath use in docs/phase-15/platform-domains-ssl.mdoc. Focused rerun pnpm --filter @apps/api exec tsx --test test/package-boundary.spec.ts PASS 2/2; guard:doc-sync PASS and git diff --check PASS. Full PR CI has not yet rerun on a commit containing the fix.",
+        "CURRENT 2026-10-29 13:02 UTC: PR #336 head b0de67205bd4b9e7d110844d982df3288873b903 is OPEN/UNSTABLE. Latest Phase 5 PostgreSQL job is in progress; other observed checks passed or were conditionally skipped. Local guest host package 86/86, full web unit suite 2099/2099, focused session binding 7/7, auth host isolation 7/7, lint/typecheck/build and guards passed. These local checks do not prove staging business isolation.",
+        "CURRENT 2026-10-29 13:11 UTC: the local staging SSH helper could not connect because VPS_HOST is unset in the shell; this was a pre-connect failure, so live SHA/service status is not freshly verified from this environment. No staging mutation ran."
       ],
       "depends_on": ["F"]
     },
     {
       "id": "J",
-      "status": "BLOCKED",
-      "reason": "Fresh review of the private staging resolver slice passed with no unresolved local findings. Whole-scope final review remains incomplete until CI, staging runtime, browser/business acceptance, persistence and rollback evidence exist.",
+      "status": "IN PROGRESS",
+      "reason": "Final audit is open: fresh local diff review and standards checks pass, but independent review type selection required by review skill is outstanding; PR CI, post-fix staging auth, P5 scenarios, persistence, artifact-aware rollback, TLS renewal operations, and final runbook/evidence sync are incomplete.",
       "evidence": [
         "Fresh codebase-memory index and traces confirm web middleware, requireOperatorSessionWeb and OperatorAppLayout call paths; registry bootstrap remains the only source of dynamic tenant binding.",
         "P2 reviewed against existing provisioning guard and production-certified creation primitive; no shared Denali QA slug/UUID or unsafe slug-only upsert was added.",
@@ -224,9 +228,110 @@
         "Latest read-only review found tenant_domains schema has no field distinguishing public CNAME verification from operator private binding; this is a contract gap to resolve before live host activation.",
         "Final A-J completion audit is pending because runtime P3-P7 acceptance remains incomplete.",
         "Private-host review checked exact validated map lookup, staging profile gate, active tenant lookup, any-row domain collision rejection, shared surface resolution and unchanged public CNAME path.",
-        "Updated docs/phase-15/platform-domains-ssl.mdoc before continuing API changes, per app-tour-architecture skill."
+        "Updated docs/phase-15/platform-domains-ssl.mdoc before continuing API changes, per app-tour-architecture skill.",
+        "CURRENT 2026-10-29 13:02 UTC: no GitHub review is recorded for PR #336. The final review/closure cannot be claimed until independent review is complete and findings are handled, then deployed-runtime and P5-P7 evidence is recorded.",
+        "CURRENT 2026-10-29 13:11 UTC: a P7-04 runbook draft exists at docs/testing/denali-second-tenant-staging-runbook.md and clearly marks unsupported acceptance, rollback, and TLS renewal operations as open. This draft is not sign-off.",
+        "CURRENT 2026-10-29 13:15 UTC: runner audit found pnpm run p7:staging-gate and scripts/p7-staging-remote-gate.sh as generic existing gates; neither runs or records all 18 S2-E scenarios. The remote full-gate path sets StrictHostKeyChecking=no, so it is not suitable as the secure tenant acceptance runner. Runbook wording was narrowed to this exact gap; no staging action was run.",
+        "CURRENT 2026-10-29 13:16 UTC: fresh graph-based review of the mapped-host miss path confirms the strict map resolver throws for an unlisted host, the middleware's admin bootstrap wrapper converts that miss to null, and staging map mode keeps failClosedWhenUnresolved true. The session is therefore rejected instead of falling back to the dev tenant. Source-level evidence only; middleware integration and deployed staging proof remain outstanding.",
+        "CURRENT 2026-10-29 13:19 UTC: deploy/vps/caddy/Caddyfile uses tls internal for all six private hosts. Official Caddy docs describe automatic renewal, 12-hour internal leaf certificates, a 7-day automatically renewed intermediate, and a 3600-day root. Runbook now includes a strict read-only TLS verification loop and persistent-storage/trust guidance. Expiry alert, named owner, and renewal-failure drill remain unverified; no staging action was run.",
+        "CURRENT 2026-10-29 13:21 UTC: a targeted Playwright config and six-case two-tenant network spec exist. They test DNS against an IP allowlist, strict API TLS/HTTP, and browser navigation; they accept any HTTP status below 500 and do not assert tenant IDs, served SHA, authentication, or business isolation. Runbook now records exact command and limited scope. Live execution NOT RUN because no approved runtime manifest/private ingress is configured here.",
+        "CURRENT 2026-10-29 13:22 UTC: focused local tests for two-tenant staging manifest/config and reporter passed 11/11. This proves config/reporting contracts only; the Playwright network spec, browser behavior, all 18 S2-E scenarios, and staging runtime remain NOT RUN.",
+        "CURRENT 2026-10-29 13:23 UTC: runner source review found that status <500 accepted 4xx; API and browser response assertions were tightened to status <400. A synthetic-manifest Playwright --list check discovers exactly 6 tests and makes no network request. Runner config records supplied SHA values without comparing the manifest/runtime to Git or served release; runbook now documents that provenance limit. Live acceptance remains NOT RUN.",
+        "CURRENT 2026-10-29 13:24 UTC: post-fix config/reporter tests pass 11/11, ESLint passes on the changed Playwright spec, synthetic-manifest Playwright --list discovers 6 tests without network access, and JSON/Prettier/diff checks pass. This is local verification only; live network and business acceptance remain NOT RUN."
       ],
       "depends_on": ["G", "I"]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "S2-E01",
+      "status": "PASS",
+      "evidence": "Staging tenant-context matrix: all six private A/B marketing/admin/portal hosts return their expected tenant IDs; strict TLS and six-route browser surface smoke passed on deployed SHA 3d51cf665b56cd3cc25d12834b0ac02229f1a281."
+    },
+    {
+      "id": "S2-E02",
+      "status": "PARTIAL",
+      "evidence": "Unknown host returns 404 TENANT_HOST_UNKNOWN. Forged X-Forwarded-Host behavior has not been exercised against the deployed runtime."
+    },
+    {
+      "id": "S2-E03",
+      "status": "FAIL",
+      "evidence": "B Owner OTP verification returned HTTP 200 and B tenant context, but protected membership-ability-context returned 403 AUTH_TENANT_HOST_MISMATCH. Full A/B role matrix remains NOT RUN."
+    },
+    {
+      "id": "S2-E04",
+      "status": "NOT RUN",
+      "evidence": "No authenticated cross-tenant tour read/edit and owner read-back scenario has run in staging."
+    },
+    {
+      "id": "S2-E05",
+      "status": "NOT RUN",
+      "evidence": "No authenticated cross-tenant list/search/filter/pagination/count scenario has run in staging."
+    },
+    {
+      "id": "S2-E06",
+      "status": "NOT RUN",
+      "evidence": "No child-resource foreign-tenant read/write denial scenario has run in staging."
+    },
+    {
+      "id": "S2-E07",
+      "status": "NOT RUN",
+      "evidence": "No A/B token or session replay across protected hosts has run in staging."
+    },
+    {
+      "id": "S2-E08",
+      "status": "PARTIAL",
+      "evidence": "B Owner login reaches tenant B, then authorization context fails; synthetic B Finance/Admin was rejected from the owner-only admin panel. Refresh/logout/returnTo and cookie-scope acceptance remain NOT RUN."
+    },
+    {
+      "id": "S2-E09",
+      "status": "NOT RUN",
+      "evidence": "No authenticated tenant-switch, stale-data, or sibling-alias cookie-isolation scenario has run."
+    },
+    {
+      "id": "S2-E10",
+      "status": "NOT RUN",
+      "evidence": "No B wizard create/edit/publish/catalog flow or refresh persistence has run in staging."
+    },
+    {
+      "id": "S2-E11",
+      "status": "NOT RUN",
+      "evidence": "No B free-registration/capacity/approval/waitlist flow has run in staging."
+    },
+    {
+      "id": "S2-E12",
+      "status": "NOT RUN",
+      "evidence": "No synthetic offline receipt to Finance to paid/invoice/roster/XLSX flow has run in staging."
+    },
+    {
+      "id": "S2-E13",
+      "status": "NOT RUN",
+      "evidence": "No controlled A/B capacity and waitlist interleaving scenario has run in staging."
+    },
+    {
+      "id": "S2-E14",
+      "status": "NOT RUN",
+      "evidence": "No authenticated roster/XLSX/receipt download or file namespace isolation scenario has run in staging."
+    },
+    {
+      "id": "S2-E15",
+      "status": "NOT RUN",
+      "evidence": "RLS configuration was inspected, but no business-path interleaving under the real app DB role has run after the fix."
+    },
+    {
+      "id": "S2-E16",
+      "status": "NOT RUN",
+      "evidence": "No warm-cache, tenant-switch, revalidate, and refresh isolation scenario has run in staging."
+    },
+    {
+      "id": "S2-E17",
+      "status": "NOT RUN",
+      "evidence": "No guarded reseed plus controlled staging restart or reinstall replay has run after the fix."
+    },
+    {
+      "id": "S2-E18",
+      "status": "NOT RUN",
+      "evidence": "Cleanup has only been rehearsed with dry-run; scoped apply, restoration fingerprint, rollback, and post-rollback A smoke have not run."
     }
   ]
 }
