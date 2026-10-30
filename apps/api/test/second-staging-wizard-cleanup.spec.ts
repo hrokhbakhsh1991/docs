@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   assertNoSecondStagingWizardTourDependencies,
   buildSecondStagingWizardTourMatchWhere,
+  getSecondStagingWizardExpectedTourPublishStatus,
   getSecondStagingWizardTourCreatedAtWindow,
   assertSecondStagingWizardTourManifest,
 } from "../scripts/lib/denali-second-staging-wizard-cleanup";
@@ -37,6 +38,11 @@ test("second staging wizard cleanup accepts an exact post-create manifest", () =
       status: "active",
     })
   );
+});
+
+test("second staging wizard cleanup maps operator status to persisted publish status", () => {
+  assert.equal(getSecondStagingWizardExpectedTourPublishStatus("draft"), "draft");
+  assert.equal(getSecondStagingWizardExpectedTourPublishStatus("active"), "published");
 });
 
 test("second staging wizard cleanup rejects cross-tenant and mismatched-title manifests", () => {

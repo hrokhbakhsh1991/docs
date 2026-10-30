@@ -11,6 +11,7 @@ import {
 } from "./lib/denali-second-staging-fixtures";
 import {
   assertNoSecondStagingWizardTourDependencies,
+  getSecondStagingWizardExpectedTourPublishStatus,
   assertSecondStagingWizardTourManifest,
   buildSecondStagingWizardTourMatchWhere,
   type SecondStagingWizardTourManifest,
@@ -63,7 +64,7 @@ async function inspectAndMaybeDeleteWizardTour(
         if (
           tour.tenantId !== SECOND_STAGING_TENANT.id ||
           tour.title !== manifest.title ||
-          (tour.publishStatus !== "draft" && tour.publishStatus !== "active")
+          tour.publishStatus !== getSecondStagingWizardExpectedTourPublishStatus(manifest.status)
         ) {
           throw new Error("DENALI_SECOND_STAGING_CLEANUP_ROW_COLLISION");
         }
