@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   assertNoSecondStagingWizardTourDependencies,
+  buildSecondStagingWizardTourMatchWhere,
   getSecondStagingWizardTourCreatedAtWindow,
   assertSecondStagingWizardTourManifest,
 } from "../scripts/lib/denali-second-staging-wizard-cleanup";
@@ -82,7 +83,37 @@ test("second staging wizard cleanup refuses tours with linked business history",
 
 test("second staging wizard cleanup title recovery has a bounded run window", () => {
   const window = getSecondStagingWizardTourCreatedAtWindow("2026-10-30T10:00:00.000Z");
-  assert.equal(window.gte.toISOString(), "2026-10-30T09:55:00.000Z");
-  assert.equal(window.lte.toISOString(), "2026-10-30T10:10:00.000Z");
+  assert.equal(window.gte.toISOString(), "2026-10-30T08:30:00.000Z");
+  assert.equal(window.lte.toISOString(), "2026-10-30T11:30:00.000Z");
   assert.throws(() => getSecondStagingWizardTourCreatedAtWindow("2026-10-30 10:00:00Z"));
+});
+
+test("second staging wizard cleanup recovery includes observed one-hour timestamp drift", () => {
+  const window = getSecondStagingWizardTourCreatedAtWindow("2026-10-30T11:44:19.470Z");
+  const createdAt = new Date("2026-10-30T12:44:47.216Z");
+  assert.ok(createdAt >= window.gte && createdAt <= window.lte);
+});
+
+test("second staging wizard cleanup uses exact ID without depending on cross-host clocks", () => {
+  const manifest = {
+    ...validManifest(),
+    tourId: "36da3ea8-aa09-4063-9fa2-427ed4bb175c",
+  };
+  assert.deepEqual(buildSecondStagingWizardTourMatchWhere(manifest), {
+    tenantId: SECOND_STAGING_TENANT.id,
+    title: manifest.title,
+    id: manifest.tourId,
+  });
+});
+
+test("second staging wizard cleanup bounds title recovery when the manifest has no ID", () => {
+  const manifest = validManifest();
+  assert.deepEqual(buildSecondStagingWizardTourMatchWhere(manifest), {
+    tenantId: SECOND_STAGING_TENANT.id,
+    title: manifest.title,
+    createdAt: {
+      gte: new Date("2026-10-30T08:30:00.000Z"),
+      lte: new Date("2026-10-30T11:30:00.000Z"),
+    },
+  });
 });

@@ -40,8 +40,7 @@ const MANIFEST_KEYS = [
 ].sort();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SHA = /^[0-9a-f]{40}$/i;
-const EARLIEST_TOUR_CLOCK_SKEW_MS = 5 * 60_000;
-const LATEST_TOUR_CREATE_DELAY_MS = 10 * 60_000;
+const TOUR_CREATE_TIMESTAMP_DRIFT_MS = 90 * 60_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -75,7 +74,7 @@ export function assertSecondStagingWizardTourManifest(
   }
 }
 
-/** Bound title recovery to the exact run window so an old manifest cannot match a later replay. */
+/** Bound title recovery around the exact run, allowing for staging/runner timezone drift. */
 export function getSecondStagingWizardTourCreatedAtWindow(testStartedAt: string): {
   gte: Date;
   lte: Date;
@@ -85,8 +84,27 @@ export function getSecondStagingWizardTourCreatedAtWindow(testStartedAt: string)
     throw new Error("DENALI_SECOND_STAGING_WIZARD_CLEANUP_MANIFEST_REJECTED");
   }
   return {
-    gte: new Date(timestamp - EARLIEST_TOUR_CLOCK_SKEW_MS),
-    lte: new Date(timestamp + LATEST_TOUR_CREATE_DELAY_MS),
+    gte: new Date(timestamp - TOUR_CREATE_TIMESTAMP_DRIFT_MS),
+    lte: new Date(timestamp + TOUR_CREATE_TIMESTAMP_DRIFT_MS),
+  };
+}
+
+/** Prefer the exact row ID; use a bounded timestamp when creation was not recorded. */
+export function buildSecondStagingWizardTourMatchWhere(
+  manifest: SecondStagingWizardTourManifest
+): Readonly<{
+  tenantId: string;
+  title: string;
+  id?: string;
+  createdAt?: { gte: Date; lte: Date };
+}> {
+  const scope = { tenantId: manifest.tenantId, title: manifest.title };
+  if (manifest.tourId !== null) {
+    return { ...scope, id: manifest.tourId };
+  }
+  return {
+    ...scope,
+    createdAt: getSecondStagingWizardTourCreatedAtWindow(manifest.testStartedAt),
   };
 }
 
