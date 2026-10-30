@@ -771,3 +771,10 @@ For each independent change: trace the requirement and callers → implement one
 - **BLOCKED — ESLint in isolated worktree:** ESLint could not parse the API TypeScript project because `@app-tour/config/tsconfig.base.json` is unavailable with this worktree's missing local dependencies. No install was performed; exact-SHA CI is running the project checks.
 - **IN PROGRESS — exact-SHA CI:** Phase 5 run `41093834367` is active for the updated PR #344 head. This evidence is local-only until the workflow completes.
 - **RECONCILIATION:** these code checks do not promote staging scenarios. E11/E13, fixture apply, E18 staging rollback, E12/E14/E15/E16 remain NOT RUN; the S2-E matrix remains 5 PASS, 6 PARTIAL, 7 NOT RUN, `complete=false`.
+
+
+## Staging database-host allowlist preconfiguration (2026-10-30 17:01 UTC)
+
+- **PASS — guarded target configuration:** through the configured `app-tour-vps` SSH alias, confirmed the API unit sources `/etc/app-tour-staging/api.env`. The new allowlist was absent. Added the exact hostname derived inside the remote shell from the existing app/admin database URLs; only host equality and allowlist inclusion booleans were returned, and neither URL nor hostname was emitted. The env file remains `root:app-tour`, mode `0640`; update used an atomic same-directory replacement.
+- **LIMITATION:** no service restart, deploy, database write, or fixture apply occurred. `/opt/app-tour-staging/current` still resolves to `7a7c381e523689051aea768487de9176a8b8daa7`; this preconfiguration only prepares the upcoming artifact's guard.
+- **RECONCILIATION:** no scenario status changed; matrix remains 5 PASS, 6 PARTIAL, 7 NOT RUN, `complete=false`.
