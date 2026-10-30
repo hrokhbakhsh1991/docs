@@ -18,9 +18,7 @@
         "docs/testing/denali-second-tenant-staging-plan.md sections 2 through 9.",
         "P0 baseline recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md."
       ],
-      "depends_on": [
-        "A"
-      ]
+      "depends_on": ["A"]
     },
     {
       "id": "C",
@@ -29,9 +27,7 @@
       "evidence": [
         "Changed files are apps/web/middleware.ts, apps/web/src/tenant/session-host-binding.ts, and focused tests."
       ],
-      "depends_on": [
-        "B"
-      ]
+      "depends_on": ["B"]
     },
     {
       "id": "D",
@@ -41,9 +37,7 @@
         "PlatformDomainRepository.findVerifiedActiveByHostname requires verified and active domain records (apps/api/src/platform/platform-domain.repository.ts:117-141).",
         "resolveAdminBootstrapForWebHost delegates to the guest-surface host bootstrap (apps/web/src/tenant/resolve-admin-bootstrap.server.ts:14-23)."
       ],
-      "depends_on": [
-        "B"
-      ]
+      "depends_on": ["B"]
     },
     {
       "id": "E",
@@ -53,9 +47,7 @@
         "apps/web/middleware.ts resolves dynamic production admin hosts via resolveAdminBootstrapForWebHost before session binding.",
         "apps/web/src/tenant/session-host-binding.ts compares resolved tenant IDs and rejects unresolved production admin hosts."
       ],
-      "depends_on": [
-        "D"
-      ]
+      "depends_on": ["D"]
     },
     {
       "id": "F",
@@ -84,10 +76,7 @@
         "CURRENT 2026-10-29 13:02 UTC: staging API matrix passes for all six private hosts; unknown host returns 404 TENANT_HOST_UNKNOWN. Follow-up fix commit b0de67205bd4b9e7d110844d982df3288873b903 is on open PR #336. Phase 5 job 123452697967 is in progress; no merge/deploy of this fix.",
         "Workflow 40890782155 completed SUCCESS: artifact SHA 52aad2eed33ea35925ebba9abcda79c1ae2a095e, digest 6190e1a61f25bbb1026d471938e2a89dec12795d6532794cfd64719abfeb031f; install/migration/health/RLS/adapter markers all passed."
       ],
-      "depends_on": [
-        "B",
-        "E"
-      ]
+      "depends_on": ["B", "E"]
     },
     {
       "id": "G",
@@ -144,9 +133,7 @@
         "2026-10-30 13:21 UTC: strict CA with explicit host resolution through the local SSH relay returned HTTP 200 for admin.qa2.staging.test:9443/health and qa2.staging.test:9443/health. Health only; this probe did not identify the deployed SHA or verify tenant behavior.",
         "2026-10-30 13:33 UTC: strict CA plus explicit Host/SNI mapping through the local SSH relay returned /health HTTP 200 on all six A/B marketing, admin, and portal hosts. Root GET returned 200 text/html on both marketing/admin hosts and 307 on both portals (unauthenticated redirect). This confirms TLS/ingress/surface availability only; headers expose no runtime SHA. The available /tmp/s2e-runner-manifest-316408bc-01.json pins SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e, which these live responses do not corroborate."
       ],
-      "depends_on": [
-        "F"
-      ]
+      "depends_on": ["F"]
     },
     {
       "id": "H",
@@ -155,9 +142,7 @@
       "evidence": [
         "The acceptance work in this branch concerns middleware redirects and session/tenant authorization."
       ],
-      "depends_on": [
-        "F"
-      ]
+      "depends_on": ["F"]
     },
     {
       "id": "I",
@@ -239,9 +224,7 @@
         "2026-10-30 13:34 UTC: exact-SHA GitHub run 41057867737/job 124069843959 completed SUCCESS on 034c7eba78dc4254874ec8385a611d30dc5704ea. CI test:changed: 2,108 passed, 0 failed, 0 cancelled, 0 skipped; phase-5:runtime-proof: PASS for database URL, DB reset, Phase 4 guard, atomic-write perf, outbox throughput and noisy-neighbor checks; phase-5:guard passed. CI logs and report artifact 12982546610 retained.",
         "Fresh review of PR #342 diff at the exact head traced TourEditPage → session.pluginId → loadBootstrapWorkspacePlugin → resolveWizardCreateCapability → extendedChrome editor gate. The cleanup helper enforces exact B tenant, owner, runId-derived title, exact ID when available, bounded fallback window, row-collision rejection, dependency checks and compare-before-delete. No actionable issue found; tests and CI pass. Runtime wizard behavior and cleanup apply remain unverified until deploy."
       ],
-      "depends_on": [
-        "F"
-      ]
+      "depends_on": ["F"]
     },
     {
       "id": "J",
@@ -293,10 +276,7 @@
         "Local test:changed completed successfully, including apps/web 2108 passed, 0 failed, 0 skipped. PR #342 Phase 5 CI was still active at 13:21 UTC. No staging business acceptance scenario was run.",
         "2026-10-30 13:34 UTC: fresh final diff review for PR #342 exact head 034c7eba78dc4254874ec8385a611d30dc5704ea found no actionable issue. Graph source review covered the server-resolved workspace capability flow; direct diff review covered run-scoped staging cleanup matching and fail-before-delete checks. Exact-SHA Phase 5 CI passed. Review does not prove staging runtime behavior."
       ],
-      "depends_on": [
-        "G",
-        "I"
-      ]
+      "depends_on": ["G", "I"]
     }
   ],
   "scenarios": [
@@ -308,7 +288,7 @@
     {
       "id": "S2-E02",
       "status": "PASS",
-      "evidence": "PASS revalidated on runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5. Direct GET /public/tenant-context returned 404 TENANT_HOST_UNKNOWN for unknown.staging.test and for qa2.staging.test with X-Forwarded-Host: attacker.invalid; positive qa2 control returned 200 with B tenant UUID. Strict-CA ingress GET /api/public/tenant-branding returned A/B-specific bodies; B baseline and B with attacker.invalid forwarded host had identical canonical JSON SHA-256, different from A. Codebase Memory review of API context/branding resolution and guest-surface BFF; source matches runtime SHA and WRS-001. Read-only. Broader protected-route spoof matrix remains outside this check. Evidence: evidence/denali-second-tenant-staging/s2-e02-20261030-current-runtime.json."
+      "evidence": "PASS revalidated on runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5. Direct GET /public/tenant-context returned 404 TENANT_HOST_UNKNOWN for unknown.staging.test and for qa2.staging.test with X-Forwarded-Host: attacker.invalid; positive qa2 control returned 200 with B tenant UUID. Strict-CA ingress GET /api/public/tenant-branding returned A/B-specific bodies; B baseline and B with attacker.invalid forwarded host had identical canonical JSON SHA-256, different from A. Codebase Memory review of API context/branding resolution and guest-surface BFF; source matches runtime SHA and WRS-001. Read-only. Broader protected-route spoof matrix remains outside this check. Current runtime SHA 7a7c381e523689051aea768487de9176a8b8daa7 was rechecked immediately before and after read-only API-local GET probes: unknown and forged forwarded-host returned 404 TENANT_HOST_UNKNOWN; valid B positive control returned 200 and expected B UUID. A separate strict-TLS ingress branding diagnostic returned an empty HTTP 200 for unknown Host, retained as unexplained observation with no verdict; B baseline equals B with forged X-Forwarded-Host. See evidence/denali-second-tenant-staging/s2-e02-20261030-runtime-7a7c381.json."
     },
     {
       "id": "S2-E03",

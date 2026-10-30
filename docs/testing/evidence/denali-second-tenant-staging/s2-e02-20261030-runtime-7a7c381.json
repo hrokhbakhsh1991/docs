@@ -1,0 +1,84 @@
+{
+  "scenario": "S2-E02",
+  "diagnostic_type": "current-release read-only refresh; API-local acceptance probe plus separate strict-TLS ingress diagnostic",
+  "scenario_status_preserved": "PASS",
+  "runtime_sha": {
+    "immediately_before": "7a7c381e523689051aea768487de9176a8b8daa7",
+    "immediately_after": "7a7c381e523689051aea768487de9176a8b8daa7",
+    "same_release": true
+  },
+  "api_local_probe": {
+    "method": "GET",
+    "endpoint": "http://127.0.0.1:23001/public/tenant-context",
+    "transport": "SSH app-tour-vps to loopback API; no TLS component on this loopback-only service request",
+    "results": [
+      {
+        "case": "unknown host",
+        "Host": "unknown.staging.test",
+        "status": 404,
+        "code": "TENANT_HOST_UNKNOWN",
+        "expected_tenant_match": false
+      },
+      {
+        "case": "B host with forged forwarded host",
+        "Host": "qa2.staging.test",
+        "X-Forwarded-Host": "attacker.invalid",
+        "status": 404,
+        "code": "TENANT_HOST_UNKNOWN",
+        "expected_tenant_match": false
+      },
+      {
+        "case": "B positive control",
+        "Host": "qa2.staging.test",
+        "status": 200,
+        "code": null,
+        "expected_tenant_match": true
+      }
+    ],
+    "expected_B_tenant_id": "f0ed9e65-2638-4351-847d-724f87ebbfce"
+  },
+  "strict_tls_ingress_diagnostic": {
+    "method": "GET",
+    "endpoint": "https://admin.qa2.staging.test/api/public/tenant-branding",
+    "tls": "Strict Caddy root CA trust and hostname verification; SNI admin.qa2.staging.test; SSH relay; no TLS bypass",
+    "cases": [
+      {
+        "case": "unknown Host",
+        "Host": "unknown.staging.test",
+        "X-Forwarded-Host": null,
+        "status": 200,
+        "body_length_bytes": 0,
+        "content_type": null,
+        "observation": "Empty HTTP 200 needs route-level explanation; this result is not assigned a scenario verdict."
+      },
+      {
+        "case": "B with forged forwarded host",
+        "Host": "admin.qa2.staging.test",
+        "X-Forwarded-Host": "attacker.invalid",
+        "status": 200,
+        "body_length_bytes": 147,
+        "content_type": "application/json",
+        "canonical_json_sha256": "3fc31f0e87b89ee7e0b304d311b5bcf00309248a978214fa3384df5edbc03789"
+      },
+      {
+        "case": "B positive control",
+        "Host": "admin.qa2.staging.test",
+        "X-Forwarded-Host": null,
+        "status": 200,
+        "body_length_bytes": 147,
+        "content_type": "application/json",
+        "canonical_json_sha256": "3fc31f0e87b89ee7e0b304d311b5bcf00309248a978214fa3384df5edbc03789"
+      }
+    ],
+    "interpretation": "BFF positive and forged-XFH representations match. The unknown-Host empty 200 is retained as an observation pending explanation of ingress host routing; it does not replace or downgrade the passing API-local S2-E02 probe.",
+    "not_run": "No raw API forged-XFH request through strict-TLS ingress; Caddy/API topology does not expose the API route on this HTTPS virtual host."
+  },
+  "code_and_standards_review": {
+    "codebase_memory_first": "Searched graph for handlePublicTenantContext and read its source snippet before fallback inspection.",
+    "api_route": "handlePublicTenantContext reads ingress host, resolves it, and emits 404 TENANT_HOST_UNKNOWN when unresolved.",
+    "bff_route": "The strict-TLS /api/public/tenant-branding BFF reads request Host and calls host-based branding fetch; it does not use client X-Forwarded-Host as tenant selector.",
+    "runtime_source_match": "Relevant API and BFF source files were byte-compared against runtime SHA 7a7c381e523689051aea768487de9176a8b8daa7 in this investigation; hashes matched.",
+    "standard": "WRS-001 host-derived tenant context."
+  },
+  "side_effects": "Read-only GET requests only; no authentication, business/configuration writes, or staging state changes."
+}
