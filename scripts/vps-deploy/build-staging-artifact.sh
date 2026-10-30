@@ -187,6 +187,24 @@ cp -a "${SCRIPT_DIR}/cleanup-denali-second-staging-fixtures-artifact.sh" \
   "${ARTIFACT_ROOT}/bin/cleanup-denali-second-staging-fixtures.sh"
 chmod +x "${ARTIFACT_ROOT}/bin/cleanup-denali-second-staging-fixtures.sh"
 
+log "bundle guarded Denali first-tenant S2-E04 draft tour seed"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/seed-denali-first-staging-draft-tour.ts" \
+  --bundle --platform=node --format=cjs --target=node24 --packages=external \
+  --external:@prisma/client \
+  --outfile="${ARTIFACT_ROOT}/bin/seed-denali-first-staging-draft-tour.cjs"
+cp -a "${SCRIPT_DIR}/seed-denali-first-staging-draft-tour-artifact.sh" \
+  "${ARTIFACT_ROOT}/bin/seed-denali-first-staging-draft-tour.sh"
+chmod +x "${ARTIFACT_ROOT}/bin/seed-denali-first-staging-draft-tour.sh"
+
+log "bundle manifest-scoped Denali first-tenant S2-E04 draft tour cleanup"
+pnpm --filter @apps/api exec esbuild "${REPO_ROOT}/apps/api/scripts/cleanup-denali-first-staging-draft-tour.ts" \
+  --bundle --platform=node --format=cjs --target=node24 --packages=external \
+  --external:@prisma/client \
+  --outfile="${ARTIFACT_ROOT}/bin/cleanup-denali-first-staging-draft-tour.cjs"
+cp -a "${SCRIPT_DIR}/cleanup-denali-first-staging-draft-tour-artifact.sh" \
+  "${ARTIFACT_ROOT}/bin/cleanup-denali-first-staging-draft-tour.sh"
+chmod +x "${ARTIFACT_ROOT}/bin/cleanup-denali-first-staging-draft-tour.sh"
+
 log "bundle migrate helper"
 mkdir -p "${ARTIFACT_ROOT}/bin"
 cat >"${ARTIFACT_ROOT}/bin/migrate-deploy.sh" <<'MIG'
@@ -222,6 +240,8 @@ cat >"${ARTIFACT_ROOT}/release-manifest.json" <<EOF
   "denaliClientBundle": true,
   "denaliWalletPilotSeedBundle": true,
   "denaliSecondStagingTenantSeedBundle": true,
+  "denaliFirstStagingDraftTourSeedBundle": true,
+  "denaliFirstStagingDraftTourCleanupBundle": true,
   "operatorSmokePendingBookingSeedBundle": true,
   "layout": {
     "api": "api/dist/main.js",

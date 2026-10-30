@@ -41,6 +41,12 @@ export type ExistingStagingMembership = Readonly<{
   membershipMetadata: unknown;
 }>;
 export type ExistingStagingMembershipTenant = Readonly<{ userId: string; tenantId: string }>;
+export type StagingFixtureIdentityMembership = Readonly<{
+  userId: string;
+  role: string;
+  status: string;
+  workspaceId: string | null;
+}>;
 
 export type SecondStagingIdentityWritePlan = Readonly<{
   usersToCreate: readonly SecondStagingIdentityFixture[];
@@ -48,11 +54,11 @@ export type SecondStagingIdentityWritePlan = Readonly<{
   alreadyPresent: readonly SecondStagingIdentityFixture[];
 }>;
 
-const MOBILE_ENV: Readonly<Record<SecondStagingFixtureLabel, string>> = {
+const SECOND_STAGING_TEST_MOBILE_ENV = {
   owner: "DENALI_SECOND_STAGING_OWNER_MOBILE",
   finance: "DENALI_SECOND_STAGING_FINANCE_MOBILE",
   member: "DENALI_SECOND_STAGING_MEMBER_MOBILE",
-};
+} as const;
 
 const FIRST_MOBILE_ENV = {
   owner: "DENALI_FIRST_STAGING_OWNER_MOBILE",
@@ -60,15 +66,59 @@ const FIRST_MOBILE_ENV = {
 } as const;
 
 export const SECOND_STAGING_IDENTITY_IDS: Readonly<Record<SecondStagingFixtureLabel, string>> = {
+  owner: "c51ad260-53cd-49c9-8d43-72fbc0129006",
+  finance: "c51ad260-53cd-49c9-8d43-72fbc0129004",
+  member: "c51ad260-53cd-49c9-8d43-72fbc0129005",
+};
+
+/** Historical B fixture bindings accepted only for cleanup-manifest validation. */
+export const LEGACY_SECOND_STAGING_FIXTURE_IDENTITY_IDS = {
   owner: "c51ad260-53cd-49c9-8d43-72fbc0129001",
   finance: "c51ad260-53cd-49c9-8d43-72fbc0129002",
   member: "c51ad260-53cd-49c9-8d43-72fbc0129003",
-};
+} as const;
+
+export function resolveSecondStagingCleanupIdentityIds(
+  value: unknown
+): Readonly<Record<SecondStagingFixtureLabel, string>> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    identityConflict("DENALI_SECOND_STAGING_CLEANUP_MANIFEST_REJECTED");
+  }
+  const identities = value as Record<string, unknown>;
+  const allowed = [SECOND_STAGING_IDENTITY_IDS, LEGACY_SECOND_STAGING_FIXTURE_IDENTITY_IDS];
+  const match = allowed.find(
+    (candidate) =>
+      identities.owner === candidate.owner &&
+      identities.finance === candidate.finance &&
+      identities.member === candidate.member &&
+      Object.keys(identities).length === 3
+  );
+  if (match === undefined) {
+    identityConflict("DENALI_SECOND_STAGING_CLEANUP_MANIFEST_REJECTED");
+  }
+  return match;
+}
 
 export const FIRST_STAGING_IDENTITY_IDS = {
   owner: "00000000-0000-4000-8000-000000000401",
   finance: "00000000-0000-4000-8000-000000000402",
 } as const;
+
+/** Verifies fixture readiness by fixed user ID and role without requiring the Owner's mobile. */
+export function assertSecondStagingFixtureIdentityMembership(
+  label: SecondStagingFixtureLabel,
+  membership: StagingFixtureIdentityMembership | null
+): void {
+  const expectedRole = label === "finance" ? "admin" : label;
+  if (
+    membership?.userId !== SECOND_STAGING_IDENTITY_IDS[label] ||
+    membership.role !== expectedRole ||
+    membership.status !== "ACTIVE" ||
+    membership.workspaceId !== SECOND_STAGING_TENANT.workspaceId
+  ) {
+    identityConflict("DENALI_SECOND_STAGING_FIXTURE_IDENTITY_NOT_READY");
+  }
+}
 
 const ROLE_BY_LABEL: Readonly<Record<SecondStagingFixtureLabel, SecondStagingIdentityRole>> = {
   owner: "owner",
@@ -98,13 +148,20 @@ export function assertSecondStagingIdentityLoginPolicy(
   }
 }
 
-/** Resolves synthetic B-only identities without retaining or printing the supplied phone values. */
+/** Rejects a fixture mobile that already has an OTP challenge before creating its user. */
+export function assertSecondStagingIdentityOtpChallengesClear(challengeCount: number): void {
+  if (challengeCount !== 0) {
+    identityConflict("DENALI_SECOND_STAGING_IDENTITY_OTP_COLLISION");
+  }
+}
+
+/** Resolves only new B Owner, Finance and Member identities in the reserved synthetic namespace. */
 export function resolveSecondStagingIdentityFixtures(
   env: Readonly<Record<string, string | undefined>>
 ): readonly SecondStagingIdentityFixture[] {
   return resolveIdentityFixtures(env, {
     labels: ["owner", "finance", "member"],
-    mobileEnv: MOBILE_ENV,
+    mobileEnv: SECOND_STAGING_TEST_MOBILE_ENV,
     identityIds: SECOND_STAGING_IDENTITY_IDS,
     tenantId: SECOND_STAGING_TENANT.id,
     workspaceId: SECOND_STAGING_TENANT.workspaceId,
@@ -151,6 +208,9 @@ function resolveIdentityFixtures(
     const mobile = canonicalizeLoginMobile(rawMobile);
     if (!isLoginMobileFormatValid(mobile)) {
       identityConflict("DENALI_SECOND_STAGING_IDENTITY_MOBILE_INVALID");
+    }
+    if (config.tenantId === SECOND_STAGING_TENANT.id && !/^\+1555\d{7}$/.test(mobile)) {
+      identityConflict("DENALI_SECOND_STAGING_IDENTITY_MOBILE_NOT_SYNTHETIC");
     }
     return {
       label,

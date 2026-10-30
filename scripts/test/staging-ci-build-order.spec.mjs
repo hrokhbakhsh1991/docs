@@ -121,6 +121,94 @@ test("staging artifact includes the exact-target A-side identities cleanup entry
   assert.match(wrapper, /cleanup-denali-first-staging-identities\.cjs/);
 });
 
+test("staging artifact declares and verifies the A-side S2-E04 draft tour seed and cleanup", () => {
+  const build = read("scripts/vps-deploy/build-staging-artifact.sh");
+  const selfCheck = read("scripts/vps-deploy/lib/artifact-self-check.sh");
+  const seedWrapper = read("scripts/vps-deploy/seed-denali-first-staging-draft-tour-artifact.sh");
+  const cleanupWrapper = read(
+    "scripts/vps-deploy/cleanup-denali-first-staging-draft-tour-artifact.sh"
+  );
+  const targetGuard = read("apps/api/scripts/lib/denali-first-staging-draft-tour-target.ts");
+  const seed = read("apps/api/scripts/seed-denali-first-staging-draft-tour.ts");
+  const cleanup = read("apps/api/scripts/cleanup-denali-first-staging-draft-tour.ts");
+
+  for (const entry of [
+    "seed-denali-first-staging-draft-tour.ts",
+    "seed-denali-first-staging-draft-tour.cjs",
+    "seed-denali-first-staging-draft-tour-artifact.sh",
+    "cleanup-denali-first-staging-draft-tour.ts",
+    "cleanup-denali-first-staging-draft-tour.cjs",
+    "cleanup-denali-first-staging-draft-tour-artifact.sh",
+  ]) {
+    assert.ok(build.includes(entry), `artifact build omits ${entry}`);
+  }
+  for (const entry of [
+    "seed-denali-first-staging-draft-tour.cjs",
+    "seed-denali-first-staging-draft-tour.sh",
+    "cleanup-denali-first-staging-draft-tour.cjs",
+    "cleanup-denali-first-staging-draft-tour.sh",
+  ]) {
+    assert.ok(selfCheck.includes(entry), `self-check omits ${entry}`);
+  }
+  assert.match(build, /"denaliFirstStagingDraftTourSeedBundle": true/);
+  assert.match(build, /"denaliFirstStagingDraftTourCleanupBundle": true/);
+  assert.match(selfCheck, /denaliFirstStagingDraftTourSeedBundle/);
+  assert.match(selfCheck, /denaliFirstStagingDraftTourCleanupBundle/);
+  assert.match(seedWrapper, /\/opt\/app-tour-staging\/releases/);
+  assert.match(targetGuard, /DENALI_FIRST_STAGING_DRAFT_TOUR_CONFIRM/);
+  assert.match(targetGuard, /seed-denali-first-s2e-draft-tour-to-tour_db_staging/);
+  assert.match(
+    cleanupWrapper,
+    /\/etc\/app-tour-staging\/denali-first-staging-draft-tour-manifests/
+  );
+  assert.match(targetGuard, /DENALI_FIRST_STAGING_DRAFT_TOUR_CLEANUP_CONFIRM/);
+  assert.match(targetGuard, /cleanup-denali-first-s2e-draft-tour-from-tour_db_staging/);
+  assert.match(
+    seed,
+    /console\.log\(JSON\.stringify\(buildFirstStagingDraftTourManifest\(plan\)\)\)/
+  );
+  assert.match(seedWrapper, /MANIFEST_ROOT="\/etc\/app-tour-staging"/);
+  assert.match(
+    seedWrapper,
+    /MANIFEST_DIR="\$\{MANIFEST_ROOT\}\/denali-first-staging-draft-tour-manifests"/
+  );
+  assert.match(seedWrapper, /mktemp/);
+  assert.match(seedWrapper, /cmp -s/);
+  assert.match(seedWrapper, /flock -x 9/);
+  const verifyManifestRoot = seedWrapper.indexOf('realpath -e "$MANIFEST_ROOT"');
+  const createManifestDirectory = seedWrapper.indexOf('mkdir -p -m 0700 "$MANIFEST_DIR"');
+  const rejectManifestSymlink = seedWrapper.indexOf('[[ ! -L "$MANIFEST_DIR" ]]');
+  const verifyManifestPath = seedWrapper.indexOf('realpath -e "$MANIFEST_DIR"');
+  const chmodManifestPath = seedWrapper.indexOf('chmod 0700 "$MANIFEST_DIR"');
+  assert.notEqual(verifyManifestRoot, -1, "staging manifest parent must be canonical");
+  assert.ok(verifyManifestRoot < createManifestDirectory, "verify manifest parent before mkdir");
+  assert.notEqual(rejectManifestSymlink, -1, "symlink manifest directory must be rejected");
+  assert.ok(createManifestDirectory < verifyManifestPath, "canonicalize the created manifest dir");
+  assert.ok(
+    rejectManifestSymlink < chmodManifestPath,
+    "reject symlink before changing permissions"
+  );
+  assert.ok(verifyManifestPath < chmodManifestPath, "verify canonical path before chmod");
+  const manifestPreflight = seedWrapper.indexOf("--manifest-only");
+  const applySeed = seedWrapper.indexOf("--apply >");
+  assert.notEqual(manifestPreflight, -1, "seed wrapper must calculate the exact manifest first");
+  assert.ok(manifestPreflight < applySeed, "manifest conflicts must be rejected before DB writes");
+  assert.ok(
+    seedWrapper.indexOf("existing run manifest differs") < applySeed,
+    "existing manifest mismatch must fail before DB writes"
+  );
+  assert.match(seedWrapper, /chmod 0600/);
+  assert.match(seedWrapper, /RUN_ID.*\^\[a-zA-Z0-9\]\[a-zA-Z0-9\._-\]\{0,63\}\$/s);
+  assert.match(cleanupWrapper, /RUN_ID.*\^\[a-zA-Z0-9\]\[a-zA-Z0-9\._-\]\{0,63\}\$/s);
+  assert.match(cleanupWrapper, /MANIFEST_DIR_REAL.*==.*MANIFEST_DIR/);
+  assert.match(seed, /tx\.tour\.create\(/);
+  assert.match(seed, /isolationLevel: "Serializable"/);
+  assert.match(seed, /manifestOnly/);
+  assert.doesNotMatch(seed, /PrismaTourRepository|\.save\(plan\.tour\)/);
+  assert.match(cleanup, /denaliExposureReminderActivation\.count\(/);
+  assert.match(cleanup, /tourId: plan\.tour\.id/);
+});
+
 test("staging deploys and reloads the Profile C edge after artifact install", () => {
   const deploy = read("scripts/vps-deploy/deploy-staging-artifact-remote.sh");
   assert.match(deploy, /install-caddy-profile-c\.sh/);

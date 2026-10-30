@@ -1,4 +1,9 @@
-import { defineTwoTenantStagingConfig } from "./test/fixtures/two-tenant-staging-config.mts";
+import {
+  assertStagingRunnerCheckout,
+  defineTwoTenantStagingConfig,
+} from "./test/fixtures/two-tenant-staging-config.mts";
+
+assertStagingRunnerCheckout(process.env.DENALI_TWO_TENANT_TEST_SHA?.trim() ?? "");
 
 export default defineTwoTenantStagingConfig({
   testDir: "./tests/e2e",

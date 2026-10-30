@@ -6,16 +6,17 @@ import {
   assertSecondStagingFixtureManifest,
   getSecondStagingCleanupRegistrationIds,
 } from "../scripts/lib/denali-second-staging-cleanup";
-import { SECOND_STAGING_TENANT } from "../scripts/lib/denali-second-staging-fixtures";
+import {
+  LEGACY_SECOND_STAGING_FIXTURE_IDENTITY_IDS,
+  resolveSecondStagingCleanupIdentityIds,
+  SECOND_STAGING_IDENTITY_IDS,
+  SECOND_STAGING_TENANT,
+} from "../scripts/lib/denali-second-staging-fixtures";
 
 const fixtureInput = (runId: string) => ({
   tenantId: SECOND_STAGING_TENANT.id,
   runId,
-  identityUserIds: {
-    owner: "c51ad260-53cd-49c9-8d43-72fbc0129001",
-    finance: "c51ad260-53cd-49c9-8d43-72fbc0129002",
-    member: "c51ad260-53cd-49c9-8d43-72fbc0129003",
-  },
+  identityUserIds: SECOND_STAGING_IDENTITY_IDS,
 });
 
 test("second staging run fixtures are deterministic and run-scoped", () => {
@@ -110,6 +111,45 @@ test("cleanup accepts only a seed manifest that exactly matches deterministic te
         { ...manifest, registrations: { ...ids.registrations, unrelated: "x" } },
         ids
       ),
+    /DENALI_SECOND_STAGING_CLEANUP_MANIFEST_REJECTED/
+  );
+  const legacyIds = buildSecondStagingRunFixtureIds({
+    ...fixtureInput("run-20261029-legacy"),
+    identityUserIds: LEGACY_SECOND_STAGING_FIXTURE_IDENTITY_IDS,
+  });
+  assert.doesNotThrow(() =>
+    assertSecondStagingFixtureManifest(
+      {
+        manifestVersion: 1,
+        source: "denali-second-staging-fixtures",
+        tenantId: legacyIds.tenantId,
+        runId: legacyIds.runId,
+        identityIds: legacyIds.identities,
+        resources: legacyIds.resources,
+        tours: legacyIds.tours,
+        registrations: legacyIds.registrations,
+      },
+      legacyIds
+    )
+  );
+});
+
+test("cleanup manifest identity binding accepts only current or historical fixture IDs", () => {
+  assert.deepEqual(resolveSecondStagingCleanupIdentityIds(SECOND_STAGING_IDENTITY_IDS), {
+    owner: SECOND_STAGING_IDENTITY_IDS.owner,
+    finance: SECOND_STAGING_IDENTITY_IDS.finance,
+    member: SECOND_STAGING_IDENTITY_IDS.member,
+  });
+  assert.deepEqual(
+    resolveSecondStagingCleanupIdentityIds(LEGACY_SECOND_STAGING_FIXTURE_IDENTITY_IDS),
+    LEGACY_SECOND_STAGING_FIXTURE_IDENTITY_IDS
+  );
+  assert.throws(
+    () =>
+      resolveSecondStagingCleanupIdentityIds({
+        ...LEGACY_SECOND_STAGING_FIXTURE_IDENTITY_IDS,
+        finance: SECOND_STAGING_IDENTITY_IDS.finance,
+      }),
     /DENALI_SECOND_STAGING_CLEANUP_MANIFEST_REJECTED/
   );
 });
