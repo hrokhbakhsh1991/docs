@@ -54,6 +54,7 @@ describe("portal-commercial-pricing-preview", () => {
     const fa = readRepo("apps/portal/messages/fa/catalogRegistration.json");
     assert.match(fa, /تخفیف عضویت/);
     assert.match(fa, /قیمت برای شما/);
-    assert.match(fa, /خودرو/);
+    assert.match(fa, /"transport": "حمل‌ونقل"/);
+    assert.doesNotMatch(fa, /"transport": "خودرو"/);
   });
 });
