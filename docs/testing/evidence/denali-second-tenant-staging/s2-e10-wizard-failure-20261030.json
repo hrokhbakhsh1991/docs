@@ -1,0 +1,66 @@
+{
+  "scenario": "S2-E10 B wizard create, edit, publish, refresh and catalog",
+  "result": "PARTIAL",
+  "observed_at": "2026-10-30T10:41:32Z",
+  "run_id": "qa2-20261030-e10-final-01",
+  "runtime_sha": "d5739dfabc601a0b7215c4c4e51cd48b36272673",
+  "test_sha": "d287a57ae231a44bda2c592a319fe8f783cf869a",
+  "browser": {
+    "engine": "Google Chrome 142",
+    "automation": "Playwright 1.60",
+    "browser_ignore_https_errors": false,
+    "worker_count": 1
+  },
+  "transport": {
+    "origin": "https://admin.qa2.staging.test:9443",
+    "relay_port": 9443,
+    "tls_verification": "Strict CA and hostname verification passed for admin.qa2.staging.test and qa2.staging.test; curl reported verify=0 for both."
+  },
+  "preflight": {
+    "staging_profile": "staging",
+    "storage_driver": "prisma",
+    "static_otp": "enabled",
+    "sms_delivery": "not enabled",
+    "tenant_b_enabled_integrations": 0,
+    "tenant_b_enabled_legacy_telegram_bots": 0,
+    "playwright_specs_discovered": 2
+  },
+  "observed": {
+    "owner_login": "passed",
+    "wizard_template_read": "passed",
+    "tenant_scoped_unique_title_preflight": "passed",
+    "tour_create": "HTTP 201; B draft created",
+    "edit_route": "title-only editor rendered; expected flat-edit sticky action bar missing",
+    "publish": "not reached",
+    "refresh_persistence": "not reached",
+    "public_catalog_match": "not reached",
+    "created_tour_id": "15645539-83f6-47da-9c7b-cde51b638185",
+    "created_tour_status": "draft"
+  },
+  "code_and_standards_review": {
+    "status": "PASS",
+    "review": "Independent source trace confirmed TourEditPageClient chooses the flat editor from isExtendedOperatorSession, which reads a synchronous server registry. The root layout resolved the authoritative Denali wizard capability but had not seeded that server registry before child routes rendered. A local fix now seeds the registry from the host-derived bootstrap capability; runtime verification is pending deployment."
+  },
+  "side_effects": {
+    "created_b_tour": true,
+    "outbound_sms_or_integration_send": false,
+    "registration_rows": 0,
+    "urban_registration_rows": 0,
+    "transport_allocations": 0,
+    "roster_freezes": 0,
+    "reminder_activations": 0,
+    "wizard_draft_snapshots_for_owner": 0,
+    "cleanup": "pending deployment of the guarded wizard-manifest cleanup path"
+  },
+  "harness": {
+    "secondary_existing_tour_check": "failed because DENALI_SECOND_STAGING_EXISTING_TOUR_ID was unset; the test now skips when no existing-tour ID is supplied"
+  },
+  "artifacts": {
+    "playwright_error_context": "apps/web/test-results/denali-second-tenant-staging/qa2-20261030-e10-final-01/s2-e10-staging-S2-E10-B-wi-085b2-publish-refresh-and-catalog/error-context.md",
+    "playwright_screenshot": "apps/web/test-results/denali-second-tenant-staging/qa2-20261030-e10-final-01/s2-e10-staging-S2-E10-B-wi-085b2-publish-refresh-and-catalog/test-failed-1.png"
+  },
+  "limitations": [
+    "The new server-registry fix has not yet been deployed or re-tested.",
+    "The created draft must be removed only by the run-scoped guarded cleanup after that cleanup command is deployed."
+  ]
+}

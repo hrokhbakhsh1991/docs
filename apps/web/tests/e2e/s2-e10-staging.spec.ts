@@ -300,6 +300,8 @@ test("S2-E10 B wizard create, publish, refresh and catalog", async ({ page }, te
   expect(Array.isArray(duplicatePayload.items)).toBe(true);
   expect(duplicatePayload.items?.some((tour) => tour.title === title)).toBe(false);
 
+  // Capture recovery bounds before the wizard can autosave any draft state.
+  await writeManifest("draft");
   await navigateOperatorToNewTour(page);
   await fillDenaliMultiDayWizardThroughReview(
     page,
@@ -308,7 +310,7 @@ test("S2-E10 B wizard create, publish, refresh and catalog", async ({ page }, te
     { paymentCollection: "free", registrationApproval: "auto" },
     3
   );
-  // Preserve a tenant/run scoped recovery manifest before the create request can mutate staging.
+  // Refresh the manifest with the latest timestamp before the create request can mutate staging.
   await writeManifest("draft");
   try {
     tourId = await submitDenaliWizardDraftCreate(page, title);
@@ -368,7 +370,10 @@ test("S2-E10 B wizard create, publish, refresh and catalog", async ({ page }, te
 
 test("S2-E10 existing created tour list and refresh", async ({ page }) => {
   const tourId = process.env.DENALI_SECOND_STAGING_EXISTING_TOUR_ID?.trim() ?? "";
-  expect(tourId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  test.skip(
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tourId),
+    "set DENALI_SECOND_STAGING_EXISTING_TOUR_ID to run the existing-tour readback check"
+  );
 
   const ca = await readFile(resolve(caPath));
   const relayState: RelayState = { requests: 0, tlsFailures: 0 };
