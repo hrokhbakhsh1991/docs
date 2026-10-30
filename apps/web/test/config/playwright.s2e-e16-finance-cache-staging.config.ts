@@ -1,4 +1,4 @@
-import { defineTwoTenantStagingConfig } from "./test/fixtures/two-tenant-staging-config.mts";
+import { defineTwoTenantStagingConfig } from "../fixtures/two-tenant-staging-config.mts";
 
 export default defineTwoTenantStagingConfig({
   testDir: "./tests/e2e",
