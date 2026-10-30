@@ -1,0 +1,20 @@
+{
+  "scenario": "S2-E09",
+  "result": "BLOCKED",
+  "observed_at": "2026-10-30T08:37:27Z",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "preflight": {
+    "current_release": "/opt/app-tour-staging/releases/2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+    "api_web_marketing_portal_and_caddy_active": true,
+    "transport_check": "Read-only SSH to the staging VPS; no service or data changes."
+  },
+  "browser_attempt": {
+    "surface": "Codex in-app browser",
+    "url_host": "admin.qa2.staging.test",
+    "result": "Navigation failed before the page loaded.",
+    "browser_error": "net::ERR_NAME_NOT_RESOLVED",
+    "test_executed": false
+  },
+  "scope": "Does not invalidate the prior strict-TLS session replay evidence. Interactive tenant switching, stale-data/cache checks, and sibling-alias behavior remain unverified.",
+  "next_action": "Provide an approved workstation DNS/resolver route to the staging ingress, or continue from a browser runner with strict TLS trust and hostname preservation."
+}

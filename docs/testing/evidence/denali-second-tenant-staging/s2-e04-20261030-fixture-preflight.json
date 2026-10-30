@@ -1,0 +1,37 @@
+{
+  "scenario": "S2-E04",
+  "result": "NOT RUN",
+  "checked_at": "2026-10-30T11:46:49+03:30",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "runtime_services": {
+    "api": "active",
+    "web": "active",
+    "marketing": "active",
+    "portal": "active",
+    "caddy": "active"
+  },
+  "transport": "SSH read-only deployment inspection; no unauthenticated TLS bypass or test request made in this reconciliation",
+  "fixture_preflight": {
+    "seed_wrapper_in_current_release": true,
+    "manifest_path": "/etc/app-tour-staging/denali-first-staging-draft-tour-manifests/e04-20261030-codex-01.json",
+    "manifest_mode": "0600 (not re-read in this check; mode was established during seed apply)",
+    "run_id": "e04-20261030-codex-01",
+    "tenant_a_id": "00000000-0000-4000-8000-000000000003",
+    "tour_id": "81427ead-3da9-5cc4-b78d-bfbd363bd5a0"
+  },
+  "cross_tenant_acceptance": {
+    "prior_attempt_output": "truncated; HTTP results and owner read-back cannot be established",
+    "credited_assertions": [],
+    "status": "NOT RUN"
+  },
+  "code_and_standards_review": {
+    "status": "PASS for reviewed route slice only",
+    "findings": "Graph review confirms GET passes authenticated auth context through getTourOperator to the scoped tour service; PATCH passes tenant context into updateTour. Prior route/repository diff check against deployed SHA was successful.",
+    "scope_limit": "Source review does not prove deployed staging request behavior."
+  },
+  "side_effects": "No new staging mutation or request was made during this reconciliation; fixture remains for the pending acceptance run.",
+  "limitation": "This artifact reconciles fixture existence and runtime provenance only; it does not satisfy S2-E04.",
+  "status_at_capture": "NOT RUN",
+  "superseded_by": "s2-e04-20261030-current-runtime.json",
+  "reconciliation_note": "This preflight snapshot records fixture discovery before the complete authenticated staging run. S2-E04 later passed on the same runtime SHA; the current acceptance evidence is in the superseding artifact."
+}

@@ -1,0 +1,76 @@
+{
+  "scenario": "S2-E01",
+  "status": "PASS",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "checked_at": "2026-10-30T12:00:00+03:30",
+  "release": "/opt/app-tour-staging/releases/2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "services": {
+    "api": "active",
+    "web": "active",
+    "marketing": "active",
+    "portal": "active",
+    "caddy": "active"
+  },
+  "transport": "Read-only GET on staging VPS to loopback with exact SNI/Host; curl verified using Caddy local root CA (ssl_verify_result=0); openssl s_client separately verified hostname and CA and computed SHA-256 leaf fingerprint. No -k or TLS bypass.",
+  "host_bindings_source": "Value-redacted inspection of running API environment TENANT_SURFACE_ORIGIN_MAP_JSON; recorded only tenant IDs, origin, and surface. The table tenant_domains is not the source for these private staging origins.",
+  "hosts": [
+    {
+      "hostname": "denali.staging.test",
+      "tenant_id": "00000000-0000-4000-8000-000000000003",
+      "surface": "marketing",
+      "http": 200,
+      "tls_verify_result": 0,
+      "sha256_fingerprint": "34:2F:E2:9A:D4:08:03:63:56:2E:FC:19:42:26:0F:E5:C9:23:36:38:B1:AB:F5:8F:F9:A2:E2:E9:F4:D6:1C:96"
+    },
+    {
+      "hostname": "admin.denali.staging.test",
+      "tenant_id": "00000000-0000-4000-8000-000000000003",
+      "surface": "admin",
+      "http": 200,
+      "tls_verify_result": 0,
+      "sha256_fingerprint": "8F:0E:3E:E0:72:45:AE:82:DA:27:74:D5:AD:94:ED:1A:24:EF:B7:10:A2:03:09:16:DD:76:6C:23:47:7E:A5:0D"
+    },
+    {
+      "hostname": "portal.denali.staging.test",
+      "tenant_id": "00000000-0000-4000-8000-000000000003",
+      "surface": "portal",
+      "http": 307,
+      "tls_verify_result": 0,
+      "sha256_fingerprint": "AF:CB:F0:96:EB:F6:FC:9C:9F:47:12:20:BA:54:75:FD:CB:5E:CC:39:D1:CF:A6:DB:16:6D:B3:F8:2A:A3:30:22"
+    },
+    {
+      "hostname": "qa2.staging.test",
+      "tenant_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+      "surface": "marketing",
+      "http": 200,
+      "tls_verify_result": 0,
+      "sha256_fingerprint": "12:2E:18:81:89:44:24:D5:FD:CE:EC:69:5D:45:B5:FD:B9:C2:08:00:C5:3C:D5:0B:73:BB:97:2F:1C:44:EB:CF"
+    },
+    {
+      "hostname": "admin.qa2.staging.test",
+      "tenant_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+      "surface": "admin",
+      "http": 200,
+      "tls_verify_result": 0,
+      "sha256_fingerprint": "83:F1:4E:88:1F:85:17:5B:70:14:34:AB:39:B7:A7:51:6A:3A:B1:18:6D:60:58:19:E0:E0:43:DB:C0:C3:2E:29"
+    },
+    {
+      "hostname": "portal.qa2.staging.test",
+      "tenant_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+      "surface": "portal",
+      "http": 307,
+      "tls_verify_result": 0,
+      "sha256_fingerprint": "F4:63:C2:CA:33:D9:7B:1A:65:DB:FE:6B:F4:02:D8:1D:FA:54:14:ED:82:91:2A:DE:6A:E9:2E:18:6F:FC:6C:74"
+    }
+  ],
+  "identity_cross_check": "Current-runtime S2-E03 evidence separately confirms A and B identity/session tenant matches on admin and portal.",
+  "code_and_standards_review": {
+    "status": "PASS",
+    "method": "Codebase Memory review of resolvePrivateStagingTenantHost, origin-map validation, web host/session binding and marketing host bootstrap. Reviewed sources compare byte-identically with runtime SHA.",
+    "standard": "WRS-001 host-derived tenant context and fail-closed unresolved-host behavior."
+  },
+  "limitations": [
+    "This proves VPS-local SNI/Host routing with strict TLS; system/public DNS resolution is not proven.",
+    "Portal root returns the expected 307 redirect to its matching tenant apex."
+  ]
+}

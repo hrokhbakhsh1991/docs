@@ -1,0 +1,53 @@
+{
+  "scenario": "S2-E02",
+  "status": "PASS",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "direct_api_host_resolution": {
+    "method": "GET /public/tenant-context to loopback API port 23001 with explicit Host headers; no TLS component on this loopback-only service request",
+    "unknown_host": {
+      "host": "unknown.staging.test",
+      "http": 404,
+      "code": "TENANT_HOST_UNKNOWN",
+      "tenant_id_returned": false
+    },
+    "valid_host_forged_forwarded_host": {
+      "host": "qa2.staging.test",
+      "x_forwarded_host": "attacker.invalid",
+      "http": 404,
+      "code": "TENANT_HOST_UNKNOWN",
+      "tenant_id_returned": false
+    },
+    "positive_control": {
+      "host": "qa2.staging.test",
+      "http": 200,
+      "tenant_id": "f0ed9e65-2638-4351-847d-724f87ebbfce"
+    }
+  },
+  "strict_tls_ingress_branding": {
+    "endpoint": "GET /api/public/tenant-branding",
+    "A": {
+      "http": 200,
+      "canonical_json_sha256": "e9dfb0ab2f7da6ca1618f37776321d3345dbd5ad860853dda23560fd83ce1bbc"
+    },
+    "B": {
+      "http": 200,
+      "canonical_json_sha256": "3b16703863bf72da591ccff90a93fd164c0646bd238fd48d57cdb84fd12825ab"
+    },
+    "B_with_client_X_Forwarded_Host_attacker_invalid": {
+      "http": 200,
+      "canonical_json_sha256": "3b16703863bf72da591ccff90a93fd164c0646bd238fd48d57cdb84fd12825ab"
+    },
+    "B_normal_equals_B_forged": true,
+    "A_differs_from_B": true,
+    "tls": "Strict Caddy root CA and hostname verification; host pinned to loopback; no -k"
+  },
+  "code_and_standards_review": {
+    "status": "PASS for host-resolution/header-spoof route slice",
+    "method": "Codebase Memory graph/snippets reviewed handlePublicTenantContext, resolvePublicTenantContextBySubdomain, public tenant branding route/service and guest-surface branding host forwarding.",
+    "result": "Host is resolved from the canonical request Host; unknown hosts fail with TENANT_HOST_UNKNOWN. Client-provided X-Forwarded-Host did not change the BFF public branding snapshot.",
+    "source_provenance": "Reviewed source files byte-identical to runtime SHA.",
+    "standard": "WRS-001 host-derived tenant context; no forwarded-host trust for tenant selection."
+  },
+  "side_effects": "Read-only GETs; no business rows or configuration changed.",
+  "limitations": "The spoofed header was tested on public tenant-context and branding surfaces; not every protected endpoint header combination was exercised."
+}

@@ -1,0 +1,33 @@
+{
+  "scenario": "S2-E10 browser catalog read-only",
+  "result": "PARTIAL",
+  "observed_at": "2026-10-30T09:01:45Z",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "browser": {
+    "engine": "Google Chrome 142",
+    "automation": "Playwright 1.60",
+    "browser_ignore_https_errors": false,
+    "origin": "https://qa2.staging.test:9443/tours"
+  },
+  "transport": {
+    "route": "Playwright request interception delivered the browser HTTPS-origin requests through a local relay; the relay made each HTTPS request through a temporary SSH forward to Caddy loopback.",
+    "tls_verification": "Node TLS rejectUnauthorized=true and tls.checkServerIdentity(expected qa2.staging.test) with the public Caddy internal root CA; exact SNI qa2.staging.test; no insecure TLS option.",
+    "strict_tls_requests": 20,
+    "leaf_sha256": "12:2E:18:81:89:44:24:D5:FD:CE:EC:69:5D:45:B5:FD:B9:C2:08:00:C5:3C:D5:0B:73:BB:97:2F:1C:44:EB:CF"
+  },
+  "observed": {
+    "http_status": 200,
+    "catalog_root_rendered": true,
+    "catalog_results_region_rendered": true
+  },
+  "code_and_standards_review": {
+    "status": "PASS",
+    "reference": "s2-e10-catalog-20261030.json",
+    "review": "Reviewed MarketingToursPage and host-derived B bootstrap, catalog fetch tenant forwarding/cache policy, and guest bootstrap exact host binding; runtime source hashes match the release commit. WRS-001 applies."
+  },
+  "side_effects": "Read-only catalog navigation. No business/config/identity records changed; no outbound messages. Temporary tunnel, certificate copy, and browser resources were cleaned after the probe.",
+  "limitations": [
+    "The browser page did not negotiate TLS directly; the Playwright relay performed and verified TLS to staging before fulfilling each response to the HTTPS browser origin.",
+    "No wizard create/edit/publish, refresh persistence, or published-tour catalog match was exercised."
+  ]
+}

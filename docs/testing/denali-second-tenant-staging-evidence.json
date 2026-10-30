@@ -18,7 +18,9 @@
         "docs/testing/denali-second-tenant-staging-plan.md sections 2 through 9.",
         "P0 baseline recorded in docs/testing/denali-second-tenant-staging-execution-ledger.md."
       ],
-      "depends_on": ["A"]
+      "depends_on": [
+        "A"
+      ]
     },
     {
       "id": "C",
@@ -27,7 +29,9 @@
       "evidence": [
         "Changed files are apps/web/middleware.ts, apps/web/src/tenant/session-host-binding.ts, and focused tests."
       ],
-      "depends_on": ["B"]
+      "depends_on": [
+        "B"
+      ]
     },
     {
       "id": "D",
@@ -37,7 +41,9 @@
         "PlatformDomainRepository.findVerifiedActiveByHostname requires verified and active domain records (apps/api/src/platform/platform-domain.repository.ts:117-141).",
         "resolveAdminBootstrapForWebHost delegates to the guest-surface host bootstrap (apps/web/src/tenant/resolve-admin-bootstrap.server.ts:14-23)."
       ],
-      "depends_on": ["B"]
+      "depends_on": [
+        "B"
+      ]
     },
     {
       "id": "E",
@@ -47,7 +53,9 @@
         "apps/web/middleware.ts resolves dynamic production admin hosts via resolveAdminBootstrapForWebHost before session binding.",
         "apps/web/src/tenant/session-host-binding.ts compares resolved tenant IDs and rejects unresolved production admin hosts."
       ],
-      "depends_on": ["D"]
+      "depends_on": [
+        "D"
+      ]
     },
     {
       "id": "F",
@@ -76,7 +84,10 @@
         "CURRENT 2026-10-29 13:02 UTC: staging API matrix passes for all six private hosts; unknown host returns 404 TENANT_HOST_UNKNOWN. Follow-up fix commit b0de67205bd4b9e7d110844d982df3288873b903 is on open PR #336. Phase 5 job 123452697967 is in progress; no merge/deploy of this fix.",
         "Workflow 40890782155 completed SUCCESS: artifact SHA 52aad2eed33ea35925ebba9abcda79c1ae2a095e, digest 6190e1a61f25bbb1026d471938e2a89dec12795d6532794cfd64719abfeb031f; install/migration/health/RLS/adapter markers all passed."
       ],
-      "depends_on": ["B", "E"]
+      "depends_on": [
+        "B",
+        "E"
+      ]
     },
     {
       "id": "G",
@@ -130,7 +141,9 @@
         "2026-10-29 live six-host runner on test SHA d40e6054e708b8ec72c576a807d0645c25438f2d, staging runtime SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e, runId s2e-20261029-d40e6054-02: strict CA/browser runner status FAIL (2 passed, 1 failed, 3 skipped after serial fail-fast). A/marketing and A/admin passed. A/portal returned 307 and browser ended at the same tenant marketing origin; the old test incorrectly required the portal origin for every surface. Strict-CA HTTP checks confirmed both A and B portal roots redirect to their own tenant marketing hosts (HTTP 307; destination HTTP 200). No staging data was mutated. Failure artifacts: apps/web/test-results/two-tenant-staging/s2e-20261029-d40e6054-02/result.json and its screenshot/trace in the same run directory.",
         "2026-10-29 live six-host Playwright runner PASS: runId s2e-20261029-a04e6eee-01, test SHA a04e6eee9763973e6b624da95d12ba8cec163871, current staging runtime SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e; planned/completed/passed 6/6/6, failed/skipped 0/0. A/B marketing and admin stayed on their exact origins; each guest portal root redirected to that tenant’s own marketing origin. Strict CA validation passed for all six origins; no staging data was mutated. Reporter artifact: apps/web/test-results/two-tenant-staging/s2e-20261029-a04e6eee-01/result.json."
       ],
-      "depends_on": ["F"]
+      "depends_on": [
+        "F"
+      ]
     },
     {
       "id": "H",
@@ -139,7 +152,9 @@
       "evidence": [
         "The acceptance work in this branch concerns middleware redirects and session/tenant authorization."
       ],
-      "depends_on": ["F"]
+      "depends_on": [
+        "F"
+      ]
     },
     {
       "id": "I",
@@ -214,9 +229,13 @@
         "Current PR HEAD 7446108: Phase 5 PostgreSQL required gate run 40956114466 / job 123737257169 passed in 30m29s. Phase 0 integration gate run 40956114344 / job 123737180775 remains IN_PROGRESS on test:changed; its runner is live. These results predate local commits 269db472 and 9574b13; they do not validate the identity/fixture changes.",
         "Current PR HEAD 7446108 had Phase 5 pass and Phase 0 in progress; those results predated commits 269db472 and 9574b13 and did not validate the fixture changes. Latest exact-HEAD CI snapshot at 2026-10-29 22:17 UTC: PR #338 HEAD 76de80b507ed5a317d953ec1a30f96c032f3388f has 26 SUCCESS, 9 SKIPPED and 3 IN_PROGRESS checks. Phase 0 foundation passed in 1m53s; Phase 0 integration is still running test:changed and full pnpm test. These results do not yet establish final CI success or staging deployment.",
         "2026-10-30 local change: dedicated B Owner fixed ID is distinct from legacy manifest Owner; guarded identity plan now includes Owner/Finance/Member and requires approved reserved mobiles. Focused `node --import tsx --test --test-force-exit --test-concurrency=1 test/second-staging-identity-fixtures.spec.ts test/second-staging-run-fixtures.spec.ts test/second-staging-data-plan.spec.ts` passed 33/33 in apps/api after the OTP collision guard.",
-        "Independent review found and prompted a fix for prior OTP challenge collisions: the B seed now counts challenge rows inside the Serializable transaction before any create and fails with DENALI_SECOND_STAGING_IDENTITY_OTP_COLLISION; regression assertion included in the 33/33 focused suite."
+        "Independent review found and prompted a fix for prior OTP challenge collisions: the B seed now counts challenge rows inside the Serializable transaction before any create and fails with DENALI_SECOND_STAGING_IDENTITY_OTP_COLLISION; regression assertion included in the 33/33 focused suite.",
+        "2026-10-30 local authenticated-session plugin fix: focused web unit/contract/tenant regression tests 35/35; web TypeScript check, targeted ESLint, Prettier and git diff --check pass. This is local-only; current staging SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5 does not contain the fix.",
+        "E10 staging spec static discovery check: Playwright --list finds both tests; the mutating test has a reviewed exact-title tenant-scoped preflight before any wizard POST. No browser staging execution was made after the local fix because it is not deployed."
       ],
-      "depends_on": ["F"]
+      "depends_on": [
+        "F"
+      ]
     },
     {
       "id": "J",
@@ -262,66 +281,71 @@
         "CURRENT 2026-10-29: independent read-only review identified the missing-map staging fallback risk in the auth fix. The implementation now fails closed without a map and bypasses the bootstrap fallback when staging map configuration is absent. Focused regression and static checks pass locally, and Phase 5 PR CI run 40884367608 passes on b058adeb; post-fix runtime proof remains outstanding.",
         "Run 40890782155 is terminal SUCCESS, but local private-host probe returned ERR_NAME_NOT_RESOLVED; post-deploy tenant behavior is unverified.",
         "Independent review after the synthetic B Owner change completed with no remaining safety findings. The reviewer confirmed the OTP collision preflight runs inside the Serializable transaction before writes, the new Owner ID differs from the legacy ID, and cleanup accepts both exact fixture tuples while preserving referenced identities. Focused checks pass 33/33. Commit/push, exact-SHA CI, staging deploy/seed and full runtime matrix remain required.",
-        "The reviewer found a P2 pre-existing OTP challenge collision gap in the B identity seeder. The guard was added with a regression test and independently re-reviewed; no further issue was found."
+        "The reviewer found a P2 pre-existing OTP challenge collision gap in the B identity seeder. The guard was added with a regression test and independently re-reviewed; no further issue was found.",
+        "Independent fresh diff review of the authenticated-session plugin fix found no actionable tenant/security findings. An optional reader-integration assertion was added, and the 35-test focused set was rerun successfully. Final J remains blocked by CI/delivery and current-runtime acceptance.",
+        "Independent fresh review also checked the E10 preflight placement, authenticated BFF route, API tenant-scoped query, and fail-before-mutation behavior. No findings; distinct concurrent test processes require distinct run IDs."
       ],
-      "depends_on": ["G", "I"]
+      "depends_on": [
+        "G",
+        "I"
+      ]
     }
   ],
   "scenarios": [
     {
       "id": "S2-E01",
       "status": "PASS",
-      "evidence": "PASS on staging runtime SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e. Release provenance independently verified through /opt/app-tour-staging/current and all four service CWDs; deployment workflow 40931409066 succeeded and immutable artifact digest is sha256:5597bda7cb7dd3f4f99ec5eb48a58c6c1a53f96eb92604095d0fe9373ac43f6a. Strict-CA API tenant-context checks returned the expected A UUID 00000000-0000-4000-8000-000000000003 and B UUID f0ed9e65-2638-4351-847d-724f87ebbfce for all six private hosts. Official browser runner runId local-stg-20261029-64936efab2 passed 6/6, 0 failed/skipped/timed out, on test SHA 64936efabc735b047ccf39606ae2c0705853b203; result SHA-256 402847343a5deccac7244d8141b7076b90899a82004e9ed9727d3ec0f859682b. Strict TLS enabled; host mapping was process-isolated to 127.0.0.1 and browser trust used a temporary dedicated NSS profile. System DNS remains unresolved, so this does not prove public DNS. Fresh exact-HEAD staging runner runId s2e-20261029-7446108f-01 on test SHA 7446108f0ea6cd178f397acdca615b1e8bf357d2 passed 6/6 (planned/completed/passed=6; failed/skipped/timedOut/interrupted=0) with runtime SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e. Reporter JSON: docs/testing/evidence/denali-second-tenant-staging/s2e-20261029-7446108f-01.json; SHA-256 269fa46f7068dcc3746df3bb36b25ae64cce338810c72c9bddca49bbf4e7dad2. Strict CA, isolated process host map, and temporary browser trust profile were used. Runtime SHA is separately verified through the SSH current-release symlink; the runner itself does not attest served SHA."
+      "evidence": "PASS revalidated on current release SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5. Read-only probes of all six A/B marketing/admin/portal hostnames on the VPS used strict CA+hostname verification (curl ssl_verify_result=0; OpenSSL verify_return_error) and recorded each SHA-256 certificate fingerprint. A/B tenant IDs and surface names match the live staging TENANT_SURFACE_ORIGIN_MAP_JSON. HTTP results were 200 for marketing/admin and the expected 307 for portal. All five services active. Codebase Memory review of private host map resolver, validator, web session binding and marketing host bootstrap; reviewed sources byte-match runtime. DNS outside the VPS remains unverified. Evidence: evidence/denali-second-tenant-staging/s2-e01-20261030-current-runtime.json."
     },
     {
       "id": "S2-E02",
       "status": "PASS",
-      "evidence": "PASS on deployed staging runtime SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e. Fresh read-only GET /public/tenant-context on API port 23001 returned 404 TENANT_HOST_UNKNOWN for unknown.staging.test; Host qa2.staging.test with X-Forwarded-Host attacker.invalid also returned 404 TENANT_HOST_UNKNOWN; positive control with both host headers qa2.staging.test returned HTTP 200 and tenant B UUID f0ed9e65-2638-4351-847d-724f87ebbfce. Scope is this public tenant-context host-resolution route; complete protected-route/header matrix remains open. Added a strict-CA, read-only ingress BFF check on runtime SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e. GET /api/public/tenant-branding on admin.denali.staging.test and admin.qa2.staging.test returned HTTP 200 with nonempty JSON. B baseline and B with client-supplied X-Forwarded-Host: attacker.invalid had identical canonical JSON SHA-256 3fc31f0e87b89ee7e0b304d311b5bcf00309248a978214fa3384df5edbc03789; B differed from A (efd88c729b6698be09983d0e81c8cffa76d6d1f2b397876c60b27bf3b7535959). Strict CA hash 9e36e400f78f14317076e4d5bc8cb82e84f0a31d86fb4cebc7bbbf69c06d747d; temporary curl --resolve to approved loopback ingress, no system DNS changes. Evidence: docs/testing/evidence/denali-second-tenant-staging/s2-e02-ingress-header-20261029.json. Complements the direct API tenant-context host-header check; protected-route authorization and raw API forged-header behavior through ingress remain outside this probe."
+      "evidence": "PASS revalidated on runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5. Direct GET /public/tenant-context returned 404 TENANT_HOST_UNKNOWN for unknown.staging.test and for qa2.staging.test with X-Forwarded-Host: attacker.invalid; positive qa2 control returned 200 with B tenant UUID. Strict-CA ingress GET /api/public/tenant-branding returned A/B-specific bodies; B baseline and B with attacker.invalid forwarded host had identical canonical JSON SHA-256, different from A. Codebase Memory review of API context/branding resolution and guest-surface BFF; source matches runtime SHA and WRS-001. Read-only. Broader protected-route spoof matrix remains outside this check. Evidence: evidence/denali-second-tenant-staging/s2-e02-20261030-current-runtime.json."
     },
     {
       "id": "S2-E03",
       "status": "PARTIAL",
-      "evidence": "Current staging runtime SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e, strict CA: A Owner and A Finance/Admin login, read-back, tenant and role context passed; the historical E05 B Owner authentication matched its recorded user ID, tenant UUID and owner role; a 2026-10-30 read-only identity audit found its stored mobile outside the approved synthetic +1555 namespace, so it is not accepted as compliant synthetic-role proof and was not reused. B Finance/Admin and B Member authentication remain historical on SHA 52aad2eed33ea35925ebba9abcda79c1ae2a095e; A synthetic A Member portal login and A-to-B portal-session denial are recorded in the 2026-10-29 execution ledger; that entry has no standalone sanitized result artifact or explicit runtime SHA, so current-release freshness is not independently verified. Finance-specific backend authorization, refresh/returnTo, browser tenant switching and the wider role matrix remain open. The protected generic owner-panel session and Finance BFF request correctly return AUTH_OWNER_PANEL_ONLY for admin under locked DEC-P9-018; this is not Finance backend authorization proof. No business rows were changed."
+      "evidence": "Current staging runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5, strict CA: synthetic Owner, Finance/Admin and Member identities for both tenants logged in with HTTP 200 and exact user ID, tenant ID and role read-back; Owner/Finance ability-context also returned HTTP 200. The A identities were checked under tenant-scoped read-only RLS and have no B membership. Static OTP was enabled and SMS disabled; no business rows changed. Evidence: evidence/denali-second-tenant-staging/s2-e03-20261030-current-runtime.json. Browser UI, Finance business-permission checks, refresh/returnTo and the wider matrix remain open. The generic owner-panel route correctly denies admin under DEC-P9-018; that remains separate from Finance backend authorization proof."
     },
     {
       "id": "S2-E04",
-      "status": "NOT RUN",
-      "evidence": "No authenticated cross-tenant tour read/edit and owner read-back scenario has run in staging. Local regression test apps/api/test/cross-tenant-forensic.spec.ts passed 6/6 using the in-memory driver; it is supporting code evidence only and does not satisfy staging runtime acceptance. Local preparation only: an A-only deterministic, run-scoped DRAFT tour fixture and separate seed/cleanup confirmations were added; the pre-hardening combined fixture/target regression suite passed 20/20; after the latest race/dependency fixes, the focused API suite passes 21/21 and the staging artifact build-order contract passes 15/15, API TypeScript check passes, both bundles build and pass node --check, and wrapper bash -n passes. Review fixed a manifest key-order bug; apply output is now the exact cleanup manifest and the artifact wrapper persists it under the staging manifest directory with mode 0600. No staging artifact containing this code has been deployed and no tour row has been written; cross-tenant read/edit plus owner read-back remains NOT RUN. 2026-10-29: SSH alias app-tour-vps read-only probe succeeded; current symlink is release 55a7085ddf52a5c7b90e29da46c2226649daf73e and API/web/marketing/portal units are active. Fresh S2-E04 review fixes add reminder-activation dependency checking and Serializable tenant-RLS create-only seeding; focused local verification passes (API 21/21, artifact contract 15/15, API typecheck, shell syntax, esbuild/node checks). No staging records changed; changes are not deployed and E04 remains NOT RUN. Prisma schema audit: all five models with a tourId field are checked by cleanup (operator/urban registrations, allocations, roster freezes, reminder activations); registration dependency checks guard downstream finance/receipt records. Latest fresh review also verified manifest parent and leaf canonical-path guards run before chmod; symlink path mutation risk is closed. The six-check Playwright runner documentation was corrected: clean Git state and test-SHA equality are operator preconditions, not runner-enforced checks. E04 remains NOT RUN on staging. Latest local verification also passed full @apps/api production build and API lint; build emits known duplicate-key warnings in root package.json and Denali tsconfig.json."
+      "status": "PASS",
+      "evidence": "PASS on staging runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5. With strict CA and hostname verification, A and B synthetic Owners each read their own draft tour (200); cross-tenant GET and PATCH in both directions all returned 404 TOUR_NOT_FOUND. Owner read-back returned 200 with unchanged title and rowVersion=1. Read-only DATABASE_URL_ADMIN snapshots before/after confirm both title hashes, tenant IDs and versions unchanged. E04 fixture run e04-20261030-codex-01. Fresh Codebase Memory review covered BFF, API route, scoped repository, PATCH schema and canonical update service; reviewed source files match deployed SHA. Evidence: evidence/denali-second-tenant-staging/s2-e04-20261030-current-runtime.json."
     },
     {
       "id": "S2-E05",
-      "status": "PARTIAL",
-      "evidence": "Current staging release SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e. Historical strict-CA Owner requests on A admin.denali.staging.test and B admin.qa2.staging.test returned HTTP 200; session read-back matched the recorded user IDs, tenant UUIDs and owner roles. A read-only identity audit on 2026-10-30 found the stored B Owner mobile outside the approved synthetic +1555 namespace. Preserve those request observations as historical evidence, but the B actor does not satisfy the plan requirement for a synthetic test identity; no fresh login used that number. Authenticated A list pages 1-5 returned stable total 432, 432 unique rows (100/100/100/100/32), and none of the two known B fixture IDs; read-only DB aggregate count for tenant A was 432. Authenticated B list returned total=2 and exactly both run-scoped B fixtures; read-only DB aggregate count for tenant B was 2. B page 1/2 at limit=1 returned distinct expected IDs; page 3 was empty with total=2. Searching the exact B fixture title returned B total=1 and A total=0. B category mountain_multi returned total=2; B status active/completed/archived returned 0/2/0. No business rows were changed and static OTP produced no outbound message. Codebase Memory review confirmed authenticated tenantId reaches ScopedTourRepository.listOperatorToursPage and buildOperatorTourWhere always includes tenantId. Relevant API guards passed; a same-worktree test rerun could not start because node_modules/tsx is absent, while the previously recorded memory-driver list suite passed 4/4. Repeat B-side acceptance with a dedicated approved synthetic Owner fixture. Raw sanitized summary: docs/testing/evidence/denali-second-tenant-staging/s2-e05-20261029.json."
+      "status": "PASS",
+      "evidence": "On current runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5, synthetic A and B Owner logins passed strict TLS and matched their exact tenant/user identities. B authenticated list/count returned four rows, matching both still-present saved task manifests (two runs), and the read-only RLS database count was also four. B pagination totals were stable across pages 1–3, rows were distinct, exact current-fixture search returned one, category mountain_multi returned four, and status totals were 0/4/0. A returned 432 rows across five pages, matching the read-only RLS database count; all IDs were unique, neither B fixture ID appeared, and search for the B fixture returned zero. No business rows or configuration changed; SMS was disabled. Codebase Memory review confirmed hostname forwarding/no-store in the BFF, tenant equality in ScopedTourRepository, and tenant-scoped RLS plus tenantId filters for list/count/search/status/category. WRS-001 was followed. Evidence: evidence/denali-second-tenant-staging/s2-e05-20261030-current-runtime.json."
     },
     {
       "id": "S2-E06",
       "status": "PARTIAL",
-      "evidence": "On current staging release SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e, strict-CA B Owner access to a task-owned B registration invoice returned HTTP 200 with the exact registration ID. A Owner requesting the same B registration invoice through the A BFF received HTTP 404 with a generic not_found error and no foreign registration ID in the response. A second attempt confirmed the B positive response and A 404 but the transport error envelope used a generic code rather than exposing BOOKING_NOT_FOUND. A Finance/Admin team login and ability context were valid, but the current owner-only web panel intentionally returns AUTH_OWNER_PANEL_ONLY for its Finance BFF request, per locked DEC-P9-018; no middleware bypass was added. Codebase Memory review confirms FinanceService looks up lifecycle by auth.tenantId and throws BOOKING_NOT_FOUND for missing/foreign registrations; finance backend allows active admin|owner separately from the owner-only web shell. Registration, receipt and write-denial child-ID cases remain unrun. No business records were mutated. See docs/testing/evidence/denali-second-tenant-staging/s2-e06-20261029.json. A read-only route audit identified GET /api/bookings/{id} as an admin|owner-capable registration detail path with tenant-scoped API lookup; A Finance runtime probe was stopped before OTP because the exact stored identity mobile did not meet the reserved synthetic +1555 safety check (or the row was absent). No phone/token was printed and no OTP challenge or business mutation was sent. The B fixture has no receipt object, and the portal receipt-status GET is member-owned; signed receipt-file URL paths are not used as a first probe. On 2026-10-29 22:32 UTC, exact B registration existence was rechecked with a read-only query, then synthetic A Owner login/session was verified over strict TLS and GET /api/bookings/{id} through the A BFF returned HTTP 404. The error envelope contained no registration ID and zero sensitive field names; no business write occurred. Codebase Memory review traced the BFF host/token forwarding, API operator-session context, service tenant binding, and Prisma id+tenantId predicate inside withTenantRls. B Owner positive control for this same endpoint remains NOT RUN because its stored mobile is outside the approved synthetic namespace and no live B session was available; E06 stays PARTIAL. See docs/testing/evidence/denali-second-tenant-staging/s2-e06-20261030.json. "
+      "evidence": "PARTIAL — current release SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5, strict CA and hostname TLS: on task-owned B registration 84deb915-cd1f-5bec-b6d5-856e2564b999, B Owner GET returned 200 with matching registration ID; A Owner GET returned 404 BOOKING_NOT_FOUND without the ID. Codebase Memory review confirms BFF host/token forwarding/no-store, API request-context binding, auth.tenantId service binding and id+tenantId Prisma predicate within withTenantRls; reviewed sources match runtime SHA. This remains PARTIAL because receipt/Finance, child-ID writes and other registration cases are unrun. Evidence: evidence/denali-second-tenant-staging/s2-e06-20261030-current-runtime.json."
     },
     {
       "id": "S2-E07",
       "status": "PARTIAL",
-      "evidence": "On deployed SHA 52aad2eed33ea35925ebba9abcda79c1ae2a095e, a strict-TLS B Owner session passed ability context on admin.qa2.staging.test; manually replaying that B cookie on admin.denali.staging.test returned 403 AUTH_TENANT_HOST_MISMATCH, while the protected B dashboard returned 200 and the A dashboard redirected to the A login with access=tenant-mismatch. The B Member session was ready on portal.qa2.staging.test and returned ready=false when replayed to portal.denali.staging.test. These establish B-to-A Owner/Member replay behavior on SHA 52aad2e. A separate 2026-10-29 execution-ledger entry records a synthetic A Member login on portal.denali.staging.test and replay of its Secure/HttpOnly/SameSite=Lax session cookie to portal.qa2.staging.test, where the session returned ready=false under strict CA validation. That entry has no standalone sanitized result artifact or explicit runtime SHA, so it is ledger-only evidence pending provenance recovery and must not be attributed to 52aad2e or the current release. Refresh behavior and the full browser/UI matrix remain NOT RUN. Revalidated on 2026-10-29: the current staging release was 55a7085ddf52a5c7b90e29da46c2226649daf73e and all four services were active. The six-host network runner does not perform authenticated replay; the 2026-10-29 network run did not add current-release authenticated E07 proof. No business data or staging configuration changed. The 2026-10-30 current-release A Owner replay evidence is recorded below; E07 remains PARTIAL pending reverse operator replay, refresh and browser/UI coverage. Current-release verification on runtime SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e: a reserved synthetic A Owner authenticated through strict-CA admin.denali.staging.test, session read-back matched A/owner, and GET /api/bookings/summary returned 200. Explicitly replaying that same operator session cookie to admin.qa2.staging.test on the protected summary route returned 403 with no private response fields. Static OTP was enabled, outbound SMS disabled, and no business rows/config changed. Codebase Memory review of the BFF route, staging middleware, and sessionTenantMatchesHost confirms host tenant resolution plus fail-closed session/host binding. This adds current-release A-to-B operator replay evidence. The 2026-10-29 execution ledger also records A-to-B and B-to-A Member portal replay denials, but that entry has no standalone sanitized result artifact or explicit runtime SHA; treat it as ledger-only evidence pending provenance recovery, not current-release proof. B-to-A operator replay, refresh and browser/UI switching remain open; the existing B Owner identity is outside the approved synthetic namespace and was not used. See evidence/denali-second-tenant-staging/s2-e07-20261030.json."
+      "evidence": "PARTIAL — current release SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5, strict CA/hostname TLS: A and B Owners each received HTTP 200 for /api/bookings/summary on their own admin host. Replaying each session cookie to the opposite admin host returned 403 AUTH_TENANT_HOST_MISMATCH with no private summary fields. Codebase Memory review confirms BFF forwards bearer and incoming host with no-store; current host/session binding source matches deployed SHA and follows WRS-001. Refresh, browser UI switching and redirect/returnTo coverage remain open. Evidence: evidence/denali-second-tenant-staging/s2-e07-20261030-current-runtime.json."
     },
     {
       "id": "S2-E08",
       "status": "PARTIAL",
-      "evidence": "On deployed SHA 52aad2eed33ea35925ebba9abcda79c1ae2a095e, B Owner request-OTP/login/session/ability-context all passed through the strict-TLS admin BFF; logout returned 200, set cookie-clearing headers, and a subsequent session request without cookies returned 401. The BFF session cookie is Secure, HttpOnly, SameSite=Lax, host-only (no Domain). B Finance/Admin logged in through the team path and B Member through portal public-auth; the member cookie is Secure, HttpOnly, SameSite=Lax with Domain=qa2.staging.test. Static OTP was used; staging SMS delivery is disabled. A prior explicit replay of the old B Owner cookie after logout still returned a valid session on B, consistent with cookie-clearing logout and an unrevoked stateless JWT; token revocation is not proven. Refresh, returnTo, and A-side lifecycle remain open."
+      "evidence": "PARTIAL — current release SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5, strict CA/hostname TLS: A and B Owner admin login and session validation each returned 200 with exact user, tenant and owner role. Logout returned 200 and cleared Secure/HttpOnly/SameSite=Lax/Path=/ cookies; a subsequent session request without cookies returned 401. Codebase Memory review of login/session/logout paths; source matches deployed SHA. Refresh, returnTo/external target validation, and catalog/portal lifecycle remain open. This proves cookie clearing, not revocation of a stateless JWT deliberately replayed after logout. Evidence: evidence/denali-second-tenant-staging/s2-e08-20261030-current-runtime.json."
     },
     {
       "id": "S2-E09",
       "status": "PARTIAL",
-      "evidence": "Current B Owner cookie has no Domain attribute; the B Member portal cookie is scoped to qa2.staging.test rather than the shared staging.test parent. Strict-TLS replay checks confirmed B sessions resolve on B, fail closed on A (admin 403 mismatch; portal ready=false), and the protected A dashboard redirects to A login. Interactive browser tenant switching, stale-data/cache checks, and sibling-alias behavior remain NOT RUN. The reverse A→B portal replay was also checked with an exact synthetic A-only Member identity; its session was ready on A and not ready on B."
+      "evidence": "Current B Owner cookie has no Domain attribute; the B Member portal cookie is scoped to qa2.staging.test rather than the shared staging.test parent. Strict-TLS replay checks confirmed B sessions resolve on B, fail closed on A (admin 403 mismatch; portal ready=false), and the protected A dashboard redirects to A login. The reverse A→B portal replay was also checked with an exact synthetic A-only Member identity; its session was ready on A and not ready on B. Fresh interactive browser navigation on 2026-10-30 was BLOCKED before page load with net::ERR_NAME_NOT_RESOLVED from the workstation; current staging release and all five services were independently confirmed active over SSH. Interactive tenant switching, stale-data/cache checks, and sibling-alias behavior remain NOT RUN; see s2-e09-browser-navigation-20261030.json."
     },
     {
       "id": "S2-E10",
-      "status": "NOT RUN",
-      "evidence": "No B wizard create/edit/publish/catalog flow or refresh persistence has run in staging."
+      "status": "PARTIAL",
+      "evidence": "Read-only B marketing GET /tours on current runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5 returned HTTP 200 with strict CA/hostname TLS verification (result 0); the server-rendered catalog root and results region were present. Codebase Memory review covered host-derived bootstrap, tenant context equality, catalog BFF tenant forwarding/no-store, and WRS-001; reviewed source hashes match the runtime commit. No business/config/identity data changed. Wizard create/edit/publish, browser behavior, refresh persistence, and catalog match to a newly published B tour remain unverified. Evidence: evidence/denali-second-tenant-staging/s2-e10-catalog-20261030.json. A subsequent isolated Chrome attempt using a temporary SSH tunnel and dedicated profile stopped before application navigation with net::ERR_CERT_AUTHORITY_INVALID; it is a runner trust issue, not an app result. No TLS bypass was used. Runner evidence: evidence/denali-second-tenant-staging/s2-e10-browser-runner-20261030.json. A read-only Playwright/Chrome catalog render subsequently succeeded through a local TLS-verifying relay: 20 staging requests used strict CA plus qa2.staging.test hostname verification; HTTP 200 and catalog/results regions rendered. This proves browser rendering from current staging via the relay, not direct Chrome TLS negotiation. Wizard create/edit/publish and refresh persistence remain open. Evidence: evidence/denali-second-tenant-staging/s2-e10-browser-catalog-relay-20261030.json. Local failure trace on runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5: authenticated B operator /tours displayed the generic Next error after a successful wizard POST /tours returned HTTP 201; two run-owned draft rows were confirmed read-only and have no registrations or child data. Source review traced the failure to the session reader assigning the dev-only starter fallback for the staging tenant. A local fix now resolves plugin metadata from the authoritative host admin bootstrap, requires exact JWT tenant equality and fails closed; it is not deployed, so E10 remains PARTIAL and no runtime fix is claimed. Focused local checks pass 35/35 and web TypeScript, targeted ESLint, Prettier, and git diff --check pass. Runtime re-test and full create/edit/publish/catalog flow remain open. The new E10 Playwright test performs an authenticated exact-title GET `/api/tours?view=operator&search=...` before wizard mutation; it fails closed for non-2xx, invalid JSON/shape or an existing title. Playwright `--list` discovers both E10 tests. Independent review confirmed the guard is tenant-scoped and correctly ordered. Sequential same-run retries are blocked; separate concurrent processes must use distinct run IDs because the GET preflight is not an atomic lock."
     },
     {
       "id": "S2-E11",
       "status": "NOT RUN",
-      "evidence": "No B free-registration/capacity/approval/waitlist flow has run in staging."
+      "evidence": "NOT RUN — current task-created drafts are unpublished; no free-registration/capacity/approval/waitlist flow has run. E10 must first produce and verify a published B tour on the deployed fixed artifact."
     },
     {
       "id": "S2-E12",
@@ -350,8 +374,8 @@
     },
     {
       "id": "S2-E17",
-      "status": "NOT RUN",
-      "evidence": "No controlled restart/reinstall replay has run. On current release SHA 55a7085ddf52a5c7b90e29da46c2226649daf73e, fixture dry-run for existing runId qa2-20261029-acceptance-01 returned the exact B tenant and counts (5 resources, 2 tours, 2 registrations). An apply retry failed closed with DENALI_SECOND_STAGING_IDENTITY_MOBILE_REQUIRED before DB writes because the staging API environment does not provide the required synthetic B identity mobile inputs; no values were printed and no mutation occurred. A seed idempotency result is therefore NOT RUN."
+      "status": "PARTIAL",
+      "evidence": "On runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5, only app-tour-staging-api was restarted. After restart, service health returned status=ok/database=ok, A and B host-derived tenant contexts remained exact, and the read-only cleanup preview returned the same 2 registrations, 2 tours and 5 resources with tenant, identities, wizard template and other-tenant data preserved. The guarded identity-seeder apply then completed with createdUsers=0, createdMemberships=0 and alreadyPresent=3 using exact existing synthetic B identities; static OTP was enabled and outbound SMS disabled. Seeder and cleanup sources match the runtime commit and were reviewed. This verifies API-process restart and identity-seed idempotency only. No reinstall or missing-fixture recovery has run. See s2-e17-api-restart-20261030.json."
     },
     {
       "id": "S2-E18",
