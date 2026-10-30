@@ -7,15 +7,15 @@ ENV_FILE="/etc/app-tour-staging/api.env"
 MANIFEST_DIR="/etc/app-tour-staging/denali-second-staging-manifests"
 MODE=""
 
-if [[ "$#" -lt 2 || "$#" -gt 3 || "$1" != "--manifest" ]]; then
-  echo "Usage: cleanup-denali-second-staging-fixtures.sh --manifest <seed-manifest.json> [--apply]" >&2
+if [[ "$#" -lt 2 || "$#" -gt 3 || ( "$1" != "--manifest" && "$1" != "--wizard-manifest" ) ]]; then
+  echo "Usage: cleanup-denali-second-staging-fixtures.sh (--manifest <seed-manifest.json>|--wizard-manifest <e10-manifest.json>) [--apply]" >&2
   exit 1
 fi
 MANIFEST_PATH="$2"
 if [[ "${3:-}" == "--apply" ]]; then
   MODE="--apply"
 elif [[ -n "${3:-}" ]]; then
-  echo "Usage: cleanup-denali-second-staging-fixtures.sh --manifest <seed-manifest.json> [--apply]" >&2
+  echo "Usage: cleanup-denali-second-staging-fixtures.sh (--manifest <seed-manifest.json>|--wizard-manifest <e10-manifest.json>) [--apply]" >&2
   exit 1
 fi
 
@@ -57,6 +57,6 @@ export NODE_PATH="${ARTIFACT_NODE_MODULES}:${ARTIFACT_PNPM_NODE_MODULES}${NODE_P
 
 cd "${RELEASE_ROOT}/api"
 if [[ "$MODE" == "--apply" ]]; then
-  exec node "${RELEASE_ROOT}/bin/cleanup-denali-second-staging-fixtures.cjs" --manifest "$MANIFEST_PATH_REAL" --apply
+  exec node "${RELEASE_ROOT}/bin/cleanup-denali-second-staging-fixtures.cjs" "$1" "$MANIFEST_PATH_REAL" --apply
 fi
-exec node "${RELEASE_ROOT}/bin/cleanup-denali-second-staging-fixtures.cjs" --manifest "$MANIFEST_PATH_REAL"
+exec node "${RELEASE_ROOT}/bin/cleanup-denali-second-staging-fixtures.cjs" "$1" "$MANIFEST_PATH_REAL"

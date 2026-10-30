@@ -23,6 +23,7 @@ const runId = process.env.DENALI_SECOND_STAGING_RUN_ID?.trim() ?? "";
 const relayPort = Number(process.env.DENALI_SECOND_STAGING_RELAY_PORT ?? "0");
 const caPath = process.env.DENALI_SECOND_STAGING_CADDY_ROOT_CA?.trim() ?? "";
 const runtimeSha = process.env.DENALI_SECOND_STAGING_RUNTIME_SHA?.trim() ?? "";
+const testSha = process.env.DENALI_SECOND_STAGING_TEST_SHA?.trim() ?? "";
 const allowedHosts = new Set(["admin.qa2.staging.test", "qa2.staging.test"]);
 
 type RelayState = { requests: number; tlsFailures: number };
@@ -184,8 +185,10 @@ test("S2-E10 B wizard create, publish, refresh and catalog", async ({ page }, te
   const title = `S2-E10 ${runId}`;
   const manifestPath = testInfo.outputPath("s2-e10-wizard-tour-manifest.json");
   let tourId: string | null = null;
+  let testStartedAt: string | null = null;
 
   const writeManifest = async (status: "draft" | "active") => {
+    testStartedAt ??= new Date().toISOString();
     const manifest = Buffer.from(
       JSON.stringify(
         {
@@ -195,7 +198,9 @@ test("S2-E10 B wizard create, publish, refresh and catalog", async ({ page }, te
           tenantId,
           ownerUserId,
           runtimeSha,
+          testSha,
           title,
+          testStartedAt,
           tourId,
           status,
         },
@@ -303,6 +308,8 @@ test("S2-E10 B wizard create, publish, refresh and catalog", async ({ page }, te
     { paymentCollection: "free", registrationApproval: "auto" },
     3
   );
+  // Preserve a tenant/run scoped recovery manifest before the create request can mutate staging.
+  await writeManifest("draft");
   try {
     tourId = await submitDenaliWizardDraftCreate(page, title);
   } catch (error) {
