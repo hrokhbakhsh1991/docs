@@ -8,10 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
-import {
-  buildTourTitlePatch,
-  canMutateTour,
-} from "../src/features/tours/build-tour-title-patch";
+import { buildTourTitlePatch, canMutateTour } from "../src/features/tours/build-tour-title-patch";
 import { isExtendedOperatorSession } from "../src/admin/require-operator-session";
 import { seedWizardCreate } from "../src/workspace/wizard-create-registry";
 import { TOUR_EDIT_TEST_IDS } from "../src/features/tours/operator-tour-detail-types";
@@ -111,7 +108,7 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
     );
   });
 
-  it("WEB-C4-01 tour edit router uses extended operator session gate", () => {
+  it("WEB-C4-01 tour edit router uses the server-resolved workspace capability", () => {
     const pageClient = readFileSync(
       join(
         dirname(fileURLToPath(import.meta.url)),
@@ -119,7 +116,15 @@ describe("tours-edit.spec.ts — Phase 9.3 Web", () => {
       ),
       "utf8"
     );
-    assert.match(pageClient, /isExtendedOperatorSession/);
+    const serverPage = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../app/(app)/tours/[id]/edit/page.tsx"),
+      "utf8"
+    );
+    assert.match(serverPage, /loadBootstrapWorkspacePlugin\(session\.pluginId\)/);
+    assert.match(serverPage, /resolveWizardCreateCapability\(workspacePlugin\)/);
+    assert.match(serverPage, /extendedChrome=\{extendedChrome\}/);
+    assert.match(pageClient, /if \(extendedChrome && canEdit\)/);
+    assert.doesNotMatch(pageClient, /isExtendedOperatorSession/);
     assert.doesNotMatch(pageClient, /isDenaliOperatorSession/);
     assert.doesNotMatch(pageClient, /\bisDenali\b/);
   });
