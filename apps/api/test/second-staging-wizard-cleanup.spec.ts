@@ -85,6 +85,15 @@ test("second staging wizard cleanup refuses tours with linked business history",
       reminderActivations: 0,
     })
   );
+  assert.throws(() =>
+    assertNoSecondStagingWizardTourDependencies({
+      operatorRegistrations: 0,
+      urbanRegistrations: 0,
+      transportAllocations: 0,
+      rosterFreezes: 0,
+      reminderActivations: 1,
+    })
+  );
 });
 
 test("second staging wizard cleanup title recovery has a bounded run window", () => {

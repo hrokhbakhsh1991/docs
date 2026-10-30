@@ -216,34 +216,40 @@ async function inspectAndMaybeDelete(
           }
         }
 
-        const extraRegistrations = await tx.operatorRegistration.count({
-          where: {
-            tenantId: SECOND_STAGING_TENANT.id,
-            tourId: { in: Object.values(plan.ids.tours) },
-            id: { notIn: Object.values(plan.ids.registrations) },
-          },
-        });
-        const urbanRegistrations = await tx.urbanRegistration.count({
-          where: {
-            tenantId: SECOND_STAGING_TENANT.id,
-            tourId: { in: Object.values(plan.ids.tours) },
-          },
-        });
-        const allocations = await tx.transportAllocation.count({
-          where: {
-            tenantId: SECOND_STAGING_TENANT.id,
-            tourId: { in: Object.values(plan.ids.tours) },
-          },
-        });
-        const rosterFreezes = await tx.transportRosterFreeze.count({
-          where: {
-            tenantId: SECOND_STAGING_TENANT.id,
-            tourId: { in: Object.values(plan.ids.tours) },
-          },
-        });
-        if (extraRegistrations + urbanRegistrations + allocations + rosterFreezes > 0) {
-          throw new Error("DENALI_SECOND_STAGING_CLEANUP_DEPENDENCY_FOUND");
-        }
+        const dependencyCounts = {
+          operatorRegistrations: await tx.operatorRegistration.count({
+            where: {
+              tenantId: SECOND_STAGING_TENANT.id,
+              tourId: { in: Object.values(plan.ids.tours) },
+              id: { notIn: Object.values(plan.ids.registrations) },
+            },
+          }),
+          urbanRegistrations: await tx.urbanRegistration.count({
+            where: {
+              tenantId: SECOND_STAGING_TENANT.id,
+              tourId: { in: Object.values(plan.ids.tours) },
+            },
+          }),
+          transportAllocations: await tx.transportAllocation.count({
+            where: {
+              tenantId: SECOND_STAGING_TENANT.id,
+              tourId: { in: Object.values(plan.ids.tours) },
+            },
+          }),
+          rosterFreezes: await tx.transportRosterFreeze.count({
+            where: {
+              tenantId: SECOND_STAGING_TENANT.id,
+              tourId: { in: Object.values(plan.ids.tours) },
+            },
+          }),
+          reminderActivations: await tx.denaliExposureReminderActivation.count({
+            where: {
+              tenantId: SECOND_STAGING_TENANT.id,
+              tourId: { in: Object.values(plan.ids.tours) },
+            },
+          }),
+        };
+        assertNoSecondStagingWizardTourDependencies(dependencyCounts);
 
         const registrationIds = getSecondStagingCleanupRegistrationIds(plan.ids.registrations);
         const financialDependencies = {
