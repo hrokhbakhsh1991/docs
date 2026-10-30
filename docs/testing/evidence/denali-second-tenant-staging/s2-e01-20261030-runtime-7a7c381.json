@@ -1,0 +1,76 @@
+{
+  "scenario": "S2-E01",
+  "status": "PASS",
+  "runtime_sha": "7a7c381e523689051aea768487de9176a8b8daa7",
+  "checked_at": "2026-10-30T15:34:58Z",
+  "release": "/opt/app-tour-staging/releases/7a7c381e523689051aea768487de9176a8b8daa7",
+  "services": {
+    "api": "active",
+    "web": "active",
+    "marketing": "active",
+    "portal": "active",
+    "caddy": "active"
+  },
+  "transport": "Read-only GET / through the approved SSH relay 127.0.0.1:9443 to the staging VPS loopback TLS listener. Python stdlib TLS used create_default_context with the pinned Caddy root CA, SNI server_hostname set to each hostname, and exact HTTP Host header. CA and hostname verification were enabled; no bypass.",
+  "ca_sha256": "9e36e400f78f14317076e4d5bc8cb82e84f0a31d86fb4cebc7bbbf69c06d747d",
+  "host_bindings_source": "Read-only extraction of only TENANT_SURFACE_ORIGIN_MAP_JSON from the running API process environment; all other environment values were discarded. The map contains exactly Tenant A 00000000-0000-4000-8000-000000000003 and Tenant B f0ed9e65-2638-4351-847d-724f87ebbfce with their six expected surface origins.",
+  "hosts": [
+    {
+      "hostname": "denali.staging.test",
+      "tenant_id": "00000000-0000-4000-8000-000000000003",
+      "surface": "marketing",
+      "http": 200,
+      "tls_verified": true,
+      "leaf_sha256": "b842b9d0ca41b12b52349b10726b7447368890ebadbf1131a4d70c3cf949863e"
+    },
+    {
+      "hostname": "admin.denali.staging.test",
+      "tenant_id": "00000000-0000-4000-8000-000000000003",
+      "surface": "admin",
+      "http": 200,
+      "tls_verified": true,
+      "leaf_sha256": "570bfa62ffaa36dbd14c7563dd0bf40f8682afed3a0225e677fb32c2a1108c61"
+    },
+    {
+      "hostname": "portal.denali.staging.test",
+      "tenant_id": "00000000-0000-4000-8000-000000000003",
+      "surface": "portal",
+      "http": 307,
+      "tls_verified": true,
+      "leaf_sha256": "e81f24ec9fde4e97abc65984798b800cf200aea57be69c1e855177fb01d0003e"
+    },
+    {
+      "hostname": "qa2.staging.test",
+      "tenant_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+      "surface": "marketing",
+      "http": 200,
+      "tls_verified": true,
+      "leaf_sha256": "3a1345de04d77e5d8f416d9d12bc456804f4a3f2e87b180ccc7813ab6e56bcee"
+    },
+    {
+      "hostname": "admin.qa2.staging.test",
+      "tenant_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+      "surface": "admin",
+      "http": 200,
+      "tls_verified": true,
+      "leaf_sha256": "b4e1c0740a975d2df4d71dd8e6d2a8cbd9d1e79f0d71f2e434a8bacd74f38598"
+    },
+    {
+      "hostname": "portal.qa2.staging.test",
+      "tenant_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+      "surface": "portal",
+      "http": 307,
+      "tls_verified": true,
+      "leaf_sha256": "03f1287028cc1655660f77f83a85d370d21add92812809059774ac9605b5c99a"
+    }
+  ],
+  "code_and_standards_review": {
+    "status": "PASS",
+    "method": "Compared current host-resolution and session-boundary source at the prior E01 runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5 with current runtime SHA 7a7c381e523689051aea768487de9176a8b8daa7; no files differed in apps/api/src/platform, apps/web/src/tenant, or apps/marketing/src. The earlier Codebase Memory review found no issue in private staging host resolution, origin-map validation, web session host binding, or marketing host bootstrap.",
+    "standard": "WRS-001 host-derived tenant context and fail-closed unresolved-host behavior"
+  },
+  "limitations": [
+    "This verifies current runtime TLS, SNI/Host routing, and HTTP status through the approved SSH relay; it does not prove public/system DNS resolution from an unmodified workstation.",
+    "The portal root returns the expected 307 redirect. Browser navigation across all six hosts was not part of this E01 recheck."
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "scenario": "S2-E01",
+  "status": "PASS",
+  "observed_at": "2026-10-30T16:29:54.913Z",
+  "browser": {
+    "engine": "Google Chrome 142.0.7444.175",
+    "automation": "Playwright 1.60",
+    "ignoreHTTPSErrors": false,
+    "tls_bypass_flags": [],
+    "nss_database": "isolated temporary HOME/.pki/nssdb; system trust stores unchanged",
+    "ca_trust": "certutil import trust C,,; exported database certificate fingerprint verified before Chrome launch",
+    "ca_sha256_pem": "9e36e400f78f14317076e4d5bc8cb82e84f0a31d86fb4cebc7bbbf69c06d747d",
+    "ca_sha256_der": "898b96b53aead421a6144253483c8ba917eec93f8b294f2a143cd532d31d6bed",
+    "trust_import_command": "certutil -A -d sql:$HOME/.pki/nssdb -n 'Approved staging Caddy root' -t 'C,,' -i /tmp/denali-s2e-ca-20261029/caddy-root.crt",
+    "chrome_launch_configuration": {
+      "executablePath": "/usr/bin/google-chrome",
+      "headless": true,
+      "persistent_profile": "isolated temporary profile under isolated HOME",
+      "args": [
+        "--host-resolver-rules=MAP denali.staging.test 127.0.0.1,MAP admin.denali.staging.test 127.0.0.1,MAP portal.denali.staging.test 127.0.0.1,MAP qa2.staging.test 127.0.0.1,MAP admin.qa2.staging.test 127.0.0.1,MAP portal.qa2.staging.test 127.0.0.1",
+        "--disable-background-networking",
+        "--no-first-run"
+      ],
+      "tls_bypass_flags": []
+    }
+  },
+  "transport": {
+    "ssh_forward": "ssh -o BatchMode=yes -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=yes -N -L 127.0.0.1:18443:127.0.0.1:443 app-tour-vps",
+    "local_bridge": "127.0.0.1:443 forwards to the SSH local listener on 127.0.0.1:18443",
+    "host_resolution": "--host-resolver-rules=MAP denali.staging.test 127.0.0.1,MAP admin.denali.staging.test 127.0.0.1,MAP portal.denali.staging.test 127.0.0.1,MAP qa2.staging.test 127.0.0.1,MAP admin.qa2.staging.test 127.0.0.1,MAP portal.qa2.staging.test 127.0.0.1",
+    "preflight": "Strict curl GET https://qa2.staging.test/tours through the same bridge returned HTTP 200 with tls_verify_result=0 using the approved CA.",
+    "chrome_tls": "Direct Chrome HTTPS; strict certificate and hostname validation active; ignoreHTTPSErrors=false."
+  },
+  "runner_provenance": {
+    "test_source": "Ephemeral inline Node.js Playwright script; no repository files changed and no test SHA is claimed.",
+    "playwright_package": "/home/hamed/Music/docs/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright",
+    "browser_executable": "/usr/bin/google-chrome",
+    "manifest_used": "/tmp/denali-s2e-ca-20261029/manifest.json (only the approved six origins and tenant IDs were consumed)",
+    "manifest_declared_runtime_sha": "55a7085ddf52a5c7b90e29da46c2226649daf73e (historical value; not asserted by this browser run)",
+    "live_runtime_sha": "NOT ASSERTED by this browser-only run; see separate exact-release provenance artifact s2-e01-20261030-runtime-7a7c381.json.",
+    "post_run_runtime_recheck": "At 2026-10-30T16:32:30Z, a separate read-only SSH `readlink -f /opt/app-tour-staging/current` returned /opt/app-tour-staging/releases/7a7c381e523689051aea768487de9176a8b8daa7. This was after, not inside, the browser run.",
+    "invocation": "HOME=<isolated temporary HOME> NO_PROXY=<six approved hosts and loopback> node <inline runner>; launchPersistentContext with isolated profile, executablePath=/usr/bin/google-chrome, headless=true, ignoreHTTPSErrors=false, and only host-resolver mapping plus non-security flags; sequential page.goto(origin) for six origins.",
+    "navigation_operation": "For each of six manifest origins: page.goto(origin, waitUntil=domcontentloaded, timeout=25000); read main-document response status, final URL, page title, and body data-tenant-id.",
+    "non_get_guard": "context.route('**/*'): continue only GET; abort every other HTTP method."
+  },
+  "checks": [
+    {
+      "tenant": "A",
+      "surface": "marketing",
+      "url": "https://denali.staging.test",
+      "status": 200,
+      "finalUrl": "https://denali.staging.test/",
+      "finalOrigin": "https://denali.staging.test",
+      "expectedOrigin": "https://denali.staging.test",
+      "bodyTenantId": "00000000-0000-4000-8000-000000000003",
+      "title": "shenski",
+      "passed": true
+    },
+    {
+      "tenant": "A",
+      "surface": "admin",
+      "url": "https://admin.denali.staging.test",
+      "status": 200,
+      "finalUrl": "https://admin.denali.staging.test/",
+      "finalOrigin": "https://admin.denali.staging.test",
+      "expectedOrigin": "https://admin.denali.staging.test",
+      "bodyTenantId": "00000000-0000-4000-8000-000000000003",
+      "title": "توراپس",
+      "passed": true
+    },
+    {
+      "tenant": "A",
+      "surface": "portal",
+      "url": "https://portal.denali.staging.test",
+      "status": 200,
+      "finalUrl": "https://denali.staging.test/",
+      "finalOrigin": "https://denali.staging.test",
+      "expectedOrigin": "https://denali.staging.test",
+      "bodyTenantId": "00000000-0000-4000-8000-000000000003",
+      "title": "shenski",
+      "passed": true
+    },
+    {
+      "tenant": "B",
+      "surface": "marketing",
+      "url": "https://qa2.staging.test",
+      "status": 200,
+      "finalUrl": "https://qa2.staging.test/",
+      "finalOrigin": "https://qa2.staging.test",
+      "expectedOrigin": "https://qa2.staging.test",
+      "bodyTenantId": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+      "title": "باشگاه",
+      "passed": true
+    },
+    {
+      "tenant": "B",
+      "surface": "admin",
+      "url": "https://admin.qa2.staging.test",
+      "status": 200,
+      "finalUrl": "https://admin.qa2.staging.test/",
+      "finalOrigin": "https://admin.qa2.staging.test",
+      "expectedOrigin": "https://admin.qa2.staging.test",
+      "bodyTenantId": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+      "title": "توراپس",
+      "passed": true
+    },
+    {
+      "tenant": "B",
+      "surface": "portal",
+      "url": "https://portal.qa2.staging.test",
+      "status": 200,
+      "finalUrl": "https://qa2.staging.test/",
+      "finalOrigin": "https://qa2.staging.test",
+      "expectedOrigin": "https://qa2.staging.test",
+      "bodyTenantId": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+      "title": "باشگاه",
+      "passed": true
+    }
+  ],
+  "mutation_safety": {
+    "allowed_method": "GET only",
+    "non_get_request_policy": "Playwright route handler aborted every non-GET request.",
+    "non_get_requests_observed": [],
+    "staging_state_changed": false,
+    "workstation_system_trust_changed": false,
+    "credentials_or_cookies_used": false
+  },
+  "limitations": [
+    "Host resolution was isolated to 127.0.0.1 through the approved SSH relay; this does not prove public or workstation system DNS.",
+    "This browser-only run does not independently verify the live release SHA; use the separate exact-release provenance artifact.",
+    "The six GET navigations are transport/surface evidence only and do not prove authenticated tenant isolation or business workflows."
+  ]
+}
