@@ -12,7 +12,7 @@ import {
 import {
   assertNoSecondStagingWizardTourDependencies,
   assertSecondStagingWizardTourManifest,
-  getSecondStagingWizardTourCreatedAtWindow,
+  buildSecondStagingWizardTourMatchWhere,
   type SecondStagingWizardTourManifest,
 } from "./lib/denali-second-staging-wizard-cleanup";
 import {
@@ -46,12 +46,7 @@ async function inspectAndMaybeDeleteWizardTour(
       SECOND_STAGING_TENANT.id,
       async (tx) => {
         const matches = await tx.tour.findMany({
-          where: {
-            tenantId: SECOND_STAGING_TENANT.id,
-            title: manifest.title,
-            createdAt: getSecondStagingWizardTourCreatedAtWindow(manifest.testStartedAt),
-            ...(manifest.tourId === null ? {} : { id: manifest.tourId }),
-          },
+          where: buildSecondStagingWizardTourMatchWhere(manifest),
           select: {
             id: true,
             tenantId: true,

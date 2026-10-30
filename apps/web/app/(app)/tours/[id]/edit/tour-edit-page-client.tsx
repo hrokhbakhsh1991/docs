@@ -6,16 +6,13 @@ import { ArrowLeft } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 
-import { isExtendedOperatorSession, type OperatorSessionContext } from "@/admin/require-operator-session";
+import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  buildTourTitlePatch,
-  canMutateTour,
-} from "@/features/tours/build-tour-title-patch";
+import { buildTourTitlePatch, canMutateTour } from "@/features/tours/build-tour-title-patch";
 import type { OperatorTourDetailResponse } from "@/features/tours/operator-tour-detail-types";
 import { TOUR_EDIT_TEST_IDS } from "@/features/tours/operator-tour-detail-types";
 import {
@@ -42,17 +39,18 @@ import { TourStatusBadge } from "../../tour-status-badge";
 type TourEditPageClientProps = {
   readonly session: OperatorSessionContext;
   readonly tourId: string;
+  readonly extendedChrome: boolean;
   readonly initialLocationsResponse?: unknown | null;
 };
 
 export function TourEditPageClient({
   session,
   tourId,
+  extendedChrome,
   initialLocationsResponse = null,
 }: TourEditPageClientProps) {
-  const useFlatEditShell = isExtendedOperatorSession(session);
   const canEdit = canMutateTour(session.role);
-  if (useFlatEditShell && canEdit) {
+  if (extendedChrome && canEdit) {
     return (
       <TourEditCatalogPrefetchShell
         session={session}
@@ -94,12 +92,13 @@ function TourEditCatalogPrefetchShell({
   if (Provider == null) {
     return <>{children}</>;
   }
-  return (
-    <Provider initialLocationsResponse={initialLocationsResponse}>{children}</Provider>
-  );
+  return <Provider initialLocationsResponse={initialLocationsResponse}>{children}</Provider>;
 }
 
-function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
+function TourEditTitlePageClient({
+  session,
+  tourId,
+}: Pick<TourEditPageClientProps, "session" | "tourId">) {
   const locale = useLocale() as AppLocale;
   const t = useTranslations("tours.edit");
   const tErrors = useTranslations("tours.edit.errors");
@@ -182,7 +181,11 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
 
   if (error === "TOUR_NOT_FOUND" || detail === null) {
     return (
-      <Card data-operator-surface="card" data-testid={TOUR_EDIT_TEST_IDS.page} className="shadow-sm">
+      <Card
+        data-operator-surface="card"
+        data-testid={TOUR_EDIT_TEST_IDS.page}
+        className="shadow-sm"
+      >
         <CardContent className="py-10 text-center text-muted-foreground">
           {t("notFound")}
           <div className="mt-4">
@@ -203,8 +206,7 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
   );
   const departureLabel = formatTourDeparture(detail.projection.departureAt, locale);
   const seatsLabel = formatTourSeats(detail.projection, {
-    withCapacity: (accepted, capacity) =>
-      tFormat("seatsWithCapacity", { accepted, capacity }),
+    withCapacity: (accepted, capacity) => tFormat("seatsWithCapacity", { accepted, capacity }),
     open: (accepted) => tFormat("seatsOpen", { accepted }),
   });
 
@@ -254,9 +256,7 @@ function TourEditTitlePageClient({ session, tourId }: TourEditPageClientProps) {
               disabled={!canEdit}
               onChange={(event) => setTitle(event.target.value)}
             />
-            {!canEdit ? (
-              <p className="text-xs text-muted-foreground">{t("readOnlyHint")}</p>
-            ) : null}
+            {!canEdit ? <p className="text-xs text-muted-foreground">{t("readOnlyHint")}</p> : null}
           </div>
 
           {localizedError && error !== "TOUR_NOT_FOUND" ? (
