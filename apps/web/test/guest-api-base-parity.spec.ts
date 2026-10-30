@@ -81,9 +81,8 @@ describe("web pluginId resolution — PSC-1c", () => {
   });
 
   it("WEB-PSC-1c-02 smoke tenant UUIDs resolve denali/urban pluginId", async () => {
-    const { resolveBootstrapPluginIdForTenant } = await import(
-      "../src/tenant/tenant-kernel.shared"
-    );
+    const { resolveBootstrapPluginIdForTenant } =
+      await import("../src/tenant/tenant-kernel.shared");
     assert.equal(
       resolveBootstrapPluginIdForTenant("00000000-0000-4000-8000-000000000003"),
       "denali"
@@ -96,6 +95,22 @@ describe("web pluginId resolution — PSC-1c", () => {
       resolveBootstrapPluginIdForTenant("00000000-0000-4000-8000-000000000004"),
       "urban"
     );
+  });
+
+  it("WEB-PSC-1c-03 authenticated sessions use host bootstrap and require tenant equality", async () => {
+    const source = readFileSync(
+      join(repoRoot, "apps/web/src/auth/resolve-operator-session-plugin.server.ts"),
+      "utf8"
+    );
+    const sessionReader = readFileSync(
+      join(repoRoot, "apps/web/src/auth/read-operator-session.server.ts"),
+      "utf8"
+    );
+    assert.match(source, /resolveAdminBootstrapForWebHost/);
+    assert.match(source, /bootstrap\.tenantId !== tenantId/);
+    assert.match(source, /return null/);
+    assert.match(sessionReader, /resolveOperatorSessionPluginIdForHost/);
+    assert.match(sessionReader, /if \(pluginId === null\)/);
   });
 });
 

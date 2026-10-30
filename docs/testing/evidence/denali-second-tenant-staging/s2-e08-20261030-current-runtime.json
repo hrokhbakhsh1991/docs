@@ -1,0 +1,46 @@
+{
+  "scenario": "S2-E08",
+  "status": "PARTIAL",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "transport": "HTTPS strict CA/hostname verification with loopback routing pinning",
+  "admin_owner_lifecycle": {
+    "A": {
+      "login_http": 200,
+      "session_http": 200,
+      "user_tenant_role_match": true,
+      "logout_http": 200,
+      "session_without_cookie_after_logout_http": 401,
+      "session_cookie_cleared": true
+    },
+    "B": {
+      "login_http": 200,
+      "session_http": 200,
+      "user_tenant_role_match": true,
+      "logout_http": 200,
+      "session_without_cookie_after_logout_http": 401,
+      "session_cookie_cleared": true
+    }
+  },
+  "cookie_clear_attributes": [
+    "Secure",
+    "HttpOnly",
+    "SameSite=Lax",
+    "Path=/",
+    "Max-Age=0",
+    "expired Expires"
+  ],
+  "identity_handling": "Synthetic A/B Owners; static OTP; phone, OTP, cookie values and tokens not emitted or saved. SMS disabled.",
+  "code_and_standards_review": {
+    "status": "PASS for admin owner login/session/logout slice",
+    "method": "Codebase Memory snippets reviewed login-web-session, session validation/claims and logout cookie clearing.",
+    "result": "Login is owner-gated, session endpoint validates token and returns user_id/tenant_id/role, logout clears session and welcome cookies.",
+    "source_provenance": "Reviewed route and cookie helper files byte-identical to runtime SHA."
+  },
+  "side_effects": "Authentication-only. No business rows changed and no outbound messages.",
+  "limitations": [
+    "Refresh is not tested.",
+    "returnTo validation and external return target rejection are not tested.",
+    "Catalog and portal surfaces are not covered by this admin-only run.",
+    "A stateless token deliberately re-sent after logout may still validate; this test proves cookie clearing and unauthenticated access without the cookie only."
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "scenario": "S2-E07",
+  "status": "PARTIAL",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "transport": "HTTPS strict CA and hostname verification with loopback routing pinning",
+  "endpoint": "GET /api/bookings/summary",
+  "results": {
+    "A_owner_own_host": {
+      "host": "admin.denali.staging.test",
+      "http": 200
+    },
+    "A_owner_replayed_to_B": {
+      "host": "admin.qa2.staging.test",
+      "http": 403,
+      "code": "AUTH_TENANT_HOST_MISMATCH",
+      "private_fields_present": false
+    },
+    "B_owner_own_host": {
+      "host": "admin.qa2.staging.test",
+      "http": 200
+    },
+    "B_owner_replayed_to_A": {
+      "host": "admin.denali.staging.test",
+      "http": 403,
+      "code": "AUTH_TENANT_HOST_MISMATCH",
+      "private_fields_present": false
+    }
+  },
+  "identity_handling": "Synthetic A/B Owner identities used in process; no phone, OTP, cookie or token emitted or saved. Static OTP only; SMS disabled.",
+  "code_and_standards_review": {
+    "status": "PASS for protected bookings-summary replay slice",
+    "method": "Codebase Memory snippet confirms BFF requires session token, forwards Bearer and incoming host, and uses no-store. Graph/source review covers the deployed tenant host/session binding middleware.",
+    "source_provenance": "Reviewed BFF and middleware/session-host-binding files compare byte-identically with runtime SHA.",
+    "standard": "WRS-001 host-derived context and fail-closed session/host binding."
+  },
+  "side_effects": "GET-only; no business rows or staging configuration changed.",
+  "remaining": "Refresh behavior, browser UI tenant switching, redirect/returnTo and the wider E07 acceptance criteria remain open."
+}

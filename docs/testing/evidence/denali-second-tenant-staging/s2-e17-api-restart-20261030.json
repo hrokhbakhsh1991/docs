@@ -1,0 +1,63 @@
+{
+  "scenario": "S2-E17",
+  "result": "PARTIAL",
+  "observed_at": "2026-10-30T08:47:11Z",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "run_id": "qa2-20261030-codex-01",
+  "test": {
+    "action": "Restarted only the app-tour-staging-api systemd service.",
+    "database_or_config_mutation": false,
+    "transport": "Read-only SSH and loopback API requests from the staging VPS."
+  },
+  "before_restart": {
+    "api_web_marketing_portal_and_caddy_active": true,
+    "host_context": {
+      "admin.denali.staging.test": "00000000-0000-4000-8000-000000000003",
+      "admin.qa2.staging.test": "f0ed9e65-2638-4351-847d-724f87ebbfce"
+    },
+    "cleanup_preview": {
+      "status": "DENALI_SECOND_STAGING_CLEANUP_DRY_RUN_OK",
+      "registrations": 2,
+      "tours": 2,
+      "resources": 5,
+      "preserved": ["tenant", "identities", "wizard_template", "other tenant data"]
+    }
+  },
+  "after_restart": {
+    "api_service_active": true,
+    "api_health": {"status": "ok", "database": "ok"},
+    "host_context": {
+      "admin.denali.staging.test": "00000000-0000-4000-8000-000000000003",
+      "admin.qa2.staging.test": "f0ed9e65-2638-4351-847d-724f87ebbfce"
+    },
+    "cleanup_preview": {
+      "status": "DENALI_SECOND_STAGING_CLEANUP_DRY_RUN_OK",
+      "registrations": 2,
+      "tours": 2,
+      "resources": 5,
+      "preserved": ["tenant", "identities", "wizard_template", "other tenant data"]
+    }
+  },
+  "identity_seed_replay": {
+    "result": "DENALI_SECOND_STAGING_IDENTITIES_SEED_OK",
+    "tenant_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+    "created_users": 0,
+    "created_memberships": 0,
+    "already_present": 3,
+    "mobile_values": "Read internally from the exact existing B synthetic identities; not emitted or stored.",
+    "static_otp_enabled": true,
+    "outbound_sms_enabled": false
+  },
+  "code_and_standards_review": {
+    "cleanup_wrapper_and_sources_match_runtime_commit": true,
+    "identity_seed_and_guards_match_runtime_commit": true,
+    "review": "Reviewed the cleanup entrypoint, deterministic manifest validator, tenant-scoped Serializable reads, dependency guards, and the early return before any delete when apply is false. The wrapper requires an explicit --apply flag and confines the manifest to the staging manifest directory. Also reviewed the identity seed target/DB guard, synthetic-mobile and duplicate checks, Serializable identity/membership planning, OTP collision check before any required writes, create-only behavior, and exact read-back.",
+    "wrs_001": "PASS for the tested A/B host-derived tenant contexts; no client tenant ID was supplied.",
+    "scope_limit": "Cleanup preview is a privileged, read-only fixture inventory, not proof of business behavior under the app role."
+  },
+  "limitations": [
+    "Only the API process was restarted; no reinstall or fixture-data seed apply was run.",
+    "No new identity or membership rows were needed; this run does not prove recovery when fixtures are missing.",
+    "Context probes used the documented staging loopback API port and are not strict-TLS ingress proof; E01/E02 hold separate strict-TLS evidence."
+  ]
+}

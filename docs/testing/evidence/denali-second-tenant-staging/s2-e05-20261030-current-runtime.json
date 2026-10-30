@@ -1,0 +1,62 @@
+{
+  "scenario": "S2-E05",
+  "result": "PASS",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "runner_sha": "316408bc5ebd5fc1cf4c8fbf22b897239ddd9d88",
+  "run_id": "qa2-20261030-codex-01",
+  "transport": "Strict HTTPS with the Caddy internal root CA; requests were sent on the staging VPS to loopback using exact A/B hostnames with normal certificate and hostname validation.",
+  "authentication": {
+    "A_owner_user_id": "00000000-0000-4000-8000-000000000401",
+    "B_owner_user_id": "c51ad260-53cd-49c9-8d43-72fbc0129006",
+    "A_login_http": 200,
+    "B_login_http": 200,
+    "A_identity_tenant_readback_match": true,
+    "B_identity_tenant_readback_match": true,
+    "static_otp": true,
+    "outbound_sms_enabled": false
+  },
+  "tenant_list_results": {
+    "A": {
+      "tenant_id": "00000000-0000-4000-8000-000000000003",
+      "api_count": 432,
+      "read_only_rls_database_count": 432,
+      "pages": [100, 100, 100, 100, 32],
+      "unique_rows": 432,
+      "B_fixture_ids_visible": 0,
+      "search_for_B_fixture_total": 0
+    },
+    "B": {
+      "tenant_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+      "api_count": 4,
+      "read_only_rls_database_count": 4,
+      "all_ids_match_saved_fixture_manifests": true,
+      "pagination_totals_page_1_2_3": [4, 4, 4],
+      "pagination_rows_are_distinct": true,
+      "exact_current_fixture_search_total": 1,
+      "category_mountain_multi_total": 4,
+      "status_totals": {
+        "active": 0,
+        "completed": 4,
+        "archived": 0
+      }
+    }
+  },
+  "fixture_note": "The B count is four because both saved task manifests are still present: qa2-20261029-acceptance-01 and qa2-20261030-codex-01. All four IDs matched those manifests; no extra B tour was visible. The older run was preserved for remaining acceptance cases.",
+  "code_and_standards_review": {
+    "codebase_memory_review": "PASS: the BFF requires the session cookie, defaults to operator view, forwards the request hostname, and uses no-store. ScopedTourRepository rejects tenantId mismatch; PrismaTourRepository passes tenantId to withTenantRls and buildOperatorTourWhere for list, count, search, status and category filters.",
+    "wrs_001": "PASS: host-derived tenant context was used for each authenticated A/B request; no tenant ID was provided by the client.",
+    "reviewed_sources": [
+      "apps/web/app/api/tours/route.ts",
+      "apps/api/src/tours/list-tours-operator.ts",
+      "apps/api/src/tours/operator-tour-list-db-query.ts",
+      "apps/api/src/db/scoped-tour.repository.ts",
+      "apps/api/src/storage/prisma-tour.repository.ts",
+      "apps/api/src/db/with-tenant-rls.ts"
+    ],
+    "deployed_source_match": "These reviewed source paths matched byte-for-byte between runner checkout SHA 316408bc5ebd5fc1cf4c8fbf22b897239ddd9d88 and deployed runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5."
+  },
+  "side_effects": "This acceptance run created and consumed one static-OTP challenge per synthetic A/B Owner. Several earlier B Owner diagnostic logins were also used while correcting the expected count from one manifest to both saved manifests. SMS was disabled. No business rows or staging configuration changed. Cookie jars and response bodies were held in mode-0700 temporary storage and removed; mobile values and tokens were not emitted.",
+  "limitations": [
+    "The test drove the authenticated staging BFF over strict TLS with curl; it did not drive the browser-rendered list UI or test visual cache behavior."
+  ]
+}

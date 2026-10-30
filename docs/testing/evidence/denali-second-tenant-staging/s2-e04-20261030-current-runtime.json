@@ -1,0 +1,65 @@
+{
+  "scenario": "S2-E04",
+  "status": "PASS",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "transport": {
+    "protocol": "HTTPS",
+    "certificate_verification": "strict root CA and hostname verification",
+    "routing": "request hostname pinned to staging loopback; no TLS bypass"
+  },
+  "identity_handling": "Synthetic A and B Owners authenticated with staging static OTP from the protected staging DB; phone, OTP, session cookie and JWT were not emitted or saved.",
+  "fixtures": {
+    "tenant_a_id": "00000000-0000-4000-8000-000000000003",
+    "tenant_a_tour_id": "81427ead-3da9-5cc4-b78d-bfbd363bd5a0",
+    "tenant_b_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+    "tenant_b_tour_id": "62f242e5-3a85-5ea6-90a8-84b8fa1c8b2f",
+    "run_id": "e04-20261030-codex-01"
+  },
+  "baseline": {
+    "owner_a_get": 200,
+    "owner_b_get": 200,
+    "row_version_a": 1,
+    "row_version_b": 1
+  },
+  "cross_tenant": {
+    "a_owner_get_b_tour": {
+      "status": 404,
+      "code": "TOUR_NOT_FOUND"
+    },
+    "b_owner_get_a_tour": {
+      "status": 404,
+      "code": "TOUR_NOT_FOUND"
+    },
+    "a_owner_patch_b_tour": {
+      "status": 404,
+      "code": "TOUR_NOT_FOUND"
+    },
+    "b_owner_patch_a_tour": {
+      "status": 404,
+      "code": "TOUR_NOT_FOUND"
+    }
+  },
+  "owner_readback": {
+    "a_owner_get": 200,
+    "a_title_unchanged": true,
+    "a_row_version": 1,
+    "b_owner_get": 200,
+    "b_title_unchanged": true,
+    "b_row_version": 1
+  },
+  "database_readback": {
+    "source": "read-only DATABASE_URL_ADMIN query immediately before and after requests",
+    "a_title_hash_before_after": "eb0fadd4ff1d1c5ba375f126ed4ef1ca",
+    "a_row_version_before_after": "1 / 1",
+    "b_title_hash_before_after": "c53811edea12a396b398dc53b6dbd587",
+    "b_row_version_before_after": "1 / 1",
+    "tenant_ids_unchanged": true
+  },
+  "code_and_standards_review": {
+    "status": "PASS",
+    "method": "Codebase Memory graph and source snippets reviewed GET BFF, API getTourOperator, scoped repository, PATCH route/schema, and canonical update service.",
+    "result": "Both detail and update paths carry the authenticated tenant context; repository lookup scopes by tenant and tour ID; current reviewed source paths are byte-identical to runtime release SHA.",
+    "standards": "Tenant-isolation, ID-only tour read, and request-local RLS guards were previously recorded passing for this implementation."
+  },
+  "side_effects": "No business row changed; neither foreign PATCH succeeded; no restoration was required."
+}
