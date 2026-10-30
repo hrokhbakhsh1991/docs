@@ -287,6 +287,7 @@ function resolveStagingRunArtifacts(): StagingRunArtifacts {
       "DENALI_TWO_TENANT_TEST_SHA must contain the exact 40-character test commit SHA"
     );
   }
+  assertStagingRunnerCheckout(testSha);
   const webRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
   const outputDir = resolve(webRoot, "test-results", "two-tenant-staging", runId);
   reserveStagingRunOutputDirectory(runId, outputDir);
