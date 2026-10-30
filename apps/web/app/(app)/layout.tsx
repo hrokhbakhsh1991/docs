@@ -34,7 +34,7 @@ import {
   resolveFinanceNavCapability,
   resolveWizardCreateCapability,
 } from "@app-tour/workspace-sdk";
-import { ensureWizardCreate } from "@/workspace/wizard-create-registry";
+import { ensureWizardCreate, seedWizardCreate } from "@/workspace/wizard-create-registry";
 import { resolveOperatorNav } from "@/admin/shell/resolve-operator-nav";
 import { ensureOperatorShellNavLinks } from "@/shell/operator-shell-nav-registry";
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
@@ -140,6 +140,15 @@ export default async function OperatorAppLayout({ children }: { children: ReactN
   await ensureWalletNavSupported(bootstrap.session.pluginId, tenantTheme ?? {});
   await ensureTicketsNavSupported(bootstrap.session.pluginId, tenantTheme ?? {});
   const wizardCreateCapability = resolveWizardCreateCapability(bootstrap.plugin);
+  // Server edit routes read this registry synchronously when choosing the flat editor.
+  if (wizardCreateCapability?.extendedChrome === true) {
+    seedWizardCreate(bootstrap.session.pluginId, {
+      extendedChrome: true,
+      ...(wizardCreateCapability.customBrandFallbackMark
+        ? { customBrandFallbackMark: wizardCreateCapability.customBrandFallbackMark }
+        : {}),
+    });
+  }
   const wizardCreate =
     wizardCreateCapability?.extendedChrome === true
       ? {

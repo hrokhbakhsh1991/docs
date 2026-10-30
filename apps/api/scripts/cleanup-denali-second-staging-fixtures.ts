@@ -10,6 +10,12 @@ import {
   SECOND_STAGING_TENANT,
 } from "./lib/denali-second-staging-fixtures";
 import {
+  assertNoSecondStagingWizardTourDependencies,
+  assertSecondStagingWizardTourManifest,
+  getSecondStagingWizardTourCreatedAtWindow,
+  type SecondStagingWizardTourManifest,
+} from "./lib/denali-second-staging-wizard-cleanup";
+import {
   assertSecondStagingFixtureRowMatches,
   buildSecondStagingDataPlan,
 } from "./lib/denali-second-staging-data-plan";
@@ -27,6 +33,89 @@ type CleanupCounts = Readonly<{
   themes: number;
   regions: number;
 }>;
+
+type WizardTourCleanupCounts = Readonly<{ tours: number; dependencies: number }>;
+
+async function inspectAndMaybeDeleteWizardTour(
+  manifest: SecondStagingWizardTourManifest,
+  apply: boolean
+): Promise<WizardTourCleanupCounts> {
+  const prisma = getPrisma();
+  try {
+    return await withTenantRls(
+      SECOND_STAGING_TENANT.id,
+      async (tx) => {
+        const matches = await tx.tour.findMany({
+          where: {
+            tenantId: SECOND_STAGING_TENANT.id,
+            title: manifest.title,
+            createdAt: getSecondStagingWizardTourCreatedAtWindow(manifest.testStartedAt),
+            ...(manifest.tourId === null ? {} : { id: manifest.tourId }),
+          },
+          select: {
+            id: true,
+            tenantId: true,
+            title: true,
+            publishStatus: true,
+            rowVersion: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+        if (matches.length > 1) throw new Error("DENALI_SECOND_STAGING_CLEANUP_ROW_COLLISION");
+        const tour = matches[0];
+        if (tour === undefined) return { tours: 0, dependencies: 0 };
+        if (
+          tour.tenantId !== SECOND_STAGING_TENANT.id ||
+          tour.title !== manifest.title ||
+          (tour.publishStatus !== "draft" && tour.publishStatus !== "active")
+        ) {
+          throw new Error("DENALI_SECOND_STAGING_CLEANUP_ROW_COLLISION");
+        }
+
+        const dependencyCounts = {
+          operatorRegistrations: await tx.operatorRegistration.count({
+            where: { tenantId: SECOND_STAGING_TENANT.id, tourId: tour.id },
+          }),
+          urbanRegistrations: await tx.urbanRegistration.count({
+            where: { tenantId: SECOND_STAGING_TENANT.id, tourId: tour.id },
+          }),
+          transportAllocations: await tx.transportAllocation.count({
+            where: { tenantId: SECOND_STAGING_TENANT.id, tourId: tour.id },
+          }),
+          rosterFreezes: await tx.transportRosterFreeze.count({
+            where: { tenantId: SECOND_STAGING_TENANT.id, tourId: tour.id },
+          }),
+          reminderActivations: await tx.denaliExposureReminderActivation.count({
+            where: { tenantId: SECOND_STAGING_TENANT.id, tourId: tour.id },
+          }),
+        };
+        assertNoSecondStagingWizardTourDependencies(dependencyCounts);
+        const dependencies = Object.values(dependencyCounts).reduce((sum, count) => sum + count, 0);
+        if (!apply) return { tours: 1, dependencies };
+
+        const deleted = await tx.tour.deleteMany({
+          where: {
+            id: tour.id,
+            tenantId: SECOND_STAGING_TENANT.id,
+            title: manifest.title,
+            publishStatus: tour.publishStatus,
+            rowVersion: tour.rowVersion,
+            createdAt: tour.createdAt,
+            updatedAt: tour.updatedAt,
+          },
+        });
+        if (deleted.count !== 1) {
+          throw new Error("DENALI_SECOND_STAGING_CLEANUP_CONCURRENT_CHANGE");
+        }
+        return { tours: 1, dependencies };
+      },
+      { isolationLevel: "Serializable" }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 
 function idsContain(value: unknown, id: string): boolean {
   return Array.isArray(value) && value.includes(id);
@@ -163,22 +252,40 @@ async function inspectAndMaybeDelete(
         const registrationIds = getSecondStagingCleanupRegistrationIds(plan.ids.registrations);
         const financialDependencies = {
           payments: await tx.payment.count({
-            where: { tenantId: SECOND_STAGING_TENANT.id, registrationId: { in: registrationIds } },
+            where: {
+              tenantId: SECOND_STAGING_TENANT.id,
+              registrationId: { in: [...registrationIds] },
+            },
           }),
           refunds: await tx.financeRefund.count({
-            where: { tenantId: SECOND_STAGING_TENANT.id, registrationId: { in: registrationIds } },
+            where: {
+              tenantId: SECOND_STAGING_TENANT.id,
+              registrationId: { in: [...registrationIds] },
+            },
           }),
           reconciliationFindings: await tx.financeReconFinding.count({
-            where: { tenantId: SECOND_STAGING_TENANT.id, registrationId: { in: registrationIds } },
+            where: {
+              tenantId: SECOND_STAGING_TENANT.id,
+              registrationId: { in: [...registrationIds] },
+            },
           }),
           schedules: await tx.financeSchedule.count({
-            where: { tenantId: SECOND_STAGING_TENANT.id, registrationId: { in: registrationIds } },
+            where: {
+              tenantId: SECOND_STAGING_TENANT.id,
+              registrationId: { in: [...registrationIds] },
+            },
           }),
           commercialQuotes: await tx.financeCommercialQuote.count({
-            where: { tenantId: SECOND_STAGING_TENANT.id, registrationId: { in: registrationIds } },
+            where: {
+              tenantId: SECOND_STAGING_TENANT.id,
+              registrationId: { in: [...registrationIds] },
+            },
           }),
           paymentHolds: await tx.financePaymentHold.count({
-            where: { tenantId: SECOND_STAGING_TENANT.id, registrationId: { in: registrationIds } },
+            where: {
+              tenantId: SECOND_STAGING_TENANT.id,
+              registrationId: { in: [...registrationIds] },
+            },
           }),
         };
         assertNoSecondStagingFinancialDependencies(financialDependencies);
@@ -421,9 +528,9 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const apply = args.at(-1) === "--apply";
   const positional = apply ? args.slice(0, -1) : args;
-  if (positional.length !== 2 || positional[0] !== "--manifest") {
+  if (positional.length !== 2 || !["--manifest", "--wizard-manifest"].includes(positional[0]!)) {
     throw new Error(
-      "Usage: cleanup-denali-second-staging-fixtures.ts --manifest <seed-manifest.json> [--apply]"
+      "Usage: cleanup-denali-second-staging-fixtures.ts (--manifest <seed-manifest.json>|--wizard-manifest <e10-manifest.json>) [--apply]"
     );
   }
   assertSecondTenantStagingTarget(process.env, apply, "cleanup");
@@ -435,6 +542,28 @@ async function main(): Promise<void> {
   }
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("DENALI_SECOND_STAGING_CLEANUP_MANIFEST_REJECTED");
+  }
+  if (positional[0] === "--wizard-manifest") {
+    assertSecondStagingWizardTourManifest(value);
+    const counts = await inspectAndMaybeDeleteWizardTour(value, apply);
+    console.log(
+      JSON.stringify({
+        status: apply
+          ? "DENALI_SECOND_STAGING_WIZARD_CLEANUP_APPLIED"
+          : "DENALI_SECOND_STAGING_WIZARD_CLEANUP_DRY_RUN_OK",
+        tenantId: SECOND_STAGING_TENANT.id,
+        runId: value.runId,
+        counts,
+        preserved: [
+          "tenant",
+          "identities",
+          "wizard_template",
+          "outbox_history",
+          "other tenant data",
+        ],
+      })
+    );
+    return;
   }
   const record = value as Record<string, unknown>;
   const runId = record.runId;

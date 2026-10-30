@@ -50,6 +50,7 @@ describe("thin-shell-wizard-create-capability — Phase 4bg", () => {
   it("TS-4BG-03 layouts/shells wire ensure + seed", () => {
     const layout = readFileSync(resolve(WEB_ROOT, "app/(app)/layout.tsx"), "utf8");
     assert.match(layout, /ensureWizardCreate/);
+    assert.match(layout, /seedWizardCreate\(bootstrap\.session\.pluginId/);
     assert.match(layout, /wizardCreate=\{wizardCreate\}/);
 
     const tours = readFileSync(resolve(WEB_ROOT, "src/shell/tours-wizard-layout.tsx"), "utf8");
