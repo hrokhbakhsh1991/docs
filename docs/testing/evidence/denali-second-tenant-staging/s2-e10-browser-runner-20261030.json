@@ -1,0 +1,26 @@
+{
+  "scenario": "S2-E10 runner readiness",
+  "observed_at": "2026-10-30T09:01:45Z",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "strict_tunnel_probe": {
+    "route": "Temporary SSH local forward 127.0.0.1:9443 to staging Caddy loopback 127.0.0.1:443; exact qa2.staging.test SNI and hostname; no system DNS or hosts changes.",
+    "http_status": 200,
+    "tls_verify_result": 0,
+    "certificate_sha256": "12:2E:18:81:89:44:24:D5:FD:CE:EC:69:5D:45:B5:FD:B9:C2:08:00:C5:3C:D5:0B:73:BB:97:2F:1C:44:EB:CF"
+  },
+  "browser_probe": {
+    "browser": "Google Chrome 142 with Playwright 1.60, dedicated temporary user-data directory, ignoreHTTPSErrors=false",
+    "host_routing": "Chromium host-resolver rule plus the same temporary SSH forward",
+    "result": "Navigation stopped before application response with net::ERR_CERT_AUTHORITY_INVALID; the root CA in the isolated NSS profile was not consumed by this Chrome process.",
+    "application_test_executed": false
+  },
+  "code_and_standards_review": {
+    "status": "PASS for E10 code path, recorded in s2-e10-catalog-20261030.json",
+    "review_scope": "This was runner transport setup only; it does not change the existing reviewed source or WRS-001 evidence."
+  },
+  "side_effects": "No staging data/configuration changed. Local SSH tunnel, Xvfb/Chrome sessions, temporary Caddy root copy, temporary NSS databases and downloaded NSS utilities were stopped or removed after this probe.",
+  "limitations": [
+    "Browser application navigation remains NOT RUN.",
+    "No insecure TLS override was used."
+  ]
+}

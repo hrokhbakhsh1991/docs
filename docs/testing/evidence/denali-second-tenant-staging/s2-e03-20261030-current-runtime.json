@@ -1,0 +1,100 @@
+{
+  "scenario": "S2-E03",
+  "result": "PARTIAL",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "transport": "Strict HTTPS with the Caddy internal root CA; requests were sent on the staging VPS to loopback with the exact A/B hostname and normal certificate/hostname validation.",
+  "tenant_b_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+  "identity_source": "Dedicated synthetic B Owner, Finance/Admin and Member IDs from the mode-0600 run manifest qa2-20261030-codex-01.",
+  "authentication": {
+    "tenant_a_id": "00000000-0000-4000-8000-000000000003",
+    "owner_a": {
+      "host": "admin.denali.staging.test",
+      "login_endpoint": "/api/auth/login-web-session",
+      "login_http": 200,
+      "ability_context_http": 200,
+      "expected_user_id_match": true,
+      "tenant_id_match": true,
+      "role_match": true,
+      "membership_preflight": "ACTIVE synthetic Owner membership in A; no membership in B"
+    },
+    "finance_a": {
+      "host": "admin.denali.staging.test",
+      "login_endpoint": "/api/auth/login-team-web-session",
+      "login_http": 200,
+      "ability_context_http": 200,
+      "expected_user_id_match": true,
+      "tenant_id_match": true,
+      "role_match": true,
+      "expected_role": "admin",
+      "membership_preflight": "ACTIVE synthetic Admin membership in A; no membership in B"
+    },
+    "member_a": {
+      "host": "portal.denali.staging.test",
+      "verify_endpoint": "/api/public-auth/verify-otp",
+      "login_http": 200,
+      "expected_user_id_match": true,
+      "tenant_id_match": true,
+      "signed_session_role_match": true,
+      "expected_role": "member",
+      "membership_preflight": "ACTIVE synthetic Member membership in A; no membership in B"
+    },
+    "owner": {
+      "host": "admin.qa2.staging.test",
+      "login_endpoint": "/api/auth/login-web-session",
+      "login_http": 200,
+      "ability_context_http": 200,
+      "expected_user_id_match": true,
+      "tenant_id_match": true,
+      "role_match": true
+    },
+    "finance": {
+      "host": "admin.qa2.staging.test",
+      "login_endpoint": "/api/auth/login-team-web-session",
+      "login_http": 200,
+      "ability_context_http": 200,
+      "expected_user_id_match": true,
+      "tenant_id_match": true,
+      "role_match": true,
+      "expected_role": "admin"
+    },
+    "member": {
+      "host": "portal.qa2.staging.test",
+      "verify_endpoint": "/api/public-auth/verify-otp",
+      "login_http": 200,
+      "expected_user_id_match": true,
+      "tenant_id_match": true,
+      "signed_session_role_match": true,
+      "expected_role": "member"
+    }
+  },
+  "preflight": {
+    "release_matches_runtime_sha": true,
+    "api_web_marketing_portal_and_caddy_active": true,
+    "staging_profile": true,
+    "static_otp_enabled": true,
+    "sms_otp_enabled": false,
+    "sms_provider_key_present": false
+  },
+  "code_and_standards_review": {
+    "codebase_memory_review": "PASS: tenant OTP routes resolve tenant context from the request host; the portal verification handler requires an ACTIVE membership for that tenant and signs userId, tenantId and role into the session. The web BFF reads the session cookie and requests ability context under the same host. The admin BFF admits owner; the team BFF admits admin/viewer and is guarded by the configured staging web-session policy.",
+    "wrs_001": "PASS for the exercised host-to-tenant binding: the A/B host selects the tenant context; no tenant ID was supplied by the test client.",
+    "pcms_001": "PASS for the exercised portal session: the portal host selected tenant B and the signed member session matched the manifest member ID, tenant ID and role.",
+    "source_scope": "Reviewed auth/BFF/tenant-binding paths in Codebase Memory and source; those paths were byte-for-byte unchanged between the test checkout and deployed SHA. This is focused code review, not a full repository review.",
+    "reviewed_sources": [
+      "apps/api/src/identity/auth.routes.ts",
+      "apps/api/src/identity/public-auth.routes.ts",
+      "apps/api/src/identity/otp.service.ts",
+      "apps/api/src/identity/static-otp-policy.ts",
+      "apps/web/app/api/auth/login-web-session/route.ts",
+      "apps/web/app/api/auth/login-team-web-session/route.ts",
+      "apps/web/app/api/auth/membership-ability-context/route.ts",
+      "apps/web/src/tenant/auth-env.ts",
+      "apps/portal/src/tenant/session-host-binding.ts"
+    ]
+  },
+  "side_effects": "Eight static-OTP challenges were requested and consumed: three A and five B, including parser diagnosis. OTP policy preflight confirmed outbound SMS disabled. The A mobile values were read internally from the task identities under a read-only tenant-RLS transaction and were not emitted. No business rows or staging configuration changed. Cookie jars and response bodies were held in mode-0700 temporary storage on the VPS and removed on exit; tokens and mobile values were not emitted.",
+  "limitations": [
+    "The portal checks used the real HTTPS endpoint and signed session response but did not drive the browser UI.",
+    "Finance business-permission checks, refresh/returnTo, cross-tenant replay and the full 18-case matrix remain open."
+  ]
+}

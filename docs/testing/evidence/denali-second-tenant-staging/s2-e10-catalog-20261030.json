@@ -1,0 +1,27 @@
+{
+  "scenario": "S2-E10",
+  "result": "PARTIAL",
+  "observed_at": "2026-10-30T08:51:44Z",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "request": {
+    "method": "GET",
+    "surface": "B marketing catalog",
+    "path": "/tours",
+    "transport": "Read-only request from approved staging VPS to loopback with exact qa2.staging.test SNI/Host; Caddy internal root CA and normal hostname verification; no TLS bypass.",
+    "http_status": 200,
+    "tls_verify_result": 0,
+    "server_rendered_catalog_root": true,
+    "server_rendered_results_region": true
+  },
+  "code_and_standards_review": {
+    "status": "PASS",
+    "method": "Codebase Memory search_graph/get_code_snippet review of MarketingToursPage, fetchCatalogList, resolveMarketingBootstrapForHost, and resolveGuestSurfaceBootstrapForHost. Host-derived B context is checked against public API context; catalog BFF supplies that tenant ID and uses no-store for booking-backed list data.",
+    "runtime_source_match": "The four reviewed source files at runtime commit 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5 have SHA-256 values matching the indexed checkout source.",
+    "standard": "WRS-001 host-derived tenant context and fail-closed unresolved-host behavior."
+  },
+  "side_effects": "GET only. No business/config/identity data changed and no authentication or external message was used.",
+  "limitations": [
+    "This is only a read-only B catalog server-render check; no browser UI, wizard create/edit/publish, refresh persistence, or catalog-to-newly-published-tour assertion ran.",
+    "The HTML was not used to claim any tour card or catalog fixture match."
+  ]
+}

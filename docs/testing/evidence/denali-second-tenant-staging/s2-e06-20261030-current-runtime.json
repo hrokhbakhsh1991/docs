@@ -1,0 +1,57 @@
+{
+  "scenario": "S2-E06",
+  "status": "PARTIAL",
+  "runtime_sha": "2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5",
+  "endpoint": "GET /api/bookings/{registrationId}",
+  "transport": "HTTPS strict CA and hostname verification; staging hostname pinned to loopback",
+  "target_preflight": {
+    "registration_id": "84deb915-cd1f-5bec-b6d5-856e2564b999",
+    "tenant_b_id": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+    "database_tenant_match": true
+  },
+  "results": {
+    "B_owner_positive": {
+      "http": 200,
+      "registration_id_matches": true,
+      "returned_field_names_only": [
+        "id",
+        "tourId",
+        "tourTitle",
+        "guestLabel",
+        "registrantTarget",
+        "transportKind",
+        "personalCarOccupants",
+        "partySize",
+        "status",
+        "finalizationStatus",
+        "paymentStatus",
+        "departureAt",
+        "submittedAt",
+        "registrationIntake",
+        "cancelSource",
+        "cancellationStatus",
+        "cancellationReasonCode",
+        "cancellationReasonNote",
+        "cancellationRequestedAt",
+        "cancellationApprovedAt",
+        "cancellationApprovedByUserId",
+        "cancellationCorrelationId",
+        "capacitySnapshot"
+      ]
+    },
+    "A_owner_foreign_read": {
+      "http": 404,
+      "code": "BOOKING_NOT_FOUND",
+      "registration_id_in_response": false
+    }
+  },
+  "identity_handling": "Synthetic Owner identities authenticated in process using static OTP; phone, OTP and session tokens were not emitted or saved. Outbound SMS disabled.",
+  "code_and_standards_review": {
+    "status": "PASS for this GET route slice",
+    "method": "Codebase Memory graph and snippets reviewed web BFF GET, handleGetBooking, BookingsService.getBooking and PrismaBookingsRepository.getById.",
+    "result": "BFF requires session, forwards bearer and request host, and uses no-store. API runs under authenticated request context. Service binds auth.tenantId; repository queries by both registration id and tenantId inside withTenantRls.",
+    "source_provenance": "Reviewed current source files are byte-identical to runtime SHA 2fda5301c35c87c9e89dc35dfcefa8dc6eecd9e5."
+  },
+  "side_effects": "GET-only; no business writes or outbound messages.",
+  "remaining": "Other child IDs and write/FK denials, receipt access and Finance operations remain unrun; scenario remains PARTIAL."
+}
