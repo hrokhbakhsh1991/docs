@@ -298,9 +298,11 @@ type ConfigOverrides = Omit<PlaywrightTestConfig, "globalSetup" | "webServer" | 
   readonly use?: PlaywrightTestConfig["use"];
 };
 
-export function defineTwoTenantStagingConfig(overrides: ConfigOverrides): PlaywrightTestConfig {
-  const manifest = loadTwoTenantStagingManifest();
-  const runArtifacts = resolveStagingRunArtifacts();
+export function composeTwoTenantStagingConfig(
+  overrides: ConfigOverrides,
+  manifest: TwoTenantStagingManifest,
+  runArtifacts: StagingRunArtifacts
+): PlaywrightTestConfig {
   applyManifestEnvironment(manifest);
   const overrideUse = overrides.use ?? {};
   const launchArgs = Array.isArray(overrideUse.launchOptions?.args)
@@ -340,4 +342,10 @@ export function defineTwoTenantStagingConfig(overrides: ConfigOverrides): Playwr
       launchOptions: { ...overrideUse.launchOptions, args: launchArgs },
     },
   });
+}
+
+export function defineTwoTenantStagingConfig(overrides: ConfigOverrides): PlaywrightTestConfig {
+  const manifest = loadTwoTenantStagingManifest();
+  const runArtifacts = resolveStagingRunArtifacts();
+  return composeTwoTenantStagingConfig(overrides, manifest, runArtifacts);
 }
