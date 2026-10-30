@@ -1,0 +1,13 @@
+{
+  "manifestVersion": 1,
+  "source": "denali-second-staging-wizard-e10",
+  "runId": "s2e10-20261030-ab6ad938-02",
+  "tenantId": "f0ed9e65-2638-4351-847d-724f87ebbfce",
+  "ownerUserId": "c51ad260-53cd-49c9-8d43-72fbc0129006",
+  "runtimeSha": "7a7c381e523689051aea768487de9176a8b8daa7",
+  "testSha": "ab6ad9383190c55255859c8b134d67fca219cb4e",
+  "title": "S2-E10 s2e10-20261030-ab6ad938-02",
+  "testStartedAt": "2026-10-30T14:19:52.360Z",
+  "tourId": "5096d80c-5bdb-4237-89a1-d151b17c21ff",
+  "status": "active"
+}
