@@ -17,6 +17,7 @@ const validStagingEnv = {
   ENV_DIR: "/etc/app-tour-staging",
   DEPLOY_ROOT: "/opt/app-tour-staging",
   STORAGE_DRIVER: "prisma",
+  DENALI_SECOND_TENANT_STAGING_DATABASE_HOST_ALLOWLIST: "db.internal",
   DATABASE_URL: "postgresql://app_tour:app-secret@db.internal:5432/tour_db_staging?schema=public",
   DATABASE_URL_ADMIN:
     "postgresql://postgres:admin-secret@db.internal:5432/tour_db_staging?schema=public",

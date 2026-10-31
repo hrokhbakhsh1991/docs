@@ -191,6 +191,39 @@ export class PrismaTourRepository implements TourStorageRepository {
     }
   }
 
+  /** Creates a tour without ever updating an existing row. */
+  async createOnly(tour: Tour): Promise<void> {
+    assertTenantId(tour.tenantId);
+    const workspaceType = getActiveWorkspaceType();
+    await this.assertCapacity(tour.tenantId);
+    try {
+      await withTenantRls(tour.tenantId, async (tx) => {
+        const projections = deriveTourProjections(tour.canonical, {
+          workspaceType,
+          observedAt: new Date(tour.createdAt),
+        });
+        await tx.tour.create({
+          data: {
+            id: tour.id,
+            tenantId: tour.tenantId,
+            canonical: tour.canonical as unknown as Prisma.InputJsonValue,
+            title: projections.title,
+            publishStatus: projections.publishStatus,
+            publishedAt: projections.publishedAt,
+            schemaVersion: projections.schemaVersion,
+            rowVersion: tour.rowVersion,
+            createdAt: new Date(tour.createdAt),
+          },
+        });
+      });
+    } catch (error: unknown) {
+      if (isPrismaUniqueConstraintOnTourId(error)) {
+        throw new Error(CROSS_TENANT_SAVE);
+      }
+      throw error;
+    }
+  }
+
   async updateIfRowVersion(input: {
     tenantId: string;
     id: string;

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "runId": "s2e12-20261031-0728-09939b10",
+  "scenario": "E12 configured prepayment and member receipts",
+  "testSha": "09939b10c2546c322b1a5b2ebe6a30bb89518bce",
+  "runtimeSha": "7a7c381e523689051aea768487de9176a8b8daa7",
+  "tenant": "B",
+  "workers": 1,
+  "tls": {
+    "caPinMatched": true,
+    "strictVerification": true,
+    "verifiedHost": "qa2.staging.test"
+  },
+  "preflight": {
+    "currentReleaseAndIntegrityShaMatchedManifest": true,
+    "identityFixtureDryRun": "PASS: Owner, Finance/Admin, Member",
+    "profile": "staging",
+    "staticOtp": true,
+    "smsEnabled": false,
+    "ownerFinanceAreDistinctSyntheticIdentities": true
+  },
+  "result": {
+    "status": "FAIL",
+    "planned": 1,
+    "completed": 1,
+    "passed": 0,
+    "failed": 1,
+    "timedOut": 0,
+    "startedAt": "2026-10-31T03:46:08.598Z",
+    "endedAt": "2026-10-31T03:47:45.584Z",
+    "firstFailure": "Finance/Admin bookings-page navigation: expected test id operator-bookings-page to be visible within 90000 ms; element was not found.",
+    "observedPage": "Owner-only login screen stated that this panel allows only the organization owner and the current role cannot log in.",
+    "failureLocation": "apps/portal/tests/e2e/fixtures/operator-booking-ui.ts:19"
+  },
+  "sideEffects": {
+    "businessFlowStarted": false,
+    "ownedBusinessIds": [],
+    "receiptIds": [],
+    "paymentIds": [],
+    "cleanupPerformed": false,
+    "smsSent": false
+  },
+  "artifacts": {
+    "result": "apps/web/test-results/two-tenant-staging/s2e12-20261031-0728-09939b10/result.json",
+    "ownedIds": "apps/web/test-results/two-tenant-staging/s2e12-20261031-0728-09939b10/tour-creation-paid-partial-53e75-tial-to-paid-across-reloads/s2-e12-run-owned-ids.json",
+    "errorContext": "apps/web/test-results/two-tenant-staging/s2e12-20261031-0728-09939b10/tour-creation-paid-partial-53e75-tial-to-paid-across-reloads/error-context.md"
+  }
+}
