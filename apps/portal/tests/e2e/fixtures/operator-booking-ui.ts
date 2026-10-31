@@ -5,7 +5,7 @@
 import { expect, type Browser, type Page } from "@playwright/test";
 
 import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "../../../../web/src/features/bookings/bookings-command-center-types";
-import { SESSION_TOKEN_COOKIE } from "../../../../web/src/auth/build-session-cookie";
+import { loginOperatorTeamSessionWithPhone } from "../../../../web/test/fixtures/operator-owner-session";
 
 const OPERATOR_WEB_BASE_URL =
   process.env.SMOKE_OPERATOR_WEB_BASE_URL ?? "http://operator.localhost:3000";
@@ -13,51 +13,6 @@ const OPERATOR_LOGIN_MOBILE =
   process.env.DENALI_SECOND_STAGING_E12 === "1"
     ? (process.env.DENALI_SECOND_STAGING_FINANCE_MOBILE?.trim() ?? "")
     : "09174070937";
-const DEV_OTP = process.env.OPERATOR_DEV_OTP?.trim() || "1234";
-let operatorSessionToken: string | undefined;
-
-async function loginOperatorSession(page: Page): Promise<void> {
-  await page.context().clearCookies();
-
-  if (operatorSessionToken === undefined) {
-    const otpRes = await page.request.post("/api/auth/request-otp", {
-      data: { phone: OPERATOR_LOGIN_MOBILE },
-      timeout: 120_000,
-    });
-    const otpText = await otpRes.text();
-    expect(otpRes.ok(), `OTP request status=${otpRes.status()} body=${otpText}`).toBeTruthy();
-    const otpBody = JSON.parse(otpText) as { challenge_id?: string };
-    expect(typeof otpBody.challenge_id).toBe("string");
-
-    const loginRes = await page.request.post("/api/auth/login-web-session", {
-      data: {
-        phone: OPERATOR_LOGIN_MOBILE,
-        otp: DEV_OTP,
-        challenge_id: otpBody.challenge_id,
-      },
-      timeout: 120_000,
-    });
-    const loginText = await loginRes.text();
-    expect(
-      loginRes.ok(),
-      `session login status=${loginRes.status()} body=${loginText}`
-    ).toBeTruthy();
-    const loginBody = JSON.parse(loginText) as { session_token?: string };
-    expect(typeof loginBody.session_token).toBe("string");
-    operatorSessionToken = loginBody.session_token!;
-  }
-
-  const cookieUrl = OPERATOR_WEB_BASE_URL.replace(/\/$/, "");
-  await page.context().addCookies([
-    {
-      name: SESSION_TOKEN_COOKIE,
-      value: operatorSessionToken,
-      url: cookieUrl,
-      httpOnly: true,
-      sameSite: "Lax",
-    },
-  ]);
-}
 
 async function openOperatorBookingsInbox(page: Page): Promise<void> {
   await page.goto("/bookings", { waitUntil: "domcontentloaded" });
@@ -117,7 +72,7 @@ export async function withOperatorBookingsUi(
   });
   const page = await context.newPage();
   try {
-    await loginOperatorSession(page);
+    await loginOperatorTeamSessionWithPhone(page, OPERATOR_LOGIN_MOBILE);
     await openOperatorBookingsInbox(page);
     await run(page);
   } finally {

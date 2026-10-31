@@ -80,7 +80,7 @@ function cacheKeyForOperatorSession(page: Page, phone: string): string {
   return `${readRequestCookieDomain(page)}::${phone.trim()}`;
 }
 
-async function loginOperatorTeamSessionViaBff(
+export async function loginOperatorTeamSessionWithPhone(
   page: Page,
   phone: string,
   forceFresh = false
