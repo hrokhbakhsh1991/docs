@@ -9,6 +9,7 @@ const validEnv = {
   ENV_DIR: "/etc/app-tour-staging",
   DEPLOY_ROOT: "/opt/app-tour-staging",
   STORAGE_DRIVER: "prisma",
+  DENALI_SECOND_TENANT_STAGING_DATABASE_HOST_ALLOWLIST: "db.internal",
   DATABASE_URL: "postgresql://app_tour:app-secret@db.internal:5432/tour_db_staging?schema=public",
   DATABASE_URL_ADMIN:
     "postgresql://postgres:admin-secret@db.internal:5432/tour_db_staging?schema=public",
@@ -45,6 +46,48 @@ test("rejects wrong database, mismatched database host, and app role as admin", 
   ]) {
     assert.throws(() => assertSecondTenantStagingTarget({ ...validEnv, ...patch }));
   }
+});
+
+test("requires exact database hosts from the configured staging allowlist", () => {
+  const { DENALI_SECOND_TENANT_STAGING_DATABASE_HOST_ALLOWLIST: _allowlist, ...withoutAllowlist } =
+    validEnv;
+  assert.throws(
+    () => assertSecondTenantStagingTarget(withoutAllowlist),
+    /DENALI_SECOND_TENANT_STAGING_DATABASE_REJECTED/
+  );
+
+  for (const allowlist of [
+    "",
+    "db.internal,",
+    "*.internal",
+    "db.internal:5432",
+    "https://db.internal",
+  ]) {
+    assert.throws(
+      () =>
+        assertSecondTenantStagingTarget({
+          ...validEnv,
+          DENALI_SECOND_TENANT_STAGING_DATABASE_HOST_ALLOWLIST: allowlist,
+        }),
+      /DENALI_SECOND_TENANT_STAGING_DATABASE_REJECTED/
+    );
+  }
+
+  assert.throws(
+    () =>
+      assertSecondTenantStagingTarget({
+        ...validEnv,
+        DATABASE_URL: validEnv.DATABASE_URL.replace("db.internal", "other.internal"),
+        DATABASE_URL_ADMIN: validEnv.DATABASE_URL_ADMIN.replace("db.internal", "other.internal"),
+      }),
+    /DENALI_SECOND_TENANT_STAGING_DATABASE_REJECTED/
+  );
+  assert.doesNotThrow(() =>
+    assertSecondTenantStagingTarget({
+      ...validEnv,
+      DENALI_SECOND_TENANT_STAGING_DATABASE_HOST_ALLOWLIST: "other.internal, DB.INTERNAL",
+    })
+  );
 });
 
 test("apply requires the exact staging confirmation while dry run does not", () => {

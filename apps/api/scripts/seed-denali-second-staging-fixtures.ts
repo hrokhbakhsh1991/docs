@@ -11,6 +11,7 @@ import {
   isSecondStagingWizardTemplateReady,
 } from "./lib/denali-second-staging-data-plan";
 import { assertSecondTenantStagingTarget } from "./lib/denali-second-staging-target";
+import { seedRunScopedTourIfMissing } from "./lib/denali-second-staging-tour-seed";
 import { getPrisma } from "../src/db/prisma";
 import { withTenantRls } from "../src/db/with-tenant-rls";
 import { WORKSPACE_DEV_WIZARD_TEMPLATE_BINDINGS } from "../src/settings/workspace-dev-bootstrap-bindings.generated";
@@ -277,17 +278,7 @@ async function seedTours(plan: ReturnType<typeof buildSecondStagingDataPlan>): P
     async () => {
       const repo = new PrismaTourRepository();
       for (const tour of [plan.tours.free, plan.tours.paid]) {
-        const existing = await repo.getById(tour.id, SECOND_STAGING_TENANT.id);
-        if (existing !== null) {
-          assertSecondStagingFixtureRowMatches(
-            { canonical: existing.canonical },
-            { canonical: tour.canonical },
-            ["canonical"],
-            "DENALI_SECOND_STAGING_FIXTURE_TOUR_COLLISION"
-          );
-          continue;
-        }
-        await repo.save(tour);
+        await seedRunScopedTourIfMissing(tour, repo);
       }
     },
     { workspaceType: SECOND_STAGING_TENANT.workspaceType, tenantTier: "pool" }

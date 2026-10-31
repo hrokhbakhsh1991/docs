@@ -3,6 +3,7 @@ const STAGING_DEPLOY_ROOT = "/opt/app-tour-staging";
 const STAGING_DATABASE = "tour_db_staging";
 const STAGING_APP_ROLE = "app_tour";
 const STAGING_ADMIN_ROLE = "postgres";
+const STAGING_DATABASE_HOST_ALLOWLIST_ENV = "DENALI_SECOND_TENANT_STAGING_DATABASE_HOST_ALLOWLIST";
 const APPLY_CONFIRMATIONS = {
   tenant: "provision-denali-qa2-to-tour_db_staging",
   identities: "seed-denali-qa2-identities-to-tour_db_staging",
@@ -38,10 +39,12 @@ export function assertSecondTenantStagingTarget(
 
   const appUrl = parseDatabaseUrl(env.DATABASE_URL);
   const adminUrl = parseDatabaseUrl(env.DATABASE_URL_ADMIN);
+  const allowedDatabaseHosts = parseDatabaseHostAllowlist(env[STAGING_DATABASE_HOST_ALLOWLIST_ENV]);
   if (
     appUrl.database !== STAGING_DATABASE ||
     adminUrl.database !== STAGING_DATABASE ||
     appUrl.hostname !== adminUrl.hostname ||
+    !allowedDatabaseHosts.has(appUrl.hostname) ||
     appUrl.port !== adminUrl.port ||
     appUrl.username !== STAGING_APP_ROLE ||
     adminUrl.username !== STAGING_ADMIN_ROLE ||
@@ -65,6 +68,49 @@ export function assertSecondTenantStagingTarget(
   if (apply && env[confirmationVariable] !== APPLY_CONFIRMATIONS[mutation]) {
     throw new Error("DENALI_SECOND_TENANT_STAGING_CONFIRMATION_REQUIRED");
   }
+}
+
+function parseDatabaseHostAllowlist(value: string | undefined): ReadonlySet<string> {
+  if (value === undefined || value.trim().length === 0) {
+    throw new Error("DENALI_SECOND_TENANT_STAGING_DATABASE_REJECTED");
+  }
+
+  const entries = value.split(",").map((entry) => entry.trim());
+  if (entries.some((entry) => entry.length === 0)) {
+    throw new Error("DENALI_SECOND_TENANT_STAGING_DATABASE_REJECTED");
+  }
+
+  const hosts = entries.map((entry) => {
+    if (/[\s/@?#\\*%]/.test(entry)) {
+      throw new Error("DENALI_SECOND_TENANT_STAGING_DATABASE_REJECTED");
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(`postgres://${entry}/`);
+    } catch {
+      throw new Error("DENALI_SECOND_TENANT_STAGING_DATABASE_REJECTED");
+    }
+    const hostname = parsed.hostname.toLowerCase();
+    if (
+      hostname.length === 0 ||
+      parsed.username.length > 0 ||
+      parsed.password.length > 0 ||
+      parsed.port.length > 0 ||
+      parsed.pathname !== "/" ||
+      parsed.search.length > 0 ||
+      parsed.hash.length > 0 ||
+      hostname !== entry.toLowerCase()
+    ) {
+      throw new Error("DENALI_SECOND_TENANT_STAGING_DATABASE_REJECTED");
+    }
+    return hostname;
+  });
+
+  if (new Set(hosts).size !== hosts.length) {
+    throw new Error("DENALI_SECOND_TENANT_STAGING_DATABASE_REJECTED");
+  }
+  return new Set(hosts);
 }
 
 function parseDatabaseUrl(value: string | undefined): ParsedDatabaseUrl {

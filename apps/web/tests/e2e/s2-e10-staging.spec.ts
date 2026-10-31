@@ -26,7 +26,12 @@ const runtimeSha = process.env.DENALI_SECOND_STAGING_RUNTIME_SHA?.trim() ?? "";
 const testSha = process.env.DENALI_SECOND_STAGING_TEST_SHA?.trim() ?? "";
 const allowedHosts = new Set(["admin.qa2.staging.test", "qa2.staging.test"]);
 
-type RelayState = { requests: number; tlsFailures: number };
+type RelayState = {
+  requests: number;
+  relayFailures: number;
+  hostRequests: Record<string, number>;
+  rejectedTargets: Record<string, number>;
+};
 type RelayedResponse = { status: number; headers: Record<string, string>; body: Buffer };
 type ActionObservation = {
   path: string;
@@ -53,6 +58,8 @@ async function fetchFromStaging(
     !allowedHosts.has(url.hostname) ||
     (url.port !== "" && Number(url.port) !== relayPort)
   ) {
+    const target = url.port.length > 0 ? `${url.hostname}:${url.port}` : url.hostname;
+    relayState.rejectedTargets[target] = (relayState.rejectedTargets[target] ?? 0) + 1;
     throw new Error("S2E10_RELAY_TARGET_REJECTED");
   }
 
@@ -74,6 +81,7 @@ async function fetchFromStaging(
   delete headers.connection;
   const body = request.postDataBuffer();
   relayState.requests += 1;
+  relayState.hostRequests[url.hostname] = (relayState.hostRequests[url.hostname] ?? 0) + 1;
 
   return new Promise<RelayedResponse>((resolveResponse, reject) => {
     const outgoing = httpsRequest(
@@ -179,7 +187,12 @@ function installBrowserApiRequestBridge(page: Page): void {
 test("S2-E10 B wizard create, publish, refresh and catalog", async ({ page }, testInfo) => {
   const caFile = resolve(caPath);
   const ca = await readFile(caFile);
-  const relayState: RelayState = { requests: 0, tlsFailures: 0 };
+  const relayState: RelayState = {
+    requests: 0,
+    relayFailures: 0,
+    hostRequests: {},
+    rejectedTargets: {},
+  };
   const actionObservations: ActionObservation[] = [];
   const actionResponseReads: Promise<void>[] = [];
   const title = `S2-E10 ${runId}`;
@@ -223,8 +236,10 @@ test("S2-E10 B wizard create, publish, refresh and catalog", async ({ page }, te
     try {
       const response = await fetchFromStaging(route, ca, relayState);
       await route.fulfill(response);
-    } catch {
-      relayState.tlsFailures += 1;
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "S2E10_RELAY_TARGET_REJECTED") {
+        relayState.relayFailures += 1;
+      }
       await route.abort("failed");
     }
   });
@@ -349,13 +364,22 @@ test("S2-E10 B wizard create, publish, refresh and catalog", async ({ page }, te
     timeout: 30_000,
   });
 
-  expect(relayState.requests).toBeGreaterThan(0);
-  expect(relayState.tlsFailures).toBe(0);
-  await writeManifest("active");
   await testInfo.attach("s2-e10-relay-summary", {
-    body: Buffer.from(JSON.stringify({ strictTlsRequests: relayState.requests, tlsFailures: 0 })),
+    body: Buffer.from(
+      JSON.stringify({
+        strictTlsRequests: relayState.requests,
+        relayFailures: relayState.relayFailures,
+        hostRequests: relayState.hostRequests,
+        blockedNonAllowlistedTargets: relayState.rejectedTargets,
+      })
+    ),
     contentType: "application/json",
   });
+  expect(relayState.requests).toBeGreaterThan(0);
+  expect(relayState.hostRequests["admin.qa2.staging.test"]).toBeGreaterThan(0);
+  expect(relayState.hostRequests["qa2.staging.test"]).toBeGreaterThan(0);
+  expect(relayState.relayFailures).toBe(0);
+  await writeManifest("active");
   await Promise.allSettled(actionResponseReads);
   const actionSummary = Buffer.from(JSON.stringify(actionObservations, null, 2));
   await writeFile(testInfo.outputPath("s2-e10-create-action-summary.json"), actionSummary, {
@@ -376,13 +400,20 @@ test("S2-E10 existing created tour list and refresh", async ({ page }) => {
   );
 
   const ca = await readFile(resolve(caPath));
-  const relayState: RelayState = { requests: 0, tlsFailures: 0 };
+  const relayState: RelayState = {
+    requests: 0,
+    relayFailures: 0,
+    hostRequests: {},
+    rejectedTargets: {},
+  };
   await page.context().route("https://**/*", async (route) => {
     try {
       const response = await fetchFromStaging(route, ca, relayState);
       await route.fulfill(response);
-    } catch {
-      relayState.tlsFailures += 1;
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "S2E10_RELAY_TARGET_REJECTED") {
+        relayState.relayFailures += 1;
+      }
       await route.abort("failed");
     }
   });
@@ -412,5 +443,6 @@ test("S2-E10 existing created tour list and refresh", async ({ page }) => {
   await search.fill(`S2-E10 ${runId}`);
   await expect(tourRow.or(tourCard).first()).toBeVisible({ timeout: 30_000 });
   expect(relayState.requests).toBeGreaterThan(0);
-  expect(relayState.tlsFailures).toBe(0);
+  expect(relayState.hostRequests["admin.qa2.staging.test"]).toBeGreaterThan(0);
+  expect(relayState.relayFailures).toBe(0);
 });
