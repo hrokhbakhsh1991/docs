@@ -50,7 +50,7 @@ process.env.SMOKE_PORTAL_OPERATOR_BASE_URL = manifest.tenants.B.hosts.portal;
 export default defineTwoTenantStagingConfig({
   tenantLabel: "B",
   tenantLabels: ["B"],
-  testDir: "./tests/e2e",
+  testDir: "../../tests/e2e",
   testMatch: "tour-creation-paid-partial-receipt-staging.spec.ts",
   workers: 1,
   retries: 0,
