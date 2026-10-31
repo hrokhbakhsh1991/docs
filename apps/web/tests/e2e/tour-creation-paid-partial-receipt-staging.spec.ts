@@ -1,6 +1,8 @@
 /** Staging lifecycle: offline partial payment, receipt review, and final settlement. */
 import { expect, test } from "@playwright/test";
 import ExcelJS from "../../../api/node_modules/exceljs/excel.js";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 import {
   completeCatalogRegistrationIntake,
@@ -15,6 +17,7 @@ import {
   PORTAL_OPERATOR_BASE_URL,
   publishTourForClosure,
 } from "../../test/fixtures/tour-creation-closure-fixture";
+import { loginOperatorOwner } from "../../test/fixtures/operator-owner-session";
 
 type RegistrationResponse = {
   readonly registrationId?: string;
@@ -54,6 +57,35 @@ const FAILED_SYNTHETIC_REGISTRATION_ID = "5d77e7a2-95ff-417c-998f-0d08db0e6071";
 const FAILED_PARTIAL_REGISTRATION_ID = "34b482d0-88ce-488e-864b-8143c5e31e54";
 const FAILED_FINAL_PARTIAL_REGISTRATION_ID = "baa2dde2-ea68-4fa3-84c7-9c60221ed757";
 
+const s2e12Artifacts: {
+  runId?: string;
+  testSha?: string;
+  runtimeSha?: string;
+  status?: string;
+  registrationCaptureStatus?: "PENDING" | "CAPTURED" | "UNKNOWN";
+  artifactPath?: string;
+  tourId?: string;
+  registrationId?: string;
+  receiptIds: string[];
+  paymentIds: string[];
+} = { receiptIds: [], paymentIds: [] };
+
+function persistS2E12Artifacts(status?: string): void {
+  if (s2e12Artifacts.artifactPath === undefined) return;
+  mkdirSync(dirname(s2e12Artifacts.artifactPath), { recursive: true, mode: 0o700 });
+  writeFileSync(
+    s2e12Artifacts.artifactPath,
+    `${JSON.stringify({ version: 1, ...s2e12Artifacts, status: status ?? s2e12Artifacts.status ?? "IN_PROGRESS" }, null, 2)}\n`,
+    { mode: 0o600 }
+  );
+}
+
+test.afterEach(async ({}, testInfo) => {
+  if (process.env.DENALI_SECOND_STAGING_E12 !== "1") return;
+  s2e12Artifacts.artifactPath = testInfo.outputPath("s2-e12-run-owned-ids.json");
+  persistS2E12Artifacts(testInfo.status);
+});
+
 type PendingReceipt = {
   readonly id?: string;
   readonly note?: string;
@@ -77,6 +109,22 @@ async function readInvoice(page: import("@playwright/test").Page, registrationId
   const text = await response.text();
   expect(response.ok(), text).toBeTruthy();
   return JSON.parse(text) as Invoice;
+}
+
+async function assertTourTitleIsUnused(
+  page: import("@playwright/test").Page,
+  title: string
+): Promise<void> {
+  const response = await page.request.get(
+    `/api/tours?view=operator&search=${encodeURIComponent(title)}`
+  );
+  expect(
+    response.ok(),
+    `unique-title preflight failed with HTTP ${response.status()}`
+  ).toBeTruthy();
+  const payload = (await response.json()) as { items?: readonly { title?: string }[] };
+  expect(Array.isArray(payload.items)).toBe(true);
+  expect(payload.items?.some((tour) => tour.title === title)).toBe(false);
 }
 
 async function readPayments(page: import("@playwright/test").Page, registrationId: string) {
@@ -263,10 +311,16 @@ async function uploadMemberReceipt(
     page.locator("[data-portal-member-receipt-submit]").click(),
   ]);
   const text = await response.text();
-  expect(response.status(), text).toBe(201);
   const payload = JSON.parse(text) as {
     data?: { id?: string; status?: string; paymentId?: string; payment?: FinancePayment };
   };
+  if (process.env.DENALI_SECOND_STAGING_E12 === "1") {
+    if (payload.data?.id) s2e12Artifacts.receiptIds.push(payload.data.id);
+    const paymentId = payload.data?.paymentId ?? payload.data?.payment?.id;
+    if (paymentId) s2e12Artifacts.paymentIds.push(paymentId);
+    persistS2E12Artifacts();
+  }
+  expect(response.status(), text).toBe(201);
   console.log("[QA receipt submission payload]", JSON.stringify(payload));
   expect(payload.data?.id).toBeTruthy();
   expect(payload.data?.status).toBe("Pending");
@@ -377,18 +431,58 @@ async function readXlsxFinancialState(
 test("configured prepayment and member receipts transition unpaid to partial to paid across reloads", async ({
   page,
   browser,
-}) => {
+}, testInfo) => {
   test.setTimeout(600_000);
-  await withOperatorBookingsUi(browser, async (adminPage) => {
-    await resolveFailedSyntheticFixture(adminPage, FAILED_SYNTHETIC_REGISTRATION_ID);
-    await resolveFailedSyntheticFixture(adminPage, FAILED_PARTIAL_REGISTRATION_ID);
-    await resolveFailedSyntheticFixture(adminPage, FAILED_FINAL_PARTIAL_REGISTRATION_ID);
-  });
+  const tenantBRun = process.env.DENALI_SECOND_STAGING_E12 === "1";
+  const stagingRunId = process.env.DENALI_TWO_TENANT_RUN_ID?.trim() ?? "";
+  if (tenantBRun) {
+    if (
+      process.env.STAGING_ALLOW_STATIC_OTP?.trim() !== "true" ||
+      process.env.SMS_OTP_ENABLED?.trim().toLowerCase() === "true" ||
+      !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(stagingRunId)
+    ) {
+      throw new Error("S2_E12 staging identity, run ID, or no-SMS policy is not approved");
+    }
+    const adminHealth = await page.request.get("/health");
+    expect(new URL(adminHealth.url()).hostname).toBe(
+      new URL(process.env.DENALI_STAGING_B_ADMIN_URL!).hostname
+    );
+    expect(adminHealth.status(), await adminHealth.text()).toBe(200);
+    const portalHealth = await page.request.get(`${PORTAL_OPERATOR_BASE_URL}/health`);
+    expect(new URL(portalHealth.url()).hostname).toBe(
+      new URL(process.env.DENALI_STAGING_B_PORTAL_URL!).hostname
+    );
+    expect(portalHealth.status(), await portalHealth.text()).toBe(200);
+    await loginOperatorOwner(page);
+    await withOperatorBookingsUi(browser, async () => undefined);
+  } else {
+    await withOperatorBookingsUi(browser, async (adminPage) => {
+      await resolveFailedSyntheticFixture(adminPage, FAILED_SYNTHETIC_REGISTRATION_ID);
+      await resolveFailedSyntheticFixture(adminPage, FAILED_PARTIAL_REGISTRATION_ID);
+      await resolveFailedSyntheticFixture(adminPage, FAILED_FINAL_PARTIAL_REGISTRATION_ID);
+    });
+  }
   const stamp = Date.now();
   const suffix = String(stamp).slice(-8);
-  const guestName = `Partial Receipt Member ${suffix}`;
+  const runId = tenantBRun ? stagingRunId : String(stamp);
+  if (tenantBRun) {
+    s2e12Artifacts.runId = runId;
+    s2e12Artifacts.testSha = process.env.DENALI_TWO_TENANT_TEST_SHA?.trim();
+    s2e12Artifacts.runtimeSha = process.env.DENALI_TWO_TENANT_STAGING_MANIFEST
+      ? (
+          JSON.parse(readFileSync(process.env.DENALI_TWO_TENANT_STAGING_MANIFEST, "utf8")) as {
+            runtimeSha?: string;
+          }
+        ).runtimeSha
+      : undefined;
+    s2e12Artifacts.artifactPath = testInfo.outputPath("s2-e12-run-owned-ids.json");
+    persistS2E12Artifacts();
+  }
+  const guestName = `Partial Receipt Member ${tenantBRun ? runId : suffix}`;
   const phone = syntheticTestPhone();
-  const { tourId, canonical } = await publishTourForClosure(page, `TC partial receipts ${stamp}`, {
+  const tourTitle = `TC partial receipts ${tenantBRun ? runId : stamp}`;
+  if (tenantBRun) await assertTourTitleIsUnused(page, tourTitle);
+  const { tourId, canonical } = await publishTourForClosure(page, tourTitle, {
     capacityMax: 2,
     pricing: {
       paymentCollection: "paid",
@@ -397,14 +491,17 @@ test("configured prepayment and member receipts transition unpaid to partial to 
       prepaymentEnabled: true,
       prepaymentPercent: 50,
     },
-    transport: { mode: "bus", allowPersonalCar: false },
+    ...(tenantBRun ? {} : { transport: { mode: "bus" as const, allowPersonalCar: false } }),
+    onDraftCreated: (tourId) => {
+      if (tenantBRun) s2e12Artifacts.tourId = tourId;
+    },
   });
   expect(canonical.capacityMax).toBe(2);
   expect(canonical.pricing).toMatchObject({
     prepaymentEnabled: true,
     prepaymentPercent: 50,
   });
-  expect(canonical.transport).toMatchObject({ mode: "bus" });
+  if (!tenantBRun) expect(canonical.transport).toMatchObject({ mode: "bus" });
 
   await page.goto(`${PORTAL_OPERATOR_BASE_URL}/catalog/${encodeURIComponent(tourId)}/register`, {
     waitUntil: "domcontentloaded",
@@ -425,18 +522,68 @@ test("configured prepayment and member receipts transition unpaid to partial to 
     await fillCatalogOtp(page, "1234");
   }
 
-  let registrationResponse: { status: number; body: RegistrationResponse } | undefined;
-  const onRegistrationResponse = async (response: import("@playwright/test").Response) => {
-    if (
-      response.request().method() === "POST" &&
-      new URL(response.url()).pathname.endsWith("/api/catalog/registrations")
-    ) {
-      registrationResponse = {
-        status: response.status(),
-        body: (await response.json()) as RegistrationResponse,
-      };
+  let registrationRequestStarted = false;
+  let registrationCaptureSettled = false;
+  let resolveRegistrationCapture!: (value: { status: number; body: RegistrationResponse }) => void;
+  let rejectRegistrationCapture!: (reason: unknown) => void;
+  const registrationCapturePromise = new Promise<{
+    status: number;
+    body: RegistrationResponse;
+  }>((resolve, reject) => {
+    resolveRegistrationCapture = resolve;
+    rejectRegistrationCapture = reject;
+  });
+  void registrationCapturePromise.catch(() => undefined);
+  const isRegistrationRequest = (request: import("@playwright/test").Request) =>
+    request.method() === "POST" &&
+    new URL(request.url()).pathname.endsWith("/api/catalog/registrations");
+  const onRegistrationRequest = (request: import("@playwright/test").Request) => {
+    if (isRegistrationRequest(request)) {
+      registrationRequestStarted = true;
+      if (tenantBRun) {
+        s2e12Artifacts.registrationCaptureStatus = "PENDING";
+        persistS2E12Artifacts();
+      }
     }
   };
+  const onRegistrationRequestFailed = (request: import("@playwright/test").Request) => {
+    if (!isRegistrationRequest(request)) return;
+    registrationCaptureSettled = true;
+    if (tenantBRun) {
+      s2e12Artifacts.registrationCaptureStatus = "UNKNOWN";
+      persistS2E12Artifacts();
+    }
+    rejectRegistrationCapture(new Error("S2_E12 registration request failed before response"));
+  };
+  const onRegistrationResponse = (response: import("@playwright/test").Response) => {
+    if (!isRegistrationRequest(response.request())) return;
+    page.off("response", onRegistrationResponse);
+    void response
+      .json()
+      .then((body: RegistrationResponse) => {
+        const registrationId = body.registrationId ?? body.id;
+        registrationCaptureSettled = true;
+        if (tenantBRun && registrationId) {
+          s2e12Artifacts.registrationId = registrationId;
+          s2e12Artifacts.registrationCaptureStatus = "CAPTURED";
+          persistS2E12Artifacts();
+        } else if (tenantBRun) {
+          s2e12Artifacts.registrationCaptureStatus = "UNKNOWN";
+          persistS2E12Artifacts();
+        }
+        resolveRegistrationCapture({ status: response.status(), body });
+      })
+      .catch((error: unknown) => {
+        registrationCaptureSettled = true;
+        if (tenantBRun) {
+          s2e12Artifacts.registrationCaptureStatus = "UNKNOWN";
+          persistS2E12Artifacts();
+        }
+        rejectRegistrationCapture(error);
+      });
+  };
+  page.on("request", onRegistrationRequest);
+  page.on("requestfailed", onRegistrationRequestFailed);
   page.on("response", onRegistrationResponse);
   try {
     await completeCatalogRegistrationIntake(page, {
@@ -447,13 +594,36 @@ test("configured prepayment and member receipts transition unpaid to partial to 
       partySize: "1",
       registrantTarget: "self",
     });
+  } catch (error) {
+    if (registrationRequestStarted) {
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      await Promise.race([
+        registrationCapturePromise.catch(() => undefined),
+        new Promise<void>((resolve) => {
+          timeout = setTimeout(resolve, 120_000);
+        }),
+      ]);
+      if (timeout !== undefined) clearTimeout(timeout);
+      if (!registrationCaptureSettled && tenantBRun) {
+        s2e12Artifacts.registrationCaptureStatus = "UNKNOWN";
+        persistS2E12Artifacts();
+      }
+    }
+    throw error;
   } finally {
+    page.off("request", onRegistrationRequest);
+    page.off("requestfailed", onRegistrationRequestFailed);
     page.off("response", onRegistrationResponse);
   }
+  const registrationResponse = await registrationCapturePromise;
+  const registrationId = registrationResponse.body.registrationId ?? registrationResponse.body.id;
+  if (tenantBRun && registrationId) {
+    s2e12Artifacts.registrationId = registrationId;
+    persistS2E12Artifacts();
+  }
   await expect(page.locator("[data-public-registration-success]")).toBeVisible({ timeout: 90_000 });
-  expect(registrationResponse?.status).toBe(201);
-  expect(registrationResponse?.body.status).toBe("approved");
-  const registrationId = registrationResponse?.body.registrationId ?? registrationResponse?.body.id;
+  expect(registrationResponse.status).toBe(201);
+  expect(registrationResponse.body.status).toBe("approved");
   expect(registrationId).toBeTruthy();
 
   await withOperatorBookingsUi(browser, async (adminPage) => {
@@ -581,8 +751,12 @@ test("configured prepayment and member receipts transition unpaid to partial to 
       status: "approved",
       paymentStatus: "paid",
       partySize: 1,
-      transportKind: "primary",
     });
+    if (!tenantBRun) {
+      expect(await readRosterRow(adminPage, tourId, registrationId!)).toMatchObject({
+        transportKind: "primary",
+      });
+    }
     const paidXlsx = await readXlsxFinancialState(adminPage, tourId, guestName);
     expect(paidXlsx.finalStatus).toBe("پرداخت کامل");
     expect(paidXlsx.followupContainsGuest).toBe(false);

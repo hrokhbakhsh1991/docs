@@ -295,6 +295,8 @@ function resolveStagingRunArtifacts(): StagingRunArtifacts {
 }
 
 type ConfigOverrides = Omit<PlaywrightTestConfig, "globalSetup" | "webServer" | "use"> & {
+  readonly tenantLabel?: StagingTenantLabel;
+  readonly tenantLabels?: readonly StagingTenantLabel[];
   readonly use?: PlaywrightTestConfig["use"];
 };
 
@@ -304,7 +306,12 @@ export function composeTwoTenantStagingConfig(
   runArtifacts: StagingRunArtifacts
 ): PlaywrightTestConfig {
   applyManifestEnvironment(manifest);
-  const overrideUse = overrides.use ?? {};
+  const {
+    tenantLabel = "A",
+    tenantLabels = ["A", "B"],
+    use: overrideUse = {},
+    ...playwrightOverrides
+  } = overrides;
   const launchArgs = Array.isArray(overrideUse.launchOptions?.args)
     ? overrideUse.launchOptions.args.filter(
         (argument) =>
@@ -315,7 +322,7 @@ export function composeTwoTenantStagingConfig(
       )
     : [];
   return defineConfig({
-    ...overrides,
+    ...playwrightOverrides,
     globalSetup: undefined,
     webServer: undefined,
     outputDir: runArtifacts.outputDir,
@@ -326,7 +333,7 @@ export function composeTwoTenantStagingConfig(
         {
           runtimeSha: manifest.runtimeSha,
           testSha: runArtifacts.testSha,
-          tenantLabels: ["A", "B"],
+          tenantLabels,
           runId: runArtifacts.runId,
           outputDir: runArtifacts.outputDir,
         },
@@ -335,10 +342,10 @@ export function composeTwoTenantStagingConfig(
     use: {
       ...devices["Desktop Chrome"],
       ...overrideUse,
-      baseURL: manifest.tenants.A.hosts.admin,
+      baseURL: manifest.tenants[tenantLabel].hosts.admin,
       ignoreHTTPSErrors: false,
-      screenshot: "only-on-failure",
-      trace: "retain-on-failure",
+      screenshot: overrideUse.screenshot ?? "only-on-failure",
+      trace: overrideUse.trace ?? "retain-on-failure",
       launchOptions: { ...overrideUse.launchOptions, args: launchArgs },
     },
   });
