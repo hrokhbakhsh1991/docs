@@ -358,7 +358,7 @@
     {
       "id": "S2-E16",
       "status": "NOT RUN",
-      "evidence": "No warm-cache, tenant-switch, revalidate, and refresh isolation scenario has run in staging."
+      "evidence": "NOT RUN on staging: no deployed cache warm→tenant switch→revalidate→refresh proof exists. Supporting local evidence only: on PR #344 HEAD b11981f97660459e22e13f36fb2f13416f9bf415, apps/web/test/s2e16-finance-cache-contract.spec.mts passed 3/3. Review confirmed the helper requires distinct synthetic A/B Finance identities, static OTP, and allows only GET/HEAD/OPTIONS plus two auth-bootstrap POSTs. This validates harness guards only; it does not exercise cache scope or revalidation on the staging runtime."
     },
     {
       "id": "S2-E17",

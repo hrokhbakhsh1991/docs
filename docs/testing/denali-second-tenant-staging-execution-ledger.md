@@ -795,3 +795,10 @@ For each independent change: trace the requirement and callers → implement one
 - **SUPPORTING EVIDENCE — transaction-local tenant GUC counts:** a read-only staging query using the app DB role manually set the tenant GUC in four sequential transaction-local contexts A/B/A/B and counted `operator_registrations` as **630/4/630/4**. This supports that the database role's row visibility follows the manually selected tenant GUC for this table.
 - **LIMITATION — S2-E15 acceptance not established:** because this probe manually sets the GUC, it does not exercise Prisma/ALS context propagation, pooled-request interleaving, or an authenticated business route. The supplied result has no separately recorded runtime SHA, test SHA, run ID, or sanitized artifact; add those if recovered. No writes were made.
 - **RECONCILIATION:** S2-E15 remains **NOT RUN**; this narrow SQL observation supplements, but does not replace, the local supporting tests above or the required app-role business-path interleaving scenario. Matrix remains 5 PASS, 6 PARTIAL, 7 NOT RUN; `complete=false`.
+
+## S2-E16 local finance-cache harness contract (2026-10-31)
+
+- **PASS — local contract test:** At PR #344 HEAD `b11981f97660459e22e13f36fb2f13416f9bf415`, `node --import tsx --test test/s2e16-finance-cache-contract.spec.mts` from `apps/web` passed **3/3**. Prettier and `git diff --check` passed.
+- **PASS — code and standards review:** the helper requires distinct synthetic A/B Finance identities and static OTP; its request guard permits only GET/HEAD/OPTIONS plus the two auth-bootstrap POSTs. No application or staging state was changed by this test.
+- **LIMITATION — runtime acceptance not established:** the contract test does not warm private cache entries, switch tenant contexts, trigger revalidation, or refresh against the deployed runtime. S2-E16 remains **NOT RUN**.
+- **RECONCILIATION:** matrix remains 5 PASS, 6 PARTIAL, 7 NOT RUN; `complete=false`.
