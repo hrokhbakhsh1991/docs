@@ -80,7 +80,7 @@ function cacheKeyForOperatorSession(page: Page, phone: string): string {
   return `${readRequestCookieDomain(page)}::${phone.trim()}`;
 }
 
-export async function loginOperatorTeamSessionWithPhone(
+async function loginOperatorTeamSessionViaBff(
   page: Page,
   phone: string,
   forceFresh = false
@@ -118,6 +118,14 @@ export async function loginOperatorTeamSessionWithPhone(
   expect(typeof loginBody.session_token).toBe("string");
   await persistOperatorSessionCookie(page, loginBody);
   OPERATOR_SESSION_TOKEN_CACHE.set(cacheKey, loginBody.session_token!);
+}
+
+export async function loginOperatorTeamSessionWithPhone(
+  page: Page,
+  phone: string,
+  forceFresh = false
+): Promise<void> {
+  await loginOperatorTeamSessionViaBff(page, phone, forceFresh);
 }
 
 async function loginOperatorSessionViaBff(
