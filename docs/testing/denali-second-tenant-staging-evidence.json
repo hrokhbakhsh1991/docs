@@ -350,8 +350,8 @@
     },
     {
       "id": "S2-E12",
-      "status": "NOT RUN",
-      "evidence": "No synthetic offline receipt to Finance to paid/invoice/roster/XLSX flow has run in staging."
+      "status": "FAIL",
+      "evidence": "Staging run s2e12-20261031-0728-09939b10 on runtime SHA 7a7c381e523689051aea768487de9176a8b8daa7 and test SHA 09939b10c2546c322b1a5b2ebe6a30bb89518bce passed fresh runtime/integrity, synthetic identity, staging-profile, SMS-disabled, and strict-CA TLS preflights. Owner login and the Finance/Admin team-session login returned successfully, but Finance/Admin navigation to /bookings rendered the owner-only login screen; operator-bookings-page was absent after 90 seconds. The business flow did not start; no tour, registration, receipt, or payment IDs were created, and no cleanup was performed. Source diagnosis: the team-session endpoint accepts admin/viewer, while OperatorAppLayout does not grant the team-role path exception to /bookings or /finance and the general guard requires owner. Finance backend access separately accepts admin or owner. E12 must be rerun after a reviewed harness correction. Evidence: evidence/denali-second-tenant-staging/s2-e12-20261031-team-login-failure.json."
     },
     {
       "id": "S2-E13",

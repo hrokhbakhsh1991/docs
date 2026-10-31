@@ -1,6 +1,7 @@
 /** Staging lifecycle: offline partial payment, receipt review, and final settlement. */
 import { expect, test } from "@playwright/test";
 import ExcelJS from "../../../api/node_modules/exceljs/excel.js";
+import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
@@ -12,12 +13,19 @@ import {
   syntheticTestPhone,
 } from "../../../portal/tests/e2e/fixtures/catalog-registration-otp";
 import { FINANCE_RECEIPTS_TEST_IDS } from "../../src/finance/finance-receipts-logic";
-import { withOperatorBookingsUi } from "../../../portal/tests/e2e/fixtures/operator-booking-ui";
+import {
+  operatorBookingsUiAsOwner,
+  withOperatorBookingsUi,
+} from "../../../portal/tests/e2e/fixtures/operator-booking-ui";
 import {
   PORTAL_OPERATOR_BASE_URL,
   publishTourForClosure,
 } from "../../test/fixtures/tour-creation-closure-fixture";
-import { loginOperatorOwner } from "../../test/fixtures/operator-owner-session";
+import {
+  loginOperatorOwner,
+  loginOperatorTeamSessionWithPhone,
+  OPERATOR_OWNER_MOBILE,
+} from "../../test/fixtures/operator-owner-session";
 
 type RegistrationResponse = {
   readonly registrationId?: string;
@@ -355,6 +363,41 @@ async function reviewReceiptInFinanceUi(
     expectedAmountFit
   );
 
+  if (process.env.DENALI_SECOND_STAGING_E12 === "1") {
+    const financeMobile = process.env.DENALI_SECOND_STAGING_FINANCE_MOBILE?.trim() ?? "";
+    const proxyServer = process.env.DENALI_SECOND_STAGING_LOCAL_PROXY?.trim() ?? "";
+    if (!/^\+1555\d{7}$/.test(financeMobile) || proxyServer !== "http://127.0.0.1:9443") {
+      throw new Error("S2_E12 finance actor or strict-TLS proxy is not configured");
+    }
+    const browser = adminPage.context().browser();
+    if (browser === null) throw new Error("S2_E12 browser context is unavailable");
+    const financeContext = await browser.newContext({
+      baseURL: process.env.SMOKE_OPERATOR_WEB_BASE_URL,
+      proxy: { server: proxyServer },
+      serviceWorkers: "block",
+    });
+    try {
+      const financePage = await financeContext.newPage();
+      await loginOperatorTeamSessionWithPhone(financePage, financeMobile);
+      const response = await financePage.request.patch(
+        `/api/finance/receipts/${encodeURIComponent(receiptId)}/review`,
+        {
+          headers: { "Idempotency-Key": randomUUID() },
+          data: { decision: "approve" },
+        }
+      );
+      const text = await response.text();
+      expect(response.status(), text).toBe(200);
+      expect(JSON.parse(text)).toMatchObject({
+        status: "Approved",
+        bookingPaymentStatus: expectedBookingPaymentStatus,
+      });
+    } finally {
+      await financeContext.close();
+    }
+    return;
+  }
+
   const [response] = await Promise.all([
     adminPage.waitForResponse(
       (candidate) =>
@@ -434,6 +477,9 @@ test("configured prepayment and member receipts transition unpaid to partial to 
 }, testInfo) => {
   test.setTimeout(600_000);
   const tenantBRun = process.env.DENALI_SECOND_STAGING_E12 === "1";
+  const withBookingsUi = tenantBRun
+    ? operatorBookingsUiAsOwner(browser, OPERATOR_OWNER_MOBILE)
+    : (run: Parameters<typeof withOperatorBookingsUi>[1]) => withOperatorBookingsUi(browser, run);
   const stagingRunId = process.env.DENALI_TWO_TENANT_RUN_ID?.trim() ?? "";
   if (tenantBRun) {
     if (
@@ -454,9 +500,11 @@ test("configured prepayment and member receipts transition unpaid to partial to 
     );
     expect(portalHealth.status(), await portalHealth.text()).toBe(200);
     await loginOperatorOwner(page);
-    await withOperatorBookingsUi(browser, async () => undefined);
+    // E12 keeps owner-only UI access on the B Owner; Finance/Admin reviews
+    // receipts separately through the scoped BFF authorization path below.
+    await withBookingsUi(async () => undefined);
   } else {
-    await withOperatorBookingsUi(browser, async (adminPage) => {
+    await withBookingsUi(async (adminPage) => {
       await resolveFailedSyntheticFixture(adminPage, FAILED_SYNTHETIC_REGISTRATION_ID);
       await resolveFailedSyntheticFixture(adminPage, FAILED_PARTIAL_REGISTRATION_ID);
       await resolveFailedSyntheticFixture(adminPage, FAILED_FINAL_PARTIAL_REGISTRATION_ID);
@@ -626,7 +674,7 @@ test("configured prepayment and member receipts transition unpaid to partial to 
   expect(registrationResponse.body.status).toBe("approved");
   expect(registrationId).toBeTruthy();
 
-  await withOperatorBookingsUi(browser, async (adminPage) => {
+  await withBookingsUi(async (adminPage) => {
     const initialInvoice = await readInvoice(adminPage, registrationId!);
     console.log("[QA partial receipt invoice before payment]", JSON.stringify(initialInvoice));
     expect(initialInvoice.invoiceTotalMinor).toBe("2500000");

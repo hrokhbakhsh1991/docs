@@ -5,7 +5,10 @@
 import { expect, type Browser, type Page } from "@playwright/test";
 
 import { BOOKINGS_COMMAND_CENTER_TEST_IDS } from "../../../../web/src/features/bookings/bookings-command-center-types";
-import { loginOperatorTeamSessionWithPhone } from "../../../../web/test/fixtures/operator-owner-session";
+import {
+  loginOperatorTeamSessionWithPhone,
+  loginOperatorWithPhone,
+} from "../../../../web/test/fixtures/operator-owner-session";
 
 const OPERATOR_WEB_BASE_URL =
   process.env.SMOKE_OPERATOR_WEB_BASE_URL ?? "http://operator.localhost:3000";
@@ -53,13 +56,14 @@ async function confirmOverbookIfVisible(page: Page): Promise<void> {
 
 export async function withOperatorBookingsUi(
   browser: Browser,
-  run: (operatorPage: Page) => Promise<void>
+  run: (operatorPage: Page) => Promise<void>,
+  options?: { readonly ownerMobile?: string }
 ): Promise<void> {
-  if (
-    process.env.DENALI_SECOND_STAGING_E12 === "1" &&
-    !/^\+1555\d{7}$/.test(OPERATOR_LOGIN_MOBILE)
-  ) {
-    throw new Error("S2_E12 requires the reserved synthetic tenant-B Finance identity");
+  const ownerMobile = options?.ownerMobile?.trim();
+  const useOwnerSession = ownerMobile !== undefined;
+  const operatorLoginMobile = ownerMobile ?? OPERATOR_LOGIN_MOBILE;
+  if (process.env.DENALI_SECOND_STAGING_E12 === "1" && !/^\+1555\d{7}$/.test(operatorLoginMobile)) {
+    throw new Error("S2_E12 requires a reserved synthetic tenant-B operator identity");
   }
   const proxyServer =
     process.env.DENALI_SECOND_STAGING_E12 === "1"
@@ -72,12 +76,21 @@ export async function withOperatorBookingsUi(
   });
   const page = await context.newPage();
   try {
-    await loginOperatorTeamSessionWithPhone(page, OPERATOR_LOGIN_MOBILE);
+    if (useOwnerSession) {
+      await loginOperatorWithPhone(page, operatorLoginMobile, { skipDashboard: true });
+    } else {
+      await loginOperatorTeamSessionWithPhone(page, operatorLoginMobile);
+    }
     await openOperatorBookingsInbox(page);
     await run(page);
   } finally {
     await context.close();
   }
+}
+
+export function operatorBookingsUiAsOwner(browser: Browser, ownerMobile: string) {
+  return (run: (operatorPage: Page) => Promise<void>) =>
+    withOperatorBookingsUi(browser, run, { ownerMobile });
 }
 
 export async function operatorApproveBookingViaUi(
