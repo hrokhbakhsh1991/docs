@@ -353,7 +353,7 @@
     {
       "id": "S2-E15",
       "status": "NOT RUN",
-      "evidence": "RLS configuration was inspected, but no business-path interleaving under the real app DB role has run after the fix."
+      "evidence": "NOT RUN on staging: no authenticated business-path or Prisma/ALS pooled-request interleaving under the real app DB role has run after the fix. Supporting local evidence only: on isolated worktree denali-s2e-e15-p5-06 at 42329e97829064e4b356dc25d33adcfc52e5f9db, tenant-rls-als-alignment.spec.ts and tenant-registry-cache.spec.ts plus tenant-registry-cache-invalidation.spec.ts produced 9 passing assertions/tests with DATABASE_URL and DATABASE_URL_ADMIN unset. The Postgres-dependent rls-predicate-logic.spec.ts explicitly reported DATABASE_URL required and did not run. A separate read-only staging app-role SQL probe manually set the tenant GUC transaction-locally in four sequential A/B/A/B contexts and counted operator_registrations as 630/4/630/4. This only supports table visibility under manually selected GUC values; it does not prove Prisma/ALS propagation, pooled request interleaving, or authenticated route scope. Exact runtime SHA, test SHA, run ID, and a sanitized result artifact were not recorded for that SQL probe. See the execution ledger entries dated 2026-10-30 17:18 UTC and the S2-E15 staging probe reconciliation."
     },
     {
       "id": "S2-E16",
