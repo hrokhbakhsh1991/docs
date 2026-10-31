@@ -379,6 +379,15 @@ async function reviewReceiptInFinanceUi(
     try {
       const financePage = await financeContext.newPage();
       await loginOperatorTeamSessionWithPhone(financePage, financeMobile);
+      const abilityResponse = await financePage.request.get("/api/auth/membership-ability-context");
+      const abilityText = await abilityResponse.text();
+      expect(abilityResponse.status(), abilityText).toBe(200);
+      expect(JSON.parse(abilityText)).toMatchObject({
+        tenantId: process.env.DENALI_STAGING_B_TENANT_ID,
+        role: "admin",
+      });
+      expect(JSON.parse(abilityText).userId).toBeTruthy();
+
       const response = await financePage.request.patch(
         `/api/finance/receipts/${encodeURIComponent(receiptId)}/review`,
         {

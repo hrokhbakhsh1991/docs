@@ -43,6 +43,14 @@ describe("resolve-operator-finance-middleware-access", () => {
     assert.equal(
       allowsOperatorFinanceReceiptReviewTeamAccess(
         "admin",
+        "/api/auth/membership-ability-context",
+        "GET"
+      ),
+      false
+    );
+    assert.equal(
+      allowsOperatorFinanceReceiptReviewTeamAccess(
+        "admin",
         "/api/finance/receipts/receipt-123/url",
         "PATCH"
       ),

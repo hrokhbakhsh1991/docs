@@ -39,6 +39,7 @@ if (createHash("sha256").update(readFileSync(caPath)).digest("hex") !== caSha256
 
 process.env.DENALI_SECOND_STAGING_E12 = "1";
 process.env.OPERATOR_OWNER_MOBILE = ownerMobile;
+process.env.DENALI_STAGING_B_TENANT_ID = manifest.tenants.B.tenantId;
 process.env.DENALI_STAGING_B_ADMIN_URL = manifest.tenants.B.hosts.admin;
 process.env.DENALI_STAGING_B_MARKETING_URL = manifest.tenants.B.hosts.marketing;
 process.env.DENALI_STAGING_B_PORTAL_URL = manifest.tenants.B.hosts.portal;
