@@ -1,0 +1,16 @@
+[
+  {
+    "path": "/tours/new",
+    "status": 200,
+    "contentType": "text/x-component",
+    "bodyBytes": 2676,
+    "errorCodes": []
+  },
+  {
+    "path": "/tours/5096d80c-5bdb-4237-89a1-d151b17c21ff/edit",
+    "status": 200,
+    "contentType": "text/x-component",
+    "bodyBytes": 78,
+    "errorCodes": []
+  }
+]

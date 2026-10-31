@@ -1,0 +1,58 @@
+{
+  "scenario": "S2-E10",
+  "status": "PASS",
+  "runId": "s2e10-20261030-86f4810d-01",
+  "tourId": "88852a11-b193-4889-8fba-a9cfe65bc089",
+  "runtimeSha": "7a7c381e523689051aea768487de9176a8b8daa7",
+  "testSha": "86f4810d4c8b9e3644db835e9b11445b00b05ef7",
+  "testStartedAt": "2026-10-30T14:25:52.523Z",
+  "origin": "https://admin.qa2.staging.test:9443 via SSH relay 127.0.0.1:9443",
+  "tls": {
+    "verification": "strict CA and hostname verification; bypass disabled",
+    "caSha256": "9e36e400f78f14317076e4d5bc8cb82e84f0a31d86fb4cebc7bbbf69c06d747d",
+    "assertions": [
+      "at least one relayed request",
+      "admin.qa2.staging.test received a relayed request",
+      "qa2.staging.test received a relayed request",
+      "zero failures on allowlisted relay requests"
+    ],
+    "nonAllowlistedHttps": "blocked by the browser route"
+  },
+  "acceptance": [
+    "synthetic B Owner authenticated",
+    "tenant-scoped wizard template and unique-title preflight passed",
+    "B tour created; edit state survived refresh",
+    "publish transition survived refresh and operator list readback",
+    "published tour appeared in the QA2 marketing catalog",
+    "independent existing-tour search, created navigation, and refresh readback passed"
+  ],
+  "createPublishCatalogTest": "1 passed (1.1m); output in create/",
+  "existingTourReadbackTest": "1 passed (20.1s); output in readback/",
+  "guardedCleanup": {
+    "dryRun": {"tours": 1, "dependencies": 0},
+    "apply": {"tours": 1, "dependencies": 0},
+    "postApplyDryRun": {"tours": 0, "dependencies": 0},
+    "preserved": ["tenant", "identities", "wizard template", "outbox history", "other tenant data"]
+  },
+  "postCleanupRuntime": {
+    "releaseSymlinkSha": "7a7c381e523689051aea768487de9176a8b8daa7",
+    "services": ["api active", "web active", "marketing active", "portal active"],
+    "strictTlsHealth": "all six A/B marketing/admin/portal hosts returned HTTP 200"
+  },
+  "sourceReview": {
+    "commit": "86f4810d4c8b9e3644db835e9b11445b00b05ef7",
+    "findings": [
+      "operator active maps exactly to persisted published during guarded cleanup",
+      "cleanup preserves exact tenant/title/ID/status/rowVersion/timestamps in compare-before-delete",
+      "blocked nonallowlisted targets are separated from relay failures and required hosts are asserted"
+    ],
+    "result": "no further actionable finding"
+  },
+  "localChecks": {
+    "cleanupUnitTests": "10 passed, 0 failed",
+    "prettier": "PASS on all four changed files",
+    "eslint": "PASS on apps/web E10 browser test",
+    "apiEslint": "NOT AVAILABLE for scripts/ and test/ because apps/api/tsconfig.json includes only src/**/*.ts"
+  },
+  "scopeNote": "S2-E10 only is closed; overall matrix remains incomplete."
+}

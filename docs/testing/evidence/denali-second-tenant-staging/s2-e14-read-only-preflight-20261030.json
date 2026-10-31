@@ -1,0 +1,85 @@
+{
+  "recordedAt": "2026-10-30T16:38:42Z",
+  "runtime": {
+    "currentReleaseSha": "7a7c381e523689051aea768487de9176a8b8daa7",
+    "source": "readlink -f /opt/app-tour-staging/current via approved SSH alias",
+    "databaseRole": "app_tour",
+    "secretsEmitted": false
+  },
+  "cleanupPreviews": [
+    {
+      "runId": "qa2-20261029-acceptance-01",
+      "mode": "dry-run",
+      "result": "BLOCKED",
+      "exitCode": 1,
+      "marker": "DENALI_SECOND_STAGING_CLEANUP_DEPENDENCY_FOUND",
+      "applyRequested": false,
+      "details": "No dependency rows or unrelated data were emitted; no retry or cleanup apply was performed."
+    },
+    {
+      "runId": "qa2-20261030-codex-01",
+      "mode": "dry-run",
+      "result": "PASS",
+      "exitCode": 0,
+      "marker": "DENALI_SECOND_STAGING_CLEANUP_DRY_RUN_OK",
+      "counts": {
+        "registrations": 2,
+        "tours": 2,
+        "equipment": 1,
+        "themes": 1,
+        "regions": 1,
+        "destinations": 1,
+        "presets": 1
+      },
+      "preserved": ["tenant", "identities", "wizard_template", "other tenant data"],
+      "applyRequested": false
+    }
+  ],
+  "receiptReferenceCheck": {
+    "mode": "single read-only Prisma transaction with app_tour and the QA2 RLS tenant context",
+    "runs": [
+      {
+        "runId": "qa2-20261029-acceptance-01",
+        "registrations": 2,
+        "tours": 2,
+        "registrationStates": [{ "status": "pending", "paymentStatus": "unpaid", "count": 2 }],
+        "payments": 0,
+        "paymentReceipts": 0,
+        "receiptsWithFileKey": 0
+      },
+      {
+        "runId": "qa2-20261030-codex-01",
+        "registrations": 2,
+        "tours": 2,
+        "registrationStates": [{ "status": "pending", "paymentStatus": "unpaid", "count": 2 }],
+        "payments": 0,
+        "paymentReceipts": 0,
+        "receiptsWithFileKey": 0
+      }
+    ],
+    "rowIdsOrFileKeysEmitted": false,
+    "rawDatabaseOutputRetained": false
+  },
+  "e14RosterExportGate": {
+    "route": "GET /tours/{tourId}/operational-roster/export?filter=final&format=xlsx",
+    "readOnlyBehavior": "route requires an operator session, resolves the tour in that tenant context, exports the operational roster, and sets Cache-Control: no-store",
+    "rosterRows": "export listing requests approved operational rows; the known deterministic fixture registrations are pending/unpaid",
+    "runnableNow": false,
+    "missingPreconditions": [
+      "An available synthetic B Owner or Finance session/cookie for the strict-TLS browser runner; none was used or inspected in this preflight.",
+      "At least one approved run-owned operational roster row so the export can prove tenant-scoped row isolation; current exact fixture rows are pending/unpaid.",
+      "A/B owner-positive and cross-tenant denial requests using exact run-owned tour references, with response metadata and row contents redacted."
+    ],
+    "receiptDownloadRunnable": false,
+    "receiptDownloadBlocker": "Neither known run has a payment, payment receipt, or database file-key reference. Object-store contents were not listed."
+  },
+  "scenarioStatuses": {
+    "S2-E11": "NOT RUN",
+    "S2-E12": "NOT RUN",
+    "S2-E13": "NOT RUN",
+    "S2-E14": "NOT RUN",
+    "S2-E15": "NOT RUN",
+    "S2-E16": "NOT RUN",
+    "S2-E18": "NOT RUN"
+  }
+}
