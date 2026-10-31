@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -7,36 +7,38 @@ import { describe, it } from "node:test";
 import {
   assertStagingRunnerCheckoutClean,
   assertStagingTestShaMatchesCheckout,
-  defineTwoTenantStagingConfig,
+  composeTwoTenantStagingConfig,
   reserveStagingRunOutputDirectory,
+  type TwoTenantStagingManifest,
   validateTwoTenantStagingManifest,
 } from "./fixtures/two-tenant-staging-config.mts";
 
-const validManifest = () => ({
-  version: 1,
-  runtimeSha: "a".repeat(40),
-  expectedIngressAddresses: ["89.42.210.252"],
-  tenants: {
-    A: {
-      tenantId: "00000000-0000-4000-8000-000000000003",
-      hosts: {
-        marketing: "https://staging-denali.shenski.com",
-        admin: "https://staging-admin-denali.shenski.com",
-        portal: "https://staging-portal-denali.shenski.com",
+const validManifest = () =>
+  ({
+    version: 1 as const,
+    runtimeSha: "a".repeat(40),
+    expectedIngressAddresses: ["89.42.210.252"],
+    tenants: {
+      A: {
+        tenantId: "00000000-0000-4000-8000-000000000003",
+        hosts: {
+          marketing: "https://staging-denali.shenski.com",
+          admin: "https://staging-admin-denali.shenski.com",
+          portal: "https://staging-portal-denali.shenski.com",
+        },
+        cookieDomain: "shenski.com",
       },
-      cookieDomain: "shenski.com",
-    },
-    B: {
-      tenantId: "f0ed9e65-2638-4351-847d-724f87ebbfce",
-      hosts: {
-        marketing: "https://qa2.staging.test",
-        admin: "https://admin.qa2.staging.test",
-        portal: "https://portal.qa2.staging.test",
+      B: {
+        tenantId: "f0ed9e65-2638-4351-847d-724f87ebbfce",
+        hosts: {
+          marketing: "https://qa2.staging.test",
+          admin: "https://admin.qa2.staging.test",
+          portal: "https://portal.qa2.staging.test",
+        },
+        cookieDomain: "qa2.staging.test",
       },
-      cookieDomain: "qa2.staging.test",
     },
-  },
-});
+  }) satisfies TwoTenantStagingManifest;
 
 describe("two-tenant staging manifest", () => {
   it("requires the recorded test SHA to match the current checkout", () => {
@@ -156,12 +158,8 @@ describe("two-tenant staging manifest", () => {
   });
 
   it("uses external HTTPS origins and removes browser security bypass flags", () => {
-    const directory = mkdtempSync(join(tmpdir(), "denali-two-tenant-config-"));
-    const manifestPath = join(directory, "manifest.json");
-    const oldManifestPath = process.env.DENALI_TWO_TENANT_STAGING_MANIFEST;
-    const oldRunId = process.env.DENALI_TWO_TENANT_RUN_ID;
-    const oldRunNonce = process.env.DENALI_TWO_TENANT_RUN_NONCE;
-    const oldTestSha = process.env.DENALI_TWO_TENANT_TEST_SHA;
+    const runId = `config-test-${process.pid}-${Date.now()}`;
+    const outputDir = join(tmpdir(), "denali-two-tenant-config", runId);
     const oldExternalServers = process.env.PW_EXTERNAL_SERVERS;
     const oldTenantOriginMap = process.env.TENANT_SURFACE_ORIGIN_MAP_JSON;
     const hostEnvNames = [
@@ -174,18 +172,18 @@ describe("two-tenant staging manifest", () => {
     ];
     const oldHostEnv = Object.fromEntries(hostEnvNames.map((name) => [name, process.env[name]]));
     try {
-      writeFileSync(manifestPath, JSON.stringify(validManifest()));
-      process.env.DENALI_TWO_TENANT_STAGING_MANIFEST = manifestPath;
-      process.env.DENALI_TWO_TENANT_RUN_ID = `config-test-${process.pid}-${Date.now()}`;
-      process.env.DENALI_TWO_TENANT_TEST_SHA = "b".repeat(40);
-      const config = defineTwoTenantStagingConfig({
-        use: {
-          ignoreHTTPSErrors: true,
-          launchOptions: {
-            args: ["--ignore-certificate-errors", "--disable-web-security"],
+      const config = composeTwoTenantStagingConfig(
+        {
+          use: {
+            ignoreHTTPSErrors: true,
+            launchOptions: {
+              args: ["--ignore-certificate-errors", "--disable-web-security"],
+            },
           },
         },
-      });
+        validManifest(),
+        { runId, testSha: "b".repeat(40), outputDir }
+      );
       const launchArgs = config.use?.launchOptions?.args ?? [];
       assert.equal(process.env.PW_EXTERNAL_SERVERS, "1");
       const tenantOriginMap = JSON.parse(process.env.TENANT_SURFACE_ORIGIN_MAP_JSON ?? "null");
@@ -194,7 +192,7 @@ describe("two-tenant staging manifest", () => {
       assert.equal(config.use?.ignoreHTTPSErrors, false);
       assert.equal(config.use?.screenshot, "only-on-failure");
       assert.equal(config.use?.trace, "retain-on-failure");
-      assert.equal(config.outputDir?.endsWith(process.env.DENALI_TWO_TENANT_RUN_ID), true);
+      assert.equal(config.outputDir, outputDir);
       assert.deepEqual(config.reporter?.[0], ["list"]);
       assert.match(String(config.reporter?.[1]?.[0]), /two-tenant-staging-result-reporter\.mjs$/);
       assert.equal(launchArgs.includes("--disable-web-security"), false);
@@ -208,32 +206,6 @@ describe("two-tenant staging manifest", () => {
         false
       );
     } finally {
-      if (process.env.DENALI_TWO_TENANT_RUN_ID) {
-        rmSync(
-          join(
-            process.cwd(),
-            "test-results/two-tenant-staging",
-            process.env.DENALI_TWO_TENANT_RUN_ID
-          ),
-          { recursive: true, force: true }
-        );
-        rmSync(
-          join(
-            process.cwd(),
-            "test-results/two-tenant-staging",
-            `.${process.env.DENALI_TWO_TENANT_RUN_ID}.runner-lock`
-          ),
-          { recursive: true, force: true }
-        );
-      }
-      if (oldManifestPath === undefined) delete process.env.DENALI_TWO_TENANT_STAGING_MANIFEST;
-      else process.env.DENALI_TWO_TENANT_STAGING_MANIFEST = oldManifestPath;
-      if (oldRunId === undefined) delete process.env.DENALI_TWO_TENANT_RUN_ID;
-      else process.env.DENALI_TWO_TENANT_RUN_ID = oldRunId;
-      if (oldRunNonce === undefined) delete process.env.DENALI_TWO_TENANT_RUN_NONCE;
-      else process.env.DENALI_TWO_TENANT_RUN_NONCE = oldRunNonce;
-      if (oldTestSha === undefined) delete process.env.DENALI_TWO_TENANT_TEST_SHA;
-      else process.env.DENALI_TWO_TENANT_TEST_SHA = oldTestSha;
       if (oldExternalServers === undefined) delete process.env.PW_EXTERNAL_SERVERS;
       else process.env.PW_EXTERNAL_SERVERS = oldExternalServers;
       if (oldTenantOriginMap === undefined) delete process.env.TENANT_SURFACE_ORIGIN_MAP_JSON;
@@ -243,7 +215,6 @@ describe("two-tenant staging manifest", () => {
         if (value === undefined) delete process.env[envName];
         else process.env[envName] = value;
       }
-      rmSync(directory, { recursive: true, force: true });
     }
   });
 });

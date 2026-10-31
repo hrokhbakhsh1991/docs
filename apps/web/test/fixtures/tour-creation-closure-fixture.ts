@@ -82,10 +82,13 @@ export async function publishTourForClosure(
     readonly pricing?: DenaliWizardPricingE2EOptions;
     readonly capacityMax?: number;
     readonly transport?: DenaliWizardTransportE2EOptions;
+    readonly onDraftCreated?: (tourId: string) => void;
   } = {}
 ): Promise<PublishedTourClosureContext> {
   await prepareDenaliTourWizard(page);
-  const tourId = await createDenaliMultiDayDraftTour(page, title, options);
+  const { onDraftCreated, ...tourOptions } = options;
+  const tourId = await createDenaliMultiDayDraftTour(page, title, tourOptions);
+  onDraftCreated?.(tourId);
   const canonical = await fetchDenaliTourCanonicalData(page, tourId);
   await publishTourFromFlatEdit(page, tourId);
   await expectTourInDenaliCatalog(page, title, tourId);

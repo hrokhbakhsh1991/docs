@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 
-import { disconnectPrisma, getPrismaAdmin } from "../../src/db/prisma";
+import { disconnectPrisma, getPrisma, getPrismaAdmin } from "../../src/db/prisma";
 import { withTenantRls } from "../../src/db/with-tenant-rls";
 import {
   getActiveTenantId,
@@ -24,7 +24,7 @@ type ContextSnapshot = {
   readonly requiredTenant: string;
   readonly alsAfterRls: string | undefined;
   readonly pgSetting: string | null;
-  readonly tourCount: number;
+  readonly visibleTenantIds: readonly string[];
 };
 
 type AlsLeakFailure = {
@@ -35,6 +35,7 @@ type AlsLeakFailure = {
   readonly requiredTenant: string;
   readonly alsAfterRls: string | undefined;
   readonly pgSetting: string | null;
+  readonly visibleTenantIds: readonly string[];
   readonly reason: string;
 };
 
@@ -50,6 +51,7 @@ function formatLeakDiff(failures: readonly AlsLeakFailure[]): string {
         `requiredTenant=${f.requiredTenant}`,
         `alsAfterRls=${f.alsAfterRls ?? "undefined"}`,
         `pgSetting=${f.pgSetting ?? "null"}`,
+        `visibleTenantIds=${f.visibleTenantIds.join(",") || "none"}`,
       ].join(" | ")
     )
     .join("\n");
@@ -63,14 +65,14 @@ function delayViaSetImmediate(): Promise<void> {
 
 async function readPgTenantSetting(
   expectedTenant: string
-): Promise<{ pgSetting: string | null; tourCount: number }> {
+): Promise<{ pgSetting: string | null; visibleTenantIds: readonly string[] }> {
   return withTenantRls(expectedTenant, async (tx) => {
     const rows = await tx.$queryRaw<Array<{ setting: string | null }>>`
       SELECT current_setting('app.current_tenant_id', true) AS setting
     `;
     const pgSetting = rows[0]?.setting ?? null;
-    const tourCount = await tx.tour.count({ where: { tenantId: expectedTenant } });
-    return { pgSetting, tourCount };
+    const visibleTours = await tx.tour.findMany({ select: { tenantId: true } });
+    return { pgSetting, visibleTenantIds: visibleTours.map((tour) => tour.tenantId) };
   });
 }
 
@@ -106,7 +108,7 @@ async function probeTenantContextDeep(
     requiredTenant,
     alsAfterRls,
     pgSetting: nested.pgSetting,
-    tourCount: nested.tourCount,
+    visibleTenantIds: nested.visibleTenantIds,
   };
 }
 
@@ -129,6 +131,7 @@ function collectFailures(
         requiredTenant: snap.requiredTenant,
         alsAfterRls: snap.alsAfterRls,
         pgSetting: snap.pgSetting,
+        visibleTenantIds: snap.visibleTenantIds,
         reason: snap.alsTenant === otherTenant ? "ALS_CROSS_TENANT_LEAK" : "ALS_TENANT_MISMATCH",
       });
       continue;
@@ -143,6 +146,7 @@ function collectFailures(
         requiredTenant: snap.requiredTenant,
         alsAfterRls: snap.alsAfterRls,
         pgSetting: snap.pgSetting,
+        visibleTenantIds: snap.visibleTenantIds,
         reason:
           snap.requiredTenant === otherTenant
             ? "REQUIRE_ACTIVE_CROSS_TENANT_LEAK"
@@ -160,6 +164,7 @@ function collectFailures(
         requiredTenant: snap.requiredTenant,
         alsAfterRls: snap.alsAfterRls,
         pgSetting: snap.pgSetting,
+        visibleTenantIds: snap.visibleTenantIds,
         reason:
           snap.alsAfterRls === otherTenant
             ? "ALS_AFTER_RLS_CROSS_TENANT_LEAK"
@@ -177,8 +182,30 @@ function collectFailures(
         requiredTenant: snap.requiredTenant,
         alsAfterRls: snap.alsAfterRls,
         pgSetting: snap.pgSetting,
+        visibleTenantIds: snap.visibleTenantIds,
         reason:
           snap.pgSetting === otherTenant ? "PG_SETTING_CROSS_TENANT_LEAK" : "PG_SETTING_MISMATCH",
+      });
+      continue;
+    }
+
+    if (
+      snap.visibleTenantIds.length === 0 ||
+      snap.visibleTenantIds.some((tenantId) => tenantId !== snap.expectedTenant)
+    ) {
+      failures.push({
+        taskIndex: snap.taskIndex,
+        expectedTenant: snap.expectedTenant,
+        otherTenant,
+        alsTenant: snap.alsTenant,
+        requiredTenant: snap.requiredTenant,
+        alsAfterRls: snap.alsAfterRls,
+        pgSetting: snap.pgSetting,
+        visibleTenantIds: snap.visibleTenantIds,
+        reason:
+          snap.visibleTenantIds.length === 0
+            ? "RLS_TENANT_FIXTURE_NOT_VISIBLE"
+            : "RLS_CROSS_TENANT_ROW_VISIBLE",
       });
     }
   }
@@ -198,11 +225,27 @@ describe(
     const tenantA = integrationTenantId();
     const tenantB = integrationTenantId();
     const priorStorageDriver = process.env.STORAGE_DRIVER;
+    const createdTenantIds: string[] = [];
     let lastIterationCount = 0;
     let lastSnapshotCount = 0;
 
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
+      const appRole = getPrisma();
+      const [{ rolsuper, rolbypassrls }] = await appRole.$queryRaw<
+        { rolsuper: boolean; rolbypassrls: boolean }[]
+      >`SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user`;
+      assert.equal(
+        rolsuper,
+        false,
+        "RLS interleaving proof must use a non-superuser DATABASE_URL role"
+      );
+      assert.equal(
+        rolbypassrls,
+        false,
+        "RLS interleaving proof must use a NOBYPASSRLS DATABASE_URL role"
+      );
+
       const admin = getPrismaAdmin();
       for (const [tenantId, label] of [
         [tenantA, "a"],
@@ -216,19 +259,59 @@ describe(
             theme: {},
           },
         });
+        createdTenantIds.push(tenantId);
+      }
+
+      for (const [tenantId, label] of [
+        [tenantA, "a"],
+        [tenantB, "b"],
+      ] as const) {
+        await withTenantRls(tenantId, (tx) =>
+          tx.tour.create({
+            data: {
+              tenantId,
+              canonical: {
+                schemaVersion: 1,
+                roots: ["basics"],
+                data: { basics: { title: `als-leak-${runId}-${label}` } },
+              },
+            },
+          })
+        );
       }
     });
 
     after(async () => {
-      process.env.STORAGE_DRIVER = priorStorageDriver;
-      const admin = getPrismaAdmin();
-      for (const tenantId of [tenantA, tenantB]) {
-        await withTenantRls(tenantId, async (tx) => {
-          await tx.tour.deleteMany({ where: { tenantId } });
-        });
-        await admin.tenant.delete({ where: { id: tenantId } });
+      try {
+        if (createdTenantIds.length > 0) {
+          const admin = getPrismaAdmin();
+          const cleanupErrors: unknown[] = [];
+          for (const tenantId of [...createdTenantIds].reverse()) {
+            try {
+              await withTenantRls(tenantId, async (tx) => {
+                await tx.tour.deleteMany({ where: { tenantId } });
+              });
+            } catch (error) {
+              cleanupErrors.push(error);
+            }
+            try {
+              await admin.tenant.delete({ where: { id: tenantId } });
+            } catch (error) {
+              cleanupErrors.push(error);
+            }
+          }
+          if (cleanupErrors.length > 0) {
+            throw new AggregateError(cleanupErrors, "Failed to clean up async context fixtures");
+          }
+        }
+      } finally {
+        if (priorStorageDriver === undefined) {
+          delete process.env.STORAGE_DRIVER;
+        } else {
+          process.env.STORAGE_DRIVER = priorStorageDriver;
+        }
+        await disconnectPrisma();
       }
-      await disconnectPrisma();
     });
 
     it("ALS-CTX-LEAK: 50 concurrent mixed-tenant tasks never cross-bind context", async () => {
@@ -279,7 +362,9 @@ describe(
             s.alsTenant === s.expectedTenant &&
             s.requiredTenant === s.expectedTenant &&
             s.alsAfterRls === s.expectedTenant &&
-            s.pgSetting === s.expectedTenant
+            s.pgSetting === s.expectedTenant &&
+            s.visibleTenantIds.length > 0 &&
+            s.visibleTenantIds.every((tenantId) => tenantId === s.expectedTenant)
         ),
         "all snapshots must match bound tenant in ALS and Postgres session"
       );

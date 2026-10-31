@@ -287,6 +287,7 @@ function resolveStagingRunArtifacts(): StagingRunArtifacts {
       "DENALI_TWO_TENANT_TEST_SHA must contain the exact 40-character test commit SHA"
     );
   }
+  assertStagingRunnerCheckout(testSha);
   const webRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
   const outputDir = resolve(webRoot, "test-results", "two-tenant-staging", runId);
   reserveStagingRunOutputDirectory(runId, outputDir);
@@ -294,14 +295,23 @@ function resolveStagingRunArtifacts(): StagingRunArtifacts {
 }
 
 type ConfigOverrides = Omit<PlaywrightTestConfig, "globalSetup" | "webServer" | "use"> & {
+  readonly tenantLabel?: StagingTenantLabel;
+  readonly tenantLabels?: readonly StagingTenantLabel[];
   readonly use?: PlaywrightTestConfig["use"];
 };
 
-export function defineTwoTenantStagingConfig(overrides: ConfigOverrides): PlaywrightTestConfig {
-  const manifest = loadTwoTenantStagingManifest();
-  const runArtifacts = resolveStagingRunArtifacts();
+export function composeTwoTenantStagingConfig(
+  overrides: ConfigOverrides,
+  manifest: TwoTenantStagingManifest,
+  runArtifacts: StagingRunArtifacts
+): PlaywrightTestConfig {
   applyManifestEnvironment(manifest);
-  const overrideUse = overrides.use ?? {};
+  const {
+    tenantLabel = "A",
+    tenantLabels = ["A", "B"],
+    use: overrideUse = {},
+    ...playwrightOverrides
+  } = overrides;
   const launchArgs = Array.isArray(overrideUse.launchOptions?.args)
     ? overrideUse.launchOptions.args.filter(
         (argument) =>
@@ -312,7 +322,7 @@ export function defineTwoTenantStagingConfig(overrides: ConfigOverrides): Playwr
       )
     : [];
   return defineConfig({
-    ...overrides,
+    ...playwrightOverrides,
     globalSetup: undefined,
     webServer: undefined,
     outputDir: runArtifacts.outputDir,
@@ -323,7 +333,7 @@ export function defineTwoTenantStagingConfig(overrides: ConfigOverrides): Playwr
         {
           runtimeSha: manifest.runtimeSha,
           testSha: runArtifacts.testSha,
-          tenantLabels: ["A", "B"],
+          tenantLabels,
           runId: runArtifacts.runId,
           outputDir: runArtifacts.outputDir,
         },
@@ -332,11 +342,17 @@ export function defineTwoTenantStagingConfig(overrides: ConfigOverrides): Playwr
     use: {
       ...devices["Desktop Chrome"],
       ...overrideUse,
-      baseURL: manifest.tenants.A.hosts.admin,
+      baseURL: manifest.tenants[tenantLabel].hosts.admin,
       ignoreHTTPSErrors: false,
-      screenshot: "only-on-failure",
-      trace: "retain-on-failure",
+      screenshot: overrideUse.screenshot ?? "only-on-failure",
+      trace: overrideUse.trace ?? "retain-on-failure",
       launchOptions: { ...overrideUse.launchOptions, args: launchArgs },
     },
   });
+}
+
+export function defineTwoTenantStagingConfig(overrides: ConfigOverrides): PlaywrightTestConfig {
+  const manifest = loadTwoTenantStagingManifest();
+  const runArtifacts = resolveStagingRunArtifacts();
+  return composeTwoTenantStagingConfig(overrides, manifest, runArtifacts);
 }

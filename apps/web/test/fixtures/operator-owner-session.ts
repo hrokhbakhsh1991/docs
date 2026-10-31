@@ -120,6 +120,14 @@ async function loginOperatorTeamSessionViaBff(
   OPERATOR_SESSION_TOKEN_CACHE.set(cacheKey, loginBody.session_token!);
 }
 
+export async function loginOperatorTeamSessionWithPhone(
+  page: Page,
+  phone: string,
+  forceFresh = false
+): Promise<void> {
+  await loginOperatorTeamSessionViaBff(page, phone, forceFresh);
+}
+
 async function loginOperatorSessionViaBff(
   page: Page,
   phone: string,

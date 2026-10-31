@@ -38,6 +38,7 @@ import {
   allowsOperatorTicketsTeamRole,
   isOperatorTicketsTeamAccessPath,
 } from "@/features/tickets/resolve-operator-tickets-middleware-access";
+import { allowsOperatorFinanceReceiptReviewTeamAccess } from "@/finance/resolve-operator-finance-middleware-access";
 
 const ADMIN_PATH_PREFIXES = [
   "/dashboard",
@@ -372,7 +373,17 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     const allowsTicketingTeamAccess =
       isOperatorTicketsTeamAccessPath(pathname) &&
       allowsOperatorTicketsTeamRole(validation.role, request.method);
-    if (validation.role !== "owner" && !isInviteBootstrap && !allowsTicketingTeamAccess) {
+    const allowsFinanceReceiptReviewTeamAccess = allowsOperatorFinanceReceiptReviewTeamAccess(
+      validation.role,
+      pathname,
+      request.method
+    );
+    if (
+      validation.role !== "owner" &&
+      !isInviteBootstrap &&
+      !allowsTicketingTeamAccess &&
+      !allowsFinanceReceiptReviewTeamAccess
+    ) {
       if (isBffApi) {
         const res = jsonAuthError(
           403,

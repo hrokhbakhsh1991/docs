@@ -25,6 +25,13 @@ export type SecondStagingWizardTourDependencies = Readonly<{
   reminderActivations: number;
 }>;
 
+/** The browser uses the operator label `active`; the persisted API field uses `published`. */
+export function getSecondStagingWizardExpectedTourPublishStatus(
+  status: SecondStagingWizardTourManifest["status"]
+): "draft" | "published" {
+  return status === "active" ? "published" : "draft";
+}
+
 const MANIFEST_KEYS = [
   "manifestVersion",
   "source",
