@@ -292,7 +292,7 @@ describe("staging-env-contract", () => {
         { encoding: "utf8", env: { ...process.env, ENV_DIR: envDir } }
       );
       assert.equal(sync.status, 0, sync.stderr);
-      assert.match(sync.stdout, /private staging host map enabled/);
+      assert.match(sync.stdout, /canonical public origins enabled/);
       assert.match(sync.stdout, /map_sha256=[a-f0-9]{64}/);
       assert.match(readFileSync(resolve(envDir, "api.env"), "utf8"), /^APP_INFRA_PROFILE=staging$/m);
 
@@ -326,14 +326,16 @@ describe("staging-env-contract", () => {
       const storedJson = stored.match(/^TENANT_SURFACE_ORIGIN_MAP_JSON='(.*)'$/m)?.[1];
       assert.ok(storedJson, "origin map is persisted as a shell-safe quoted JSON value");
       const storedMap = JSON.parse(storedJson);
+      assert.deepEqual(storedMap.tenants[0].origins, {
+        admin: "https://staging-admin-denali.shenski.com",
+        marketing: "https://staging-denali.shenski.com",
+        portal: "https://staging-portal-denali.shenski.com",
+      });
+      assert.equal(storedMap.tenants[0].cookieDomain, "shenski.com");
       assert.deepEqual(storedMap.tenants[0].aliases, {
-        admin: [
-          { origin: "https://staging-admin-denali.shenski.com", cookieDomain: "shenski.com" },
-        ],
-        marketing: [{ origin: "https://staging-denali.shenski.com", cookieDomain: "shenski.com" }],
-        portal: [
-          { origin: "https://staging-portal-denali.shenski.com", cookieDomain: "shenski.com" },
-        ],
+        admin: [{ origin: "https://admin.denali.staging.test", cookieDomain: null }],
+        marketing: [{ origin: "https://denali.staging.test", cookieDomain: null }],
+        portal: [{ origin: "https://portal.denali.staging.test", cookieDomain: null }],
       });
     } finally {
       rmSync(envDir, { recursive: true, force: true });

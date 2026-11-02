@@ -142,24 +142,32 @@ TENANT_SURFACE_ORIGIN_MAP_JSON="$(node -e '
     }
     domains.push(tenantDomains);
   }
-  const tenantA = value.tenants.find((tenant) => tenant.origins.marketing === "https://denali.staging.test");
+  const tenantA = value.tenants.find((tenant) =>
+    tenant.origins.marketing === "https://denali.staging.test" ||
+    tenant.origins.marketing === aliases.marketing
+  );
   if (!tenantA) process.exit(9);
   const tenantADomains = domains[value.tenants.indexOf(tenantA)];
   if (!tenantADomains) process.exit(17);
   for (const [surface, origin] of Object.entries(aliases)) {
     const url = new URL(origin);
     const aliasCookieDomain = process.argv[5];
-    const existing = tenantA.aliases[surface] ?? [];
-    const existingAlias = existing.find((alias) => alias.origin === url.origin);
-    if (url.protocol !== "https:" || url.port || url.username || url.password || url.pathname !== "/" || url.search || url.hash || (url.hostname !== aliasCookieDomain && !url.hostname.endsWith(`.${aliasCookieDomain}`)) || (existingAlias === undefined && hosts.has(url.hostname))) process.exit(10);
-    if (existingAlias !== undefined && existingAlias.cookieDomain !== aliasCookieDomain) process.exit(16);
-    if (existingAlias === undefined) {
-      hosts.add(url.hostname);
-      existing.push({ origin: url.origin, cookieDomain: process.argv[5] });
+    const previousOrigin = tenantA.origins[surface];
+    const existing = (tenantA.aliases[surface] ?? []).filter(
+      (alias) => alias.origin !== url.origin
+    );
+    if (url.protocol !== "https:" || url.port || url.username || url.password || url.pathname !== "/" || url.search || url.hash || (url.hostname !== aliasCookieDomain && !url.hostname.endsWith(`.${aliasCookieDomain}`))) process.exit(10);
+    if (previousOrigin !== url.origin) {
+      const previousAlias = existing.find((alias) => alias.origin === previousOrigin);
+      if (previousAlias === undefined) {
+        existing.push({ origin: previousOrigin, cookieDomain: null });
+      }
+      tenantA.origins[surface] = url.origin;
     }
-    if (!tenantADomains.includes(aliasCookieDomain)) tenantADomains.push(aliasCookieDomain);
+    tenantA.cookieDomain = aliasCookieDomain;
     tenantA.aliases[surface] = existing;
   }
+  tenantADomains.splice(0, tenantADomains.length, tenantA.cookieDomain);
   for (let i = 0; i < domains.length; i++) for (let j = i + 1; j < domains.length; j++) for (const a of domains[i]) for (const b of domains[j]) if (a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`)) process.exit(8);
   process.stdout.write(JSON.stringify(value));
 ' "$TENANT_SURFACE_ORIGIN_MAP_JSON" "https://${STAGING_ADMIN_HOST}" "$PUBLIC_MARKETING_BASE_URL" "$PUBLIC_PORTAL_BASE_URL" "$PUBLIC_ROOT_DOMAIN")" || {
@@ -243,7 +251,7 @@ for app in marketing portal web; do
 done
 set_json_env_kv "$API_ENV" TENANT_SURFACE_ORIGIN_MAP_JSON "$TENANT_SURFACE_ORIGIN_MAP_JSON"
 MAP_SHA256="$(printf '%s' "$TENANT_SURFACE_ORIGIN_MAP_JSON" | sha256sum | awk '{print $1}')"
-echo "sync-staging-profile-b-public-urls: private staging host map enabled for exact .staging.test entries map_sha256=${MAP_SHA256}"
+echo "sync-staging-profile-b-public-urls: canonical public origins enabled; private .staging.test hosts retained as aliases map_sha256=${MAP_SHA256}"
 
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_LABEL "$CLUB_LABEL"
 set_env_kv "${ENV_DIR}/marketing.env" PUBLIC_TENANT_FALLBACK_HOSTS "${PUBLIC_HOST},127.0.0.1"

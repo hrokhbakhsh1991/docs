@@ -12,6 +12,63 @@ import {
 } from "../src/index";
 
 describe("resolve-portal-public-base-url", () => {
+  it("resolves public Denali staging aliases to canonical public Portal URLs", () => {
+    const previousBase = process.env.PORTAL_PUBLIC_BASE_URL;
+    const previousMap = process.env.TENANT_SURFACE_ORIGIN_MAP_JSON;
+    process.env.PORTAL_PUBLIC_BASE_URL = "https://portal.denali.staging.test";
+    process.env.TENANT_SURFACE_ORIGIN_MAP_JSON = JSON.stringify({
+      version: 1,
+      tenants: [
+        {
+          tenantId: "00000000-0000-4000-8000-000000000003",
+          origins: {
+            admin: "https://staging-admin-denali.shenski.com",
+            marketing: "https://staging-denali.shenski.com",
+            portal: "https://staging-portal-denali.shenski.com",
+          },
+          cookieDomain: "shenski.com",
+          aliases: {
+            admin: [{ origin: "https://admin.denali.staging.test", cookieDomain: null }],
+            marketing: [{ origin: "https://denali.staging.test", cookieDomain: null }],
+            portal: [{ origin: "https://portal.denali.staging.test", cookieDomain: null }],
+          },
+        },
+        {
+          tenantId: "f0ed9e65-2638-4351-847d-724f87ebbfce",
+          origins: {
+            marketing: "https://qa2.staging.test",
+            admin: "https://admin.qa2.staging.test",
+            portal: "https://portal.qa2.staging.test",
+          },
+          cookieDomain: "qa2.staging.test",
+        },
+      ],
+    });
+    try {
+      assert.equal(
+        resolvePortalPublicBaseUrl("staging-denali.shenski.com"),
+        "https://staging-portal-denali.shenski.com"
+      );
+      assert.equal(
+        resolvePortalMemberLoginUrl("staging-denali.shenski.com", undefined, "denali"),
+        "https://staging-portal-denali.shenski.com/login?portalReturn=%2Fme%2Fregistrations"
+      );
+      assert.equal(
+        resolvePortalRegistrationUrl("staging-denali.shenski.com", "tour-1"),
+        "https://staging-portal-denali.shenski.com/catalog/tour-1/register"
+      );
+      assert.equal(
+        resolvePortalRegistrationLoginUrl("staging-denali.shenski.com", "tour-1", "denali"),
+        "https://staging-portal-denali.shenski.com/catalog/tour-1/register?auth=login"
+      );
+    } finally {
+      if (previousBase === undefined) delete process.env.PORTAL_PUBLIC_BASE_URL;
+      else process.env.PORTAL_PUBLIC_BASE_URL = previousBase;
+      if (previousMap === undefined) delete process.env.TENANT_SURFACE_ORIGIN_MAP_JSON;
+      else process.env.TENANT_SURFACE_ORIGIN_MAP_JSON = previousMap;
+    }
+  });
+
   it("uses the registered tenant portal origin instead of the global A fallback", () => {
     const previousBase = process.env.PORTAL_PUBLIC_BASE_URL;
     const previousMap = process.env.TENANT_SURFACE_ORIGIN_MAP_JSON;
