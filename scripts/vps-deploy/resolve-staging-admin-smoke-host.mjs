@@ -1,5 +1,3 @@
-const tenantAMarketingOrigin = "https://denali.staging.test";
-
 function normalizeAllowedHosts(rawHosts) {
   return new Set(
     rawHosts
@@ -30,7 +28,7 @@ function normalizeAllowedHosts(rawHosts) {
   );
 }
 
-export function resolveStagingAdminSmokeHost(rawOriginMap, rawAllowedHosts) {
+export function resolveStagingAdminSmokeHost(rawOriginMap, rawAllowedHosts, rawMarketingOrigin) {
   let originMap;
   try {
     originMap = JSON.parse(rawOriginMap);
@@ -38,12 +36,39 @@ export function resolveStagingAdminSmokeHost(rawOriginMap, rawAllowedHosts) {
     throw new Error("TENANT_SURFACE_ORIGIN_MAP_JSON must contain valid JSON");
   }
 
-  const tenantA = originMap?.tenants?.find(
-    (tenant) => tenant.origins?.marketing === tenantAMarketingOrigin
-  );
-  if (!tenantA) {
-    throw new Error("tenant A is missing from TENANT_SURFACE_ORIGIN_MAP_JSON");
+  let marketingOrigin;
+  try {
+    const authority = rawMarketingOrigin.match(/^https:\/\/([^/?#]+)\/?$/i)?.[1];
+    const parsed = new URL(rawMarketingOrigin);
+    if (
+      !authority ||
+      authority.includes(":") ||
+      parsed.protocol !== "https:" ||
+      parsed.port ||
+      parsed.username ||
+      parsed.password ||
+      parsed.hostname.endsWith(".") ||
+      parsed.pathname !== "/" ||
+      parsed.search ||
+      parsed.hash
+    )
+      throw new Error("invalid marketing origin");
+    marketingOrigin = parsed.origin;
+  } catch {
+    throw new Error("MARKETING_PUBLIC_BASE_URL must be a valid HTTPS origin");
   }
+  const tenants = Array.isArray(originMap?.tenants) ? originMap.tenants : [];
+  const matches = tenants.filter((tenant) => {
+    const aliases = Array.isArray(tenant.aliases?.marketing) ? tenant.aliases.marketing : [];
+    return (
+      tenant.origins?.marketing === marketingOrigin ||
+      aliases.some((alias) => alias?.origin === marketingOrigin)
+    );
+  });
+  if (matches.length !== 1) {
+    throw new Error("configured marketing origin must map to exactly one tenant");
+  }
+  const tenant = matches[0];
 
   const allowedHosts = normalizeAllowedHosts(rawAllowedHosts);
   if (allowedHosts.size === 0) {
@@ -51,9 +76,9 @@ export function resolveStagingAdminSmokeHost(rawOriginMap, rawAllowedHosts) {
   }
 
   const mappedOrigins = [
-    tenantA.origins?.admin,
-    ...(Array.isArray(tenantA.aliases?.admin)
-      ? tenantA.aliases.admin.map((alias) => alias?.origin)
+    tenant.origins?.admin,
+    ...(Array.isArray(tenant.aliases?.admin)
+      ? tenant.aliases.admin.map((alias) => alias?.origin)
       : []),
   ];
   const matchingOrigin = mappedOrigins.find((origin) => {
@@ -77,7 +102,7 @@ export function resolveStagingAdminSmokeHost(rawOriginMap, rawAllowedHosts) {
 
   if (!matchingOrigin) {
     throw new Error(
-      "configured operator admin host is not explicitly mapped to tenant A's admin surface"
+      "configured operator admin host is not explicitly mapped to the selected tenant's admin surface"
     );
   }
   return new URL(matchingOrigin).hostname;
@@ -86,7 +111,11 @@ export function resolveStagingAdminSmokeHost(rawOriginMap, rawAllowedHosts) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     process.stdout.write(
-      resolveStagingAdminSmokeHost(process.argv[2] ?? "", process.argv[3] ?? "")
+      resolveStagingAdminSmokeHost(
+        process.argv[2] ?? "",
+        process.argv[3] ?? "",
+        process.argv[4] ?? ""
+      )
     );
   } catch (error) {
     process.stderr.write(

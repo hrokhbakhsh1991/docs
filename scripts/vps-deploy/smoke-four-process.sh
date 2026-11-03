@@ -50,7 +50,8 @@ if [[ "${RAW_ORIGIN_MAP:0:1}" == "'" && "${RAW_ORIGIN_MAP: -1}" == "'" ]]; then
   RAW_ORIGIN_MAP="${RAW_ORIGIN_MAP:1:${#RAW_ORIGIN_MAP}-2}"
 fi
 OPERATOR_ADMIN_ROOT_HOSTS="$(read_env_var "${ENV_DIR}/web.env" OPERATOR_ADMIN_ROOT_HOSTS || true)"
-WEB_HOST="$(node "${SCRIPT_DIR}/resolve-staging-admin-smoke-host.mjs" "$RAW_ORIGIN_MAP" "$OPERATOR_ADMIN_ROOT_HOSTS")"
+PUBLIC_MARKETING_ORIGIN="$(read_env_var "${ENV_DIR}/marketing.env" MARKETING_PUBLIC_BASE_URL || true)"
+WEB_HOST="$(node "${SCRIPT_DIR}/resolve-staging-admin-smoke-host.mjs" "$RAW_ORIGIN_MAP" "$OPERATOR_ADMIN_ROOT_HOSTS" "$PUBLIC_MARKETING_ORIGIN")"
 echo "[smoke-4] web ingress host: ${WEB_HOST}"
 
 check_service() {

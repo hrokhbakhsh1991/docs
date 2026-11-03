@@ -148,7 +148,7 @@ jobs:
         run: |
           set -euo pipefail
           echo '::group::deployment-contracts'
-          timeout --signal=TERM --kill-after=30s 5m node --test scripts/test/deployment-branch-contract.spec.mjs scripts/test/staging-ci-build-order.spec.mjs
+          timeout --signal=TERM --kill-after=30s 5m node --test scripts/test/deployment-branch-contract.spec.mjs scripts/test/staging-ci-build-order.spec.mjs scripts/test/staging-admin-smoke-host.spec.mjs
           echo '::endgroup::'
       - name: Typecheck
         run: pnpm run typecheck

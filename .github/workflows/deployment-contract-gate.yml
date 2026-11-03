@@ -59,4 +59,4 @@ jobs:
 
       - name: Deployment branch contract tests
         if: github.event_name != 'pull_request' || steps.scope.outputs.run_contract == 'true'
-        run: node --test scripts/test/deployment-branch-contract.spec.mjs scripts/test/staging-ci-build-order.spec.mjs
+        run: node --test scripts/test/deployment-branch-contract.spec.mjs scripts/test/staging-ci-build-order.spec.mjs scripts/test/staging-admin-smoke-host.spec.mjs
