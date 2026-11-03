@@ -1,3 +1,4 @@
+import { mkdir, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { openNativeSessionBrowser } from "./fixtures/native-session-browser";
 import { fillCatalogOtp, submitCatalogPhoneForOtp } from "./fixtures/catalog-registration-otp";
@@ -216,7 +217,28 @@ test("probe failures preserve the current UI and unsaved filter until a confirme
     await expect(page).toHaveURL(/\/me\/registrations/, { timeout: 30_000 });
 
     const list = await context.newPage();
+    const probes: { at: number; status: number; ready: boolean | null }[] = [];
+    list.on("response", async (response) => {
+      if (
+        !response.url().includes("/api/public-auth/session") ||
+        response.url().includes("session_sync_test=assert")
+      )
+        return;
+      const body = await response.json().catch(() => null);
+      probes.push({
+        at: Date.now(),
+        status: response.status(),
+        ready: typeof body?.ready === "boolean" ? body.ready : null,
+      });
+    });
+    // SSR account markup alone does not prove that the browser observer is running.
+    const initialized = list.waitForResponse(
+      (response) =>
+        response.url().includes("/api/public-auth/session") && response.status() === 200,
+      { timeout: 120_000 }
+    );
     await list.goto("/tours");
+    expect(await (await initialized).json()).toEqual({ ok: true, ready: true });
     await expect(list.locator("[data-marketing-member-authenticated]")).toBeVisible();
     let refreshes = 0;
     list.on("request", (request) => {
@@ -237,10 +259,20 @@ test("probe failures preserve the current UI and unsaved filter until a confirme
     await setFault("error");
     await page.bringToFront();
     await page.goto(`${portal}/me/profile`);
+    const loggedOut = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/public-auth/logout") &&
+        response.request().method() === "POST" &&
+        response.status() === 200
+    );
     await page
       .locator('[data-public-auth-logout][data-public-auth-logout-ready="true"]')
       .first()
       .click();
+    await (await loggedOut).finished();
+    expect((await context.cookies()).some((cookie) => cookie.name === "atour_mb_session")).toBe(
+      false
+    );
     await list.bringToFront();
     for (const mode of ["error", "invalid", "offline"] as const) {
       scenario = mode;
@@ -251,10 +283,51 @@ test("probe failures preserve the current UI and unsaved filter until a confirme
       await expect(search).toHaveValue("unsaved search");
     }
     await setFault("normal");
+    const restoredAt = Date.now();
     await list.bringToFront();
-    await expect(list.locator("[data-marketing-member-authenticated]")).toHaveCount(0, {
-      timeout: 5_000,
-    });
+    const source = await list.evaluate(async (origin) => {
+      try {
+        const response = await fetch(`${origin}/api/public-auth/session?session_sync_test=assert`, {
+          credentials: "include",
+          cache: "no-store",
+          signal: AbortSignal.timeout(2_000),
+        });
+        const body = await response.json();
+        return {
+          status: response.status,
+          ok: body?.ok === true,
+          ready: typeof body?.ready === "boolean" ? body.ready : null,
+        };
+      } catch {
+        return { status: null, ok: false, ready: null };
+      }
+    }, portal);
+    try {
+      expect(source).toEqual({ status: 200, ok: true, ready: false });
+      await expect(list.locator("[data-marketing-member-authenticated]")).toHaveCount(0, {
+        timeout: 5_000,
+      });
+      expect(Date.now() - restoredAt).toBeLessThanOrEqual(5_000);
+    } catch (error) {
+      // Only status, booleans and timing: never retain cookie/token/profile values.
+      const observation = {
+        source,
+        elapsedMs: Date.now() - restoredAt,
+        visibility: await list.evaluate(() => document.visibilityState),
+        cookiePresent: (await context.cookies()).some(
+          (cookie) => cookie.name === "atour_mb_session"
+        ),
+        renderedAuthenticated:
+          (await list.locator("[data-marketing-member-authenticated]").count()) > 0,
+        probes: probes.slice(-12),
+      };
+      await mkdir(test.info().outputDir, { recursive: true });
+      await writeFile(
+        test.info().outputPath("session-sync-observations.json"),
+        JSON.stringify(observation, null, 2)
+      );
+      throw error;
+    }
     await expect(search).toHaveValue("unsaved search");
     // Settled session state must not keep refreshing the page on each probe.
     const settledRefreshes = refreshes;

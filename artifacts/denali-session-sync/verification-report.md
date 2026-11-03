@@ -52,3 +52,15 @@ The production fixture has one explicit canonical Marketing origin. An earlier a
 PR CI results must be checked against the final pushed head; historical CI greens do not establish a later revision. The local A–J ledger keeps corrected staging BLOCKED pending authorized deployment and runtime-version verification.
 
 Rollback: revert this PR. There is no schema/data migration; reverting restores the confirmed stale-UI, late-cookie and probe-deadline defects.
+
+## CI follow-up on 37957888e
+
+The final-head Marketing CI recovery assertion failed despite the local production matrix above. Acceptance was reopened and the PR remained draft; earlier local greens did not override that failure. The old test lacked evidence that its browser session observer had initialized or that logout had completed successfully.
+
+The test now establishes a real authenticated browser probe before injecting faults, awaits HTTP 200 logout and an absent cookie, then independently checks Portal status after recovery. Its five-second recovery budget is still measured from restoration; it was not increased. Failure artifacts contain only HTTP status, boolean session/cookie/DOM state and timestamps. Temporary React-internal diagnostics were removed.
+
+The authenticated, initialized development-runtime recovery scenario passed five repetitions (`e2e-ready-dev-diagnostic.log`), and the final sanitized test passed once in that runtime (`e2e-ready-dev-final-test.log`). Cold developer-server startup failures are separate initialization failures, not passes or evidence of the CI UI defect. No speculative application-state refactor was introduced.
+
+Session synchronization now has a dedicated CI job, isolated from the older session-bridge suites and their runtimes. Both fresh fixture groups still execute; the second runs after a first-group failure to retain independent evidence. Remote acceptance remains pending the next pushed-head results. The previous CI failure's exact internal rendering cause is not claimed from incomplete evidence.
+
+The final sanitized recovery test also passed three repetitions against the preserved production build (`e2e-ready-production-final.log`). Application code is byte-identical to `37957888e`; this follow-up changes test preconditions, safe failure evidence and CI isolation, not the five-second application criterion.
