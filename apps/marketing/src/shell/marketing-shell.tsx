@@ -1,4 +1,4 @@
-import { LogIn, Menu, Mountain, User } from "lucide-react";
+import { Menu, Mountain } from "lucide-react";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -8,6 +8,8 @@ import type { PublicTenantBrandingSnapshot } from "@/tenant/fetch-public-tenant-
 import { resolveGuestChromeDisplayName } from "@app-tour/guest-surface-host";
 import type { GuestLandingFeatures } from "@app-tour/workspace-sdk";
 
+import { MarketingShellFrame } from "./marketing-shell-frame";
+import { MarketingHeaderAccount } from "./marketing-header-account";
 import { MarketingFooter } from "./marketing-footer";
 import { MarketingHeaderOverlayScroll } from "./marketing-header-overlay-scroll";
 import { MarketingNavDrawerKeyboard } from "./marketing-nav-drawer-keyboard";
@@ -54,11 +56,7 @@ export async function MarketingShell({
     isFullLanding && headerList.get(MARKETING_HEADER_OVERLAY_REQUEST_HEADER) === "1";
 
   return (
-    <div
-      data-marketing-shell
-      data-slot="shell"
-      {...(memberHeader !== null ? { "data-marketing-member-authenticated": "" } : {})}
-    >
+    <MarketingShellFrame initiallyAuthenticated={memberHeader !== null}>
       <a href="#main-content" data-marketing-skip-link data-slot="shell-skip-link">
         {t("nav.skipToContent")}
       </a>
@@ -97,43 +95,11 @@ export async function MarketingShell({
           <div data-marketing-header-end data-slot="shell-header-end">
             <div data-marketing-header-toolbar data-slot="shell-toolbar">
               {showLocaleSwitcher ? <MarketingLocaleSwitcher /> : null}
-              {memberHeader !== null ? (
-                <a
-                  href={memberHeader.profileHref}
-                  data-marketing-portal-member
-                  data-marketing-header-member
-                  data-marketing-header-account
-                  aria-label={t("nav.account")}
-                >
-                  <span data-marketing-header-member-avatar-wrap>
-                    {memberHeader.avatarUrl !== null ? (
-                      <img
-                        src={memberHeader.avatarUrl}
-                        alt=""
-                        data-marketing-header-member-avatar
-                        height={32}
-                        width={32}
-                      />
-                    ) : (
-                      <User aria-hidden="true" data-marketing-header-member-icon />
-                    )}
-                  </span>
-                  <span data-marketing-header-member-meta>
-                    <span data-marketing-header-member-label>{memberHeader.displayName}</span>
-                    <span data-marketing-header-member-hint>{t("nav.account")}</span>
-                  </span>
-                </a>
-              ) : portalMemberLoginUrl !== null ? (
-                <a
-                  href={portalMemberLoginUrl}
-                  data-marketing-portal-member
-                  data-marketing-header-sign-in
-                  aria-label={t("nav.signIn")}
-                >
-                  <LogIn aria-hidden="true" data-marketing-header-sign-in-icon />
-                  <span data-marketing-header-sign-in-label>{t("nav.signIn")}</span>
-                </a>
-              ) : null}
+              <MarketingHeaderAccount
+                memberHeader={memberHeader}
+                loginHref={portalMemberLoginUrl}
+                variant="toolbar"
+              />
               {showHeaderToursCta ? (
                 <Link href={toursHref} prefetch={false} data-marketing-header-cta>
                   {t("home.full.hero.ctaPrimary")}
@@ -155,63 +121,33 @@ export async function MarketingShell({
                 data-slot={isFullLanding ? "shell-nav-drawer-panel" : "shell-nav"}
                 aria-label={t("nav.primary")}
               >
-                {isFullLanding
-                  ? primaryNavLinks.map((item) => (
-                      <Link
-                        key={item.id}
-                        href={item.href}
-                        prefetch={item.id === "tours" ? false : undefined}
-                        data-marketing-nav-link
-                        data-marketing-nav-link-id={item.id}
-                      >
-                        {t(item.labelKey)}
-                      </Link>
-                    ))
-                  : (
+                {isFullLanding ? (
+                  primaryNavLinks.map((item) => (
                     <Link
-                      href={toursHref}
-                      prefetch={false}
+                      key={item.id}
+                      href={item.href}
+                      prefetch={item.id === "tours" ? false : undefined}
                       data-marketing-nav-link
-                      data-marketing-nav-link-id="tours"
+                      data-marketing-nav-link-id={item.id}
                     >
-                      {t("nav.tours")}
+                      {t(item.labelKey)}
                     </Link>
-                  )}
-                {memberHeader !== null ? (
-                  <a
-                    href={memberHeader.profileHref}
-                    data-marketing-portal-member
-                    data-marketing-header-member
-                    data-marketing-header-account
+                  ))
+                ) : (
+                  <Link
+                    href={toursHref}
+                    prefetch={false}
+                    data-marketing-nav-link
+                    data-marketing-nav-link-id="tours"
                   >
-                    <span data-marketing-header-member-avatar-wrap>
-                      {memberHeader.avatarUrl !== null ? (
-                        <img
-                          src={memberHeader.avatarUrl}
-                          alt=""
-                          data-marketing-header-member-avatar
-                          height={32}
-                          width={32}
-                        />
-                      ) : (
-                        <User aria-hidden="true" data-marketing-header-member-icon />
-                      )}
-                    </span>
-                    <span data-marketing-header-member-meta>
-                      <span data-marketing-header-member-label>{memberHeader.displayName}</span>
-                      <span data-marketing-header-member-hint>{t("nav.account")}</span>
-                    </span>
-                  </a>
-                ) : portalMemberLoginUrl !== null ? (
-                  <a
-                    href={portalMemberLoginUrl}
-                    data-marketing-portal-member
-                    data-marketing-header-sign-in
-                  >
-                    <LogIn aria-hidden="true" data-marketing-header-sign-in-icon />
-                    {t("nav.signIn")}
-                  </a>
-                ) : null}
+                    {t("nav.tours")}
+                  </Link>
+                )}
+                <MarketingHeaderAccount
+                  memberHeader={memberHeader}
+                  loginHref={portalMemberLoginUrl}
+                  variant="drawer"
+                />
               </nav>
             </details>
             <MarketingNavDrawerKeyboard />
@@ -229,6 +165,6 @@ export async function MarketingShell({
           showFaqLink={landing.sections.faq}
         />
       ) : null}
-    </div>
+    </MarketingShellFrame>
   );
 }

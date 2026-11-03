@@ -15,6 +15,8 @@ function readMarketing(relativePath: string): string {
 
 const MARKETING_SHELL_FILES = [
   "src/shell/marketing-shell.tsx",
+  "src/shell/marketing-shell-frame.tsx",
+  "src/shell/marketing-header-account.tsx",
   "src/shell/marketing-footer.tsx",
   "src/shell/marketing-nav-drawer-keyboard.tsx",
   "src/shell/marketing-providers.tsx",
@@ -28,8 +30,10 @@ describe("marketing-shell-contract.spec.ts — MKT-SHELL landmarks", () => {
     const shell = readMarketing("src/shell/marketing-shell.tsx");
     const footer = readMarketing("src/shell/marketing-footer.tsx");
 
-    assert.match(shell, /data-marketing-shell/);
-    assert.match(shell, /data-slot="shell"/);
+    const frame = readMarketing("src/shell/marketing-shell-frame.tsx");
+    assert.match(shell, /<MarketingShellFrame/);
+    assert.match(frame, /data-marketing-shell/);
+    assert.match(frame, /data-slot="shell"/);
     assert.match(shell, /data-slot="shell-skip-link"/);
     assert.match(shell, /data-slot="shell-header"/);
     assert.match(shell, /data-slot="shell-header-inner"/);
@@ -39,7 +43,10 @@ describe("marketing-shell-contract.spec.ts — MKT-SHELL landmarks", () => {
     assert.match(shell, /data-slot="shell-toolbar"/);
     assert.match(shell, /data-slot="shell-nav-drawer"/);
     assert.match(shell, /data-slot="shell-nav-drawer-toggle"/);
-    assert.match(shell, /data-slot="shell-nav-drawer-panel"|data-slot=\{isFullLanding \? "shell-nav-drawer-panel" : "shell-nav"\}/);
+    assert.match(
+      shell,
+      /data-slot="shell-nav-drawer-panel"|data-slot=\{isFullLanding \? "shell-nav-drawer-panel" : "shell-nav"\}/
+    );
     assert.match(shell, /data-marketing-shell-main/);
     assert.match(shell, /data-slot="shell-main"/);
     assert.match(shell, /id="main-content"/);

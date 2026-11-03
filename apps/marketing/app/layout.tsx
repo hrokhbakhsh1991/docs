@@ -5,7 +5,13 @@ import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { resolveTextDirection, isAppLocale, routing } from "@/i18n/routing";
-import { inter, resolveAppFontClassName, resolveAppFontFamilyCss, vazirmatn, calistoga } from "@/i18n/app-fonts";
+import {
+  inter,
+  resolveAppFontClassName,
+  resolveAppFontFamilyCss,
+  vazirmatn,
+  calistoga,
+} from "@/i18n/app-fonts";
 import { MaintenancePage } from "@/platform/maintenance-page";
 import { isPlatformMotherHost } from "@/platform/is-platform-mother-host";
 import { PlatformMotherShell } from "@/platform/platform-mother-shell";
@@ -18,10 +24,12 @@ import { serializeMarketingJsonLd } from "@/seo/serialize-marketing-jsonld";
 import {
   resolvePortalMemberLoginUrl,
   resolvePortalMemberModuleUrl,
+  resolvePortalPublicBaseUrl,
   resolveGuestChromeDisplayName,
 } from "@app-tour/guest-surface-host";
 import { resolveGuestLandingFeatures } from "@app-tour/workspace-sdk";
 import { resolveMarketingMemberHeader } from "@/shell/resolve-marketing-member-header.server";
+import { MarketingSessionSyncProvider } from "@/auth/marketing-session-sync-provider";
 import { MarketingProviders } from "@/shell/marketing-providers";
 import { MarketingShell } from "@/shell/marketing-shell";
 import { resolveMarketingShellNavLinks } from "@/shell/resolve-marketing-shell-nav.server";
@@ -136,16 +144,24 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
           <MarketingProviders>
-            <MarketingShell
-              branding={branding}
-              portalMemberLoginUrl={portalMemberLoginUrl}
-              portalMemberModuleUrl={portalMemberModuleUrl}
-              memberHeader={memberHeader}
-              primaryNavLinks={primaryNavLinks}
-              landing={landing}
+            <MarketingSessionSyncProvider
+              portalOrigin={
+                portalMemberModuleUrl !== null ? resolvePortalPublicBaseUrl(host) : null
+              }
+              authenticated={memberHeader !== null}
+              profileHref={resolvePortalMemberModuleUrl(host, "profile", bootstrap.pluginId)}
             >
-              {children}
-            </MarketingShell>
+              <MarketingShell
+                branding={branding}
+                portalMemberLoginUrl={portalMemberLoginUrl}
+                portalMemberModuleUrl={portalMemberModuleUrl}
+                memberHeader={memberHeader}
+                primaryNavLinks={primaryNavLinks}
+                landing={landing}
+              >
+                {children}
+              </MarketingShell>
+            </MarketingSessionSyncProvider>
           </MarketingProviders>
         </NextIntlClientProvider>
         <script

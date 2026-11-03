@@ -15,15 +15,17 @@ describe("portal public-auth session probe — PCMS-CORS-05", () => {
         headers: { host: "portal.denali.club:3003" },
       })
     );
-    assert.equal(res.status, 200);
+    // A call without a Next request context is a probe failure, not a signed-out user.
+    assert.equal(res.status, 503);
+    assert.equal(res.headers.get("cache-control"), "no-store");
     const body = (await res.json()) as {
       ok?: boolean;
       ready?: boolean;
       session_token?: unknown;
       user_id?: unknown;
     };
-    assert.equal(body.ok, true);
-    assert.equal(body.ready, false);
+    assert.equal(body.ok, false);
+    assert.equal(body.ready, undefined);
     assert.equal(body.session_token, undefined);
     assert.equal(body.user_id, undefined);
   });

@@ -67,7 +67,13 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
     const modal = readFileSync(join(marketingRoot, "src/auth/marketing-login-modal.tsx"), "utf8");
     const detailPage = readFileSync(join(marketingRoot, "app/tours/[tourId]/page.tsx"), "utf8");
     assert.doesNotMatch(shell, /MarketingLoginModalTrigger/);
-    assert.match(shell, /href=\{portalMemberLoginUrl\}/);
+    assert.match(shell, /loginHref=\{portalMemberLoginUrl\}/);
+    const account = readFileSync(
+      join(marketingRoot, "src/shell/marketing-header-account.tsx"),
+      "utf8"
+    );
+    assert.match(account, /href=\{loginHref\}/);
+    assert.doesNotMatch(account, /MarketingLoginModalTrigger/);
     assert.match(trigger, /preventDefault/);
     assert.match(trigger, /host === "pdp"/);
     assert.match(trigger, /window\.location\.assign\(href\)/);
@@ -101,7 +107,10 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
   });
 
   it("MKT-PCMS-P5-05 marketing ?auth=login auto-open is PDP-only", () => {
-    assert.equal(isMarketingTourDetailPathname("/tours/00000000-0000-4000-8000-000000000220"), true);
+    assert.equal(
+      isMarketingTourDetailPathname("/tours/00000000-0000-4000-8000-000000000220"),
+      true
+    );
     assert.equal(isMarketingTourDetailPathname("/en/tours/abc"), true);
     assert.equal(isMarketingTourDetailPathname("/"), false);
     assert.equal(isMarketingTourDetailPathname("/tours"), false);
@@ -132,7 +141,10 @@ describe("marketing Phase 5 — Portal-origin auth host", () => {
   });
 
   it("MKT-PCMS-P5-04 no marketing public-auth or member BFF routes", () => {
-    assert.equal(statSync(join(marketingRoot, "app/api/public-auth"), { throwIfNoEntry: false }), undefined);
+    assert.equal(
+      statSync(join(marketingRoot, "app/api/public-auth"), { throwIfNoEntry: false }),
+      undefined
+    );
     assert.equal(statSync(join(marketingRoot, "app/api/me"), { throwIfNoEntry: false }), undefined);
   });
 });

@@ -281,7 +281,7 @@ const portalEnv = {
   PORTAL_INTERNAL_URL: "http://127.0.0.1:3003",
   TOUR_OPS_DEV_TENANT_ID: operatorSmokeTenantId,
   TOUR_OPS_DEV_WORKSPACE_ID: "ws-operator-smoke",
-  PORTAL_DEV_PORT: "3003",
+  PORTAL_DEV_PORT: process.env.SMOKE_PORTAL_PUBLIC_PORT ?? "3003",
 };
 
 const marketingEnv = {
@@ -292,7 +292,7 @@ const marketingEnv = {
   ALLOW_DEV_WEB_SESSION: "true",
   TOUR_OPS_API_URL: "http://127.0.0.1:3001",
   TOUR_OPS_DEV_TENANT_ID: operatorSmokeTenantId,
-  PORTAL_DEV_PORT: "3003",
+  PORTAL_DEV_PORT: process.env.SMOKE_PORTAL_PUBLIC_PORT ?? "3003",
 };
 
 let api;

@@ -1,10 +1,16 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { useLocale, useTranslations } from "next-intl";
+import { useMarketingSession } from "@/auth/marketing-session-context";
 
 import { MarketingLoginModalTrigger } from "@/auth/marketing-login-modal-trigger";
 import { isAppLocale, resolveMarketingTourDetailAuthModalHref, routing } from "@/i18n/routing";
 import type { CatalogTourRegistrationState } from "./resolve-catalog-tour-registration-state";
-import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detail-cta";
+import {
+  resolveMarketingTourDetailCtaModel,
+  type MarketingTourDetailCtaModel,
+} from "./resolve-marketing-tour-detail-cta";
 
 export type CatalogTourDetailRegisterCtaProps = {
   readonly registration: CatalogTourRegistrationState;
@@ -15,21 +21,34 @@ export type CatalogTourDetailRegisterCtaProps = {
   readonly tourTitle?: string;
 };
 
-export async function CatalogTourDetailRegisterCta({
+export function CatalogTourDetailRegisterCta({
   registration,
-  cta,
+  cta: serverCta,
   variant,
   assignRegisterAnchor = false,
   tourId,
   tourTitle,
 }: CatalogTourDetailRegisterCtaProps) {
-  const t = await getTranslations("catalog");
-  const localeRaw = await getLocale();
+  const t = useTranslations("catalog");
+  const localeRaw = useLocale();
+  const session = useMarketingSession();
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
   const pdpAuthModalHref =
     tourId != null && tourId.trim().length > 0
       ? resolveMarketingTourDetailAuthModalHref(tourId, locale)
       : null;
+  const serverAuthenticated = serverCta.mode !== "guest";
+  const cta =
+    session === null || session.authenticated === serverAuthenticated
+      ? serverCta
+      : resolveMarketingTourDetailCtaModel({
+          registrationUrl: registration.registrationUrl,
+          tourSignInUrl: pdpAuthModalHref,
+          canRegister: registration.canRegister,
+          canJoinWaitlist: registration.canJoinWaitlist,
+          memberSessionReadable: session.authenticated,
+          selfRegistrationDetailUrl: null,
+        });
   const showViewSelf = cta.primaryKind === "view-self" && cta.primaryHref != null;
 
   if (registration.state === "past" && !showViewSelf) {
@@ -69,7 +88,7 @@ export async function CatalogTourDetailRegisterCta({
       >
         {primaryLabel}
       </MarketingLoginModalTrigger>
-    ) : cta.primaryKind === "waitlist" && pdpAuthModalHref !== null ? (
+    ) : cta.mode === "guest" && cta.primaryKind === "waitlist" && pdpAuthModalHref !== null ? (
       <MarketingLoginModalTrigger
         href={pdpAuthModalHref}
         host="pdp"

@@ -14,6 +14,7 @@
     "test": "node --import tsx --test test/**/*.spec.ts",
     "test:smoke": "playwright test -c playwright.marketing.config.ts",
     "test:smoke:session-bridge": "playwright test -c playwright.marketing-session-bridge.config.ts",
+    "test:smoke:session-sync": "playwright test -c playwright.session-sync-regression.config.ts",
     "test:smoke:seo": "playwright test -c playwright.marketing-seo.config.ts",
     "test:lighthouse": "lhci autorun",
     "test:lighthouse:production": "pnpm run build && lhci autorun --config=lighthouserc.production.json",
@@ -33,7 +34,8 @@
     "test:smoke:visual:matrix": "pnpm run test:smoke:visual && pnpm run test:smoke:visual:urban && pnpm run test:smoke:visual:guest-club",
     "test:smoke:seo-matrix": "playwright test -c playwright.marketing-seo-matrix.config.ts",
     "test:smoke:install": "playwright install chromium",
-    "start": "next start --port 3002"
+    "start": "next start --port 3002",
+    "typecheck:session-sync": "tsc --noEmit -p tsconfig.session-sync.json"
   },
   "dependencies": {
     "@app-tour/catalog-registration-auth": "workspace:*",

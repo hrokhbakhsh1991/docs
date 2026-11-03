@@ -12,11 +12,8 @@ import {
   readMarketingMemberSessionToken,
 } from "@/auth/read-marketing-member-session.server";
 
-export type MarketingMemberHeader = {
-  readonly displayName: string;
-  readonly profileHref: string;
-  readonly avatarUrl: string | null;
-};
+import type { MarketingMemberHeader } from "./marketing-member-header";
+export type { MarketingMemberHeader } from "./marketing-member-header";
 
 type IdentityMeUpstream = {
   readonly displayName?: unknown;
@@ -32,10 +29,7 @@ function readTrimmedString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function resolveDisplayLabel(
-  identity: IdentityMeUpstream,
-  fallback: string
-): string {
+function resolveDisplayLabel(identity: IdentityMeUpstream, fallback: string): string {
   return resolveGuestMemberChipLabel({
     displayName: readTrimmedString(identity.displayName),
     mobile: readTrimmedString(identity.mobile),

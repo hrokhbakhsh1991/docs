@@ -14,6 +14,7 @@ const REQUIRED_FILES = [
   "apps/portal/src/catalog/build-registration-resume-initial-state.server.ts",
   "packages/tenant-kernel/src/host/resolve-member-session-cookie-domain.ts",
   "apps/marketing/src/shell/marketing-shell.tsx",
+  "apps/marketing/src/shell/marketing-header-account.tsx",
   "apps/marketing/src/auth/read-marketing-member-session.server.ts",
   "apps/marketing/src/shell/resolve-marketing-member-header.server.ts",
   "apps/portal/src/auth/apply-public-auth-cors.ts",
@@ -77,16 +78,17 @@ for (const rel of REQUIRED_FILES) {
 }
 
 const marketingShell = readRepo("apps/marketing/src/shell/marketing-shell.tsx");
-if (!marketingShell.includes("data-marketing-portal-member")) {
+const marketingHeaderAccount = readRepo("apps/marketing/src/shell/marketing-header-account.tsx");
+if (!marketingHeaderAccount.includes("data-marketing-portal-member")) {
   violations.push("marketing-shell.tsx: missing data-marketing-portal-member link");
 }
 if (!marketingShell.includes("portalMemberLoginUrl")) {
   violations.push("marketing-shell.tsx: missing portalMemberLoginUrl sign-in prop");
 }
-if (!marketingShell.includes("data-marketing-header-sign-in")) {
+if (!marketingHeaderAccount.includes("data-marketing-header-sign-in")) {
   violations.push("marketing-shell.tsx: missing data-marketing-header-sign-in");
 }
-if (!marketingShell.includes("data-marketing-header-member")) {
+if (!marketingHeaderAccount.includes("data-marketing-header-member")) {
   violations.push("marketing-shell.tsx: missing data-marketing-header-member authenticated chip");
 }
 if (!marketingShell.includes("memberHeader")) {
@@ -102,7 +104,9 @@ if (!marketingLayout.includes("resolvePortalMemberLoginUrl")) {
   violations.push("marketing/app/layout.tsx: missing resolvePortalMemberLoginUrl");
 }
 if (!marketingTourDetailPage.includes("resolvePortalPublicBaseUrl")) {
-  violations.push("marketing/app/tours/[tourId]/page.tsx: missing resolvePortalPublicBaseUrl (Phase 5 origin adapter)");
+  violations.push(
+    "marketing/app/tours/[tourId]/page.tsx: missing resolvePortalPublicBaseUrl (Phase 5 origin adapter)"
+  );
 }
 if (!marketingTourDetailPage.includes("MarketingLoginModalProvider")) {
   violations.push(
@@ -127,7 +131,9 @@ if (
   portalMiddleware.includes("function redirectHome") ||
   /home\.pathname\s*=\s*["']\/["']/.test(portalMiddleware)
 ) {
-  violations.push("portal/middleware.ts: /me tenant mismatch must not redirectHome to / (PCMS-SEC-03)");
+  violations.push(
+    "portal/middleware.ts: /me tenant mismatch must not redirectHome to / (PCMS-SEC-03)"
+  );
 }
 if (!portalMiddleware.includes("/login?portalReturn=%2Fme%2Fregistrations")) {
   violations.push("portal/middleware.ts: login fallback must be /login, never / (PCMS-SEC-03)");
@@ -144,7 +150,10 @@ if (!portalMiddleware.includes("resolvePublicAuthCorsAllowOrigin")) {
 if (!portalMiddleware.includes("isPortalPublicAuthApiPath")) {
   violations.push("portal/middleware.ts: missing isPortalPublicAuthApiPath (PCMS-CORS-01)");
 }
-if (!portalMiddleware.includes("OPTIONS") || !portalMiddleware.includes("applyPublicAuthCorsHeaders")) {
+if (
+  !portalMiddleware.includes("OPTIONS") ||
+  !portalMiddleware.includes("applyPublicAuthCorsHeaders")
+) {
   violations.push("portal/middleware.ts: missing public-auth OPTIONS CORS (PCMS-CORS-04)");
 }
 
@@ -199,11 +208,15 @@ for (const root of ["apps/marketing/src", "apps/marketing/app"]) {
       /SESSION_COOKIE_NAMES\.member/.test(content) &&
       !MARKETING_SESSION_PROBE_ALLOWLIST.has(rel)
     ) {
-      violations.push(`${rel}: member cookie read only allowed in read-marketing-member-session.server.ts`);
+      violations.push(
+        `${rel}: member cookie read only allowed in read-marketing-member-session.server.ts`
+      );
     }
     for (const re of FORBIDDEN_MARKETING_AUTH_HOST) {
       if (re.test(content)) {
-        violations.push(`${rel}: Phase 5 forbids Marketing cookie write / portal-same-origin / member BFF (${re})`);
+        violations.push(
+          `${rel}: Phase 5 forbids Marketing cookie write / portal-same-origin / member BFF (${re})`
+        );
       }
     }
   }
@@ -211,7 +224,9 @@ for (const root of ["apps/marketing/src", "apps/marketing/app"]) {
 
 const marketingAuthFlow = readRepo("apps/marketing/src/auth/marketing-login-auth-flow.tsx");
 if (!marketingAuthFlow.includes("GuestAuthHostProvider")) {
-  violations.push("marketing-login-auth-flow.tsx: missing GuestAuthHostProvider (PCMS-MKT-AUTH-04)");
+  violations.push(
+    "marketing-login-auth-flow.tsx: missing GuestAuthHostProvider (PCMS-MKT-AUTH-04)"
+  );
 }
 if (!marketingAuthFlow.includes("catalogRegistrationAuthFlowSteps")) {
   violations.push("marketing-login-auth-flow.tsx: missing catalogRegistrationAuthFlowSteps");
@@ -228,17 +243,28 @@ if (!marketingModal.includes("data-marketing-login-modal")) {
   violations.push("marketing-login-modal.tsx: missing data-marketing-login-modal");
 }
 if (marketingModal.includes("createPortalSameOriginGuestAuthTransport")) {
-  violations.push("marketing-login-modal.tsx: Portal same-origin factory is forbidden on marketing");
+  violations.push(
+    "marketing-login-modal.tsx: Portal same-origin factory is forbidden on marketing"
+  );
 }
 
 const marketingShellAuth = readRepo("apps/marketing/src/shell/marketing-shell.tsx");
-if (marketingShellAuth.includes("MarketingLoginModalTrigger")) {
+if (
+  [marketingShellAuth, marketingHeaderAccount].some((source) =>
+    source.includes("MarketingLoginModalTrigger")
+  )
+) {
   violations.push(
     "marketing-shell.tsx: header Sign in must navigate to Portal /login, not MarketingLoginModalTrigger (PCMS-MKT-AUTH-05)"
   );
 }
-if (!marketingShellAuth.includes("href={portalMemberLoginUrl}")) {
-  violations.push("marketing-shell.tsx: header Sign in must use href={portalMemberLoginUrl}");
+if (
+  !marketingShellAuth.includes("loginHref={portalMemberLoginUrl}") ||
+  !marketingHeaderAccount.includes("href={loginHref}")
+) {
+  violations.push(
+    "marketing header: Sign in must receive portalMemberLoginUrl and use href={loginHref}"
+  );
 }
 
 const marketingPdpCta = readRepo("apps/marketing/src/catalog/catalog-tour-detail-register-cta.tsx");
@@ -248,7 +274,7 @@ if (!marketingPdpCta.includes("MarketingLoginModalTrigger")) {
   );
 }
 if (!marketingPdpCta.includes('host="pdp"')) {
-  violations.push("catalog-tour-detail-register-cta.tsx: PDP trigger must set host=\"pdp\"");
+  violations.push('catalog-tour-detail-register-cta.tsx: PDP trigger must set host="pdp"');
 }
 if (!marketingPdpCta.includes('cta.primaryKind === "register"')) {
   violations.push(
@@ -270,7 +296,9 @@ if (!marketingPdpCta.includes("<a href={cta.primaryHref} data-marketing-register
   );
 }
 
-const originTransport = readRepo("packages/catalog-registration-flow-ui/src/guest-auth-transport.ts");
+const originTransport = readRepo(
+  "packages/catalog-registration-flow-ui/src/guest-auth-transport.ts"
+);
 if (!originTransport.includes("tryCreatePortalOriginGuestAuthTransport")) {
   violations.push("guest-auth-transport.ts: missing tryCreatePortalOriginGuestAuthTransport");
 }
@@ -303,7 +331,10 @@ if (!pcmsDoc.includes("PCMS-MKT-AUTH-01")) {
 }
 
 const corsHelper = readRepo("apps/portal/src/auth/apply-public-auth-cors.ts");
-if (corsHelper.includes('Access-Control-Allow-Origin", "*"') || corsHelper.includes("Allow-Origin: *")) {
+if (
+  corsHelper.includes('Access-Control-Allow-Origin", "*"') ||
+  corsHelper.includes("Allow-Origin: *")
+) {
   violations.push("apply-public-auth-cors.ts: wildcard ACAO forbidden");
 }
 if (!corsHelper.includes('origin === "*"')) {
@@ -323,7 +354,9 @@ if (!expireSession.includes("clearSessionCookieOnResponse")) {
   violations.push("public-auth/expire-session: missing clearSessionCookieOnResponse (PCMS-SEC-03)");
 }
 if (!expireSession.includes("resolvePortalMemberLoginPath")) {
-  violations.push("public-auth/expire-session: must redirect to member login (PCMS-03 / PCMS-SEC-03)");
+  violations.push(
+    "public-auth/expire-session: must redirect to member login (PCMS-03 / PCMS-SEC-03)"
+  );
 }
 if (/denali\.localhost:3002|:3002\b/.test(expireSession)) {
   violations.push("public-auth/expire-session: must not send dead sessions to marketing");
@@ -337,7 +370,9 @@ if (!meLayout.includes("fetchMemberProfile")) {
   violations.push("me/layout.tsx: missing fetchMemberProfile (PCMS-SEC-03)");
 }
 if (meLayout.includes('redirect("/")')) {
-  violations.push("me/layout.tsx: missing/mismatch session must expire-session, not redirect / (PCMS-SEC-03)");
+  violations.push(
+    "me/layout.tsx: missing/mismatch session must expire-session, not redirect / (PCMS-SEC-03)"
+  );
 }
 if (!meLayout.includes('entitlements.auth === "unauthenticated"')) {
   violations.push("me/layout.tsx: entitlements unauthenticated must expire-session (PCMS-SEC-03)");
@@ -350,12 +385,17 @@ if (!meProfilePage.includes("redirectDeadMemberSession")) {
 if (!meProfilePage.includes("fetchMemberProfile")) {
   violations.push("me/profile/page.tsx: missing fetchMemberProfile (MP-M3-01)");
 }
-if (meProfilePage.includes("identity/me") || meProfilePage.includes("fetchMemberProfileFromSession")) {
+if (
+  meProfilePage.includes("identity/me") ||
+  meProfilePage.includes("fetchMemberProfileFromSession")
+) {
   violations.push("me/profile/page.tsx: must keep fetchMemberProfile BFF (not identity/me)");
 }
 
 const fetchProfile = readRepo("apps/portal/src/me/fetch-member-profile.server.ts");
-const fetchProfileFromSession = readRepo("apps/portal/src/me/fetch-member-profile-from-session.server.ts");
+const fetchProfileFromSession = readRepo(
+  "apps/portal/src/me/fetch-member-profile-from-session.server.ts"
+);
 const fetchProfileSources = `${fetchProfile}\n${fetchProfileFromSession}`;
 if (!fetchProfileSources.includes("classifyMemberProfileBffFailure")) {
   violations.push("member profile fetch helpers: missing classifyMemberProfileBffFailure");
@@ -369,7 +409,9 @@ if (!fetchProfileSources.includes("/identity/me")) {
 
 const memberApiHeaders = readRepo("apps/portal/src/me/build-member-api-headers.server.ts");
 if (!memberApiHeaders.includes("readMemberSessionToken")) {
-  violations.push("build-member-api-headers.server.ts: Bearer must use readMemberSessionToken (PCMS-SEC-03)");
+  violations.push(
+    "build-member-api-headers.server.ts: Bearer must use readMemberSessionToken (PCMS-SEC-03)"
+  );
 }
 
 const entitlementsBff = readRepo("apps/portal/src/me/member-entitlements-bff.server.ts");
@@ -379,7 +421,9 @@ if (!entitlementsBff.includes("classifyMemberProfileBffFailure")) {
   );
 }
 if (!entitlementsBff.includes("readMemberBffErrorCode")) {
-  violations.push("member-entitlements-bff.server.ts: missing readMemberBffErrorCode (PCMS-SEC-03)");
+  violations.push(
+    "member-entitlements-bff.server.ts: missing readMemberBffErrorCode (PCMS-SEC-03)"
+  );
 }
 if (!entitlementsBff.includes("cacheable")) {
   violations.push("member-entitlements-bff.server.ts: missing cacheable flag (PCMS-SEC-03)");
@@ -422,7 +466,10 @@ for (const root of ["apps/portal/src", "apps/portal/app", "apps/portal"]) {
     if (rel.includes("app/api/me/") || rel.includes("/api/me/")) {
       violations.push(`${rel}: CORS on /api/me/* forbidden (PCMS-CORS-01)`);
     }
-    if (content.includes('Access-Control-Allow-Origin", "*"') || content.includes("Allow-Origin: *")) {
+    if (
+      content.includes('Access-Control-Allow-Origin", "*"') ||
+      content.includes("Allow-Origin: *")
+    ) {
       violations.push(`${rel}: wildcard ACAO forbidden`);
     }
   }
@@ -431,7 +478,10 @@ for (const root of ["apps/portal/src", "apps/portal/app", "apps/portal"]) {
 const apiPublicAuth = path.join(REPO_ROOT, "apps/api/src/identity/public-auth.routes.ts");
 if (statSync(apiPublicAuth, { throwIfNoEntry: false })?.isFile()) {
   const apiSrc = readFileSync(apiPublicAuth, "utf8");
-  if (apiSrc.includes("Access-Control-Allow-Origin") || apiSrc.includes("Access-Control-Allow-Credentials")) {
+  if (
+    apiSrc.includes("Access-Control-Allow-Origin") ||
+    apiSrc.includes("Access-Control-Allow-Credentials")
+  ) {
     violations.push("apps/api public-auth must not grow browser CORS (PCMS-CORS-01)");
   }
 }
