@@ -4,7 +4,7 @@ import http from "node:http";
 const listenPort = Number(process.env.SESSION_SYNC_FAULT_PROXY_PORT ?? "3004");
 const portalPort = Number(process.env.SESSION_SYNC_PORTAL_UPSTREAM_PORT ?? "3003");
 const marketingOrigin = process.env.SESSION_SYNC_MARKETING_URL ?? "http://denali.localhost:3002";
-const modes = new Set(["normal", "error", "invalid", "offline", "hold", "ready"]);
+const modes = new Set(["normal", "error", "invalid", "offline", "hold", "drain", "ready"]);
 let mode = "normal";
 const held = [];
 let heldMarkedCount = 0;
@@ -39,7 +39,8 @@ const server = http.createServer((req, res) => {
     req.method === "GET" &&
     pathname === "/api/public-auth/session" &&
     mode !== "normal" &&
-    mode !== "hold"
+    mode !== "hold" &&
+    mode !== "drain"
   ) {
     if (mode === "offline") {
       req.socket.destroy();

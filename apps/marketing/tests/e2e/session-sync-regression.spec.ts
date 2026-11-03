@@ -132,6 +132,22 @@ test("open marketing PDP and header follow portal logout", async ({ page, contex
   await page.bringToFront();
   await page.goto(`${portal}/me/profile`);
   await expect(page).toHaveURL(/\/login/);
+
+  // Re-authenticate in the same context after logout, without reloading the old PDP.
+  await page.getByLabel("موبایل").fill(phone!);
+  await page.getByRole("button", { name: "ارسال کد" }).click();
+  await expect(otpBox).toBeVisible({ timeout: 60_000 });
+  await otpBox.getByRole("textbox").first().fill(otp!);
+  await expect(page).toHaveURL(/\/me\/profile/, { timeout: 30_000 });
+  await pdp.bringToFront();
+  await expect(pdp.locator("[data-marketing-header-member]").first()).toBeVisible({
+    timeout: 5_000,
+  });
+  await expect(pdp.locator("[data-marketing-tour-detail-cta-mode]").first()).toHaveAttribute(
+    "data-marketing-tour-detail-cta-mode",
+    /^member-/,
+    { timeout: 5_000 }
+  );
 });
 
 for (const viewport of [
@@ -419,3 +435,82 @@ test("a session that marketing SSR cannot read does not create a refresh loop", 
     ).toBe(204);
   }
 });
+
+for (const path of ["visible polling", "tab activation"] as const) {
+  test(`an older in-flight probe cannot delay logout synchronization (${path})`, async ({
+    page: defaultPage,
+    context: defaultContext,
+  }, testInfo) => {
+    const control = process.env.SESSION_SYNC_FAULT_CONTROL_URL;
+    test.skip(!control, "a local fault-injection proxy is required");
+    const native =
+      path === "tab activation" ? await openNativeSessionBrowser(testInfo.outputDir) : null;
+    const context = native?.context ?? defaultContext;
+    const page = native ? (context.pages()[0] ?? (await context.newPage())) : defaultPage;
+
+    const mode = async (value: string) =>
+      expect(
+        (await fetch(`${control}/__session_sync_test/mode/${value}`, { method: "POST" })).status
+      ).toBe(204);
+    try {
+      await page.goto(`${portal}/login?portalReturn=%2Fme%2Fprofile`);
+      await page.getByLabel("موبایل").fill(phone!);
+      await page.getByRole("button", { name: "ارسال کد" }).click();
+      const otpBox = page.getByRole("group", { name: "کد یک‌بارمصرف" });
+      await expect(otpBox).toBeVisible({ timeout: 60_000 });
+      await otpBox.getByRole("textbox").first().fill(otp!);
+      await expect(page).toHaveURL(/\/me\/profile/, { timeout: 30_000 });
+      const logout = page
+        .locator('[data-public-auth-logout][data-public-auth-logout-ready="true"]')
+        .first();
+      await expect(logout).toBeVisible();
+      const marketing = await context.newPage();
+      const initialized = marketing.waitForResponse(
+        (response) =>
+          response.url().includes("/api/public-auth/session") && response.status() === 200
+      );
+      await marketing.goto(new URL("/", marketingBase).href);
+      await initialized;
+      await expect(marketing.locator("[data-marketing-header-member]").first()).toBeVisible();
+      await mode("hold");
+      await expect
+        .poll(async () => (await (await fetch(`${control}/__session_sync_test/held`)).json()).count)
+        .toBeGreaterThan(0);
+      // New probes can succeed while the earlier authenticated response remains held.
+      await mode("drain");
+      const loggedOut = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/public-auth/logout") && response.status() === 200
+      );
+      if (path === "tab activation") {
+        await page.bringToFront();
+        await expect.poll(() => marketing.evaluate(() => document.visibilityState)).toBe("hidden");
+        await logout.click();
+      } else {
+        // Keep marketing active: the real Portal-origin request clears browser cookies.
+        expect(
+          await page.evaluate(
+            async () => (await fetch("/api/public-auth/logout", { method: "POST" })).status
+          )
+        ).toBe(200);
+      }
+      await loggedOut;
+      const completedAt = Date.now();
+      if (path === "tab activation") await marketing.bringToFront();
+      else expect(await marketing.evaluate(() => document.visibilityState)).toBe("visible");
+      await expect(marketing.locator("[data-marketing-header-member]")).toHaveCount(0, {
+        timeout: 5_000,
+      });
+      await expect(marketing.locator("[data-marketing-header-sign-in]").first()).toBeVisible();
+      expect(Date.now() - completedAt).toBeLessThanOrEqual(5_000);
+      await mode("normal");
+      await expect(marketing.locator("[data-marketing-header-member]")).toHaveCount(0);
+    } finally {
+      try {
+        await mode("normal");
+      } finally {
+        await native?.close();
+      }
+    }
+  });
+}

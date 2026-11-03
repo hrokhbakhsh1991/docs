@@ -1,4 +1,4 @@
-export const SESSION_SYNC_INTERVAL_MS = 3_000;
+export const SESSION_SYNC_INTERVAL_MS = 2_500;
 
 export function parsePortalSessionProbe(value: unknown): boolean | null {
   if (value === null || typeof value !== "object") return null;

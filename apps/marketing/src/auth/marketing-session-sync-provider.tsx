@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { MarketingSessionContext } from "./marketing-session-context";
 import { parsePortalSessionProbe, SESSION_SYNC_INTERVAL_MS } from "./marketing-session-sync";
 
-const PROBE_TIMEOUT_MS = 4_000;
+// Interval + request deadline leaves rendering time inside the five-second target.
+const PROBE_TIMEOUT_MS = 2_000;
 
 export function MarketingSessionSyncProvider({
   portalOrigin,
@@ -30,11 +31,15 @@ export function MarketingSessionSyncProvider({
   useEffect(() => {
     if (portalOrigin === null) return;
     let disposed = false;
-    let inFlight = false;
     let activeRequest: AbortController | null = null;
     const check = async (reactivated = false) => {
-      if (disposed || inFlight || document.visibilityState !== "visible") return;
-      inFlight = true;
+      if (disposed || document.visibilityState !== "visible") return;
+      if (activeRequest !== null) {
+        if (!reactivated) return;
+        // A pre-activation request may describe the old session. Do not let it
+        // block a fresh observation, or let its completion replace the new one.
+        activeRequest.abort();
+      }
       const controller = new AbortController();
       activeRequest = controller;
       const timeout = window.setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
@@ -46,7 +51,7 @@ export function MarketingSessionSyncProvider({
         });
         if (!response.ok) return;
         const ready = parsePortalSessionProbe(await response.json());
-        if (disposed || ready === null) return;
+        if (disposed || activeRequest !== controller || ready === null) return;
         setPortalReady(ready);
         // A failed refresh can be retried on a later activation, without a
         // periodic refresh loop when a cookie cannot be shared with marketing.
@@ -55,8 +60,7 @@ export function MarketingSessionSyncProvider({
         // A failed check is not evidence that the member has signed out.
       } finally {
         window.clearTimeout(timeout);
-        activeRequest = null;
-        inFlight = false;
+        if (activeRequest === controller) activeRequest = null;
       }
     };
     const poll = () => {

@@ -208,7 +208,10 @@ jobs:
           SESSION_SYNC_PHONE: "+15550001996"
           SESSION_SYNC_OTP: "1234"
           SESSION_SYNC_HOST_RESOLVER_RULES: "MAP denali.localhost 127.0.0.1, MAP portal.denali.localhost 127.0.0.1, MAP portal.urban.localhost 127.0.0.1"
-        run: xvfb-run -a pnpm --filter @apps/marketing run test:smoke:session-sync
+        # Fresh API/Portal per group respects the real five-OTP/minute BFF quota.
+        run: |
+          xvfb-run -a pnpm --filter @apps/marketing run test:smoke:session-sync --grep 'open marketing PDP|PDP login|probe failures' --output=test-results/session-sync-auth
+          xvfb-run -a pnpm --filter @apps/marketing run test:smoke:session-sync --grep-invert 'open marketing PDP|PDP login|probe failures' --output=test-results/session-sync-state
       - name: Session synchronization UI evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,50 +1,54 @@
-# Marketing / Portal session synchronization
+# Marketing / Portal session synchronization — final local verification
 
-Base: `913856bc15e80c9e60e9fd82550851ce1ae781d5` (`origin/dev`). Changes are isolated in `codex/denali-session-sync`; unrelated original-workspace edits were preserved.
+Base: `913856bc15e80c9e60e9fd82550851ce1ae781d5` (`origin/dev`). Branch: `codex/denali-session-sync`. Original dirty-workspace edits were preserved. No deployment or merge was performed.
 
-## Reproduction and cause
+## Confirmed defects
 
-Staging observations (2026-11-03, runtime SHA unknown): after Portal logout, two open Marketing pages retained authenticated headers and the PDP retained `member-self` about ten seconds later. Protected Portal profile correctly redirected to login. The reverse mismatch occurred after PDP login: an existing Marketing tab remained guest until reload. This establishes stale UI, not a protected-route bypass.
+1. **Stale server snapshot.** Staging open tabs retained authenticated header/PDP `member-self` about ten seconds after Portal logout; the reverse mismatch occurred after PDP login. Portal protected routes still redirected to login. Marketing derived its auth UI only from server-rendered data, without subsequent session observation. The staging runtime SHA was not established.
+2. **Cookie resurrection.** Portal middleware reissued a valid member cookie on passive requests. Holding a pre-logout session response, completing logout and releasing that response restored the cleared cookie. Real signed-JWT middleware tests and the browser race reproduced this independently. Passive credential reissuance was removed; successful authentication and logout retain their existing cookie-domain helpers.
+3. **Pending-probe timing.** A later run reopened acceptance when a home tab stayed authenticated beyond five seconds. A deterministic browser regression then isolated a concrete scheduling defect: the four-second pending request blocked activation and the next three-second polling tick, pushing the next successful observation beyond five seconds. The held-probe test was RED before the final timing fix. Ordinary probe traces passing five repetitions were not treated as proof that this deadline defect was absent.
 
-The Marketing layout and PDP derived auth only from the server-rendered snapshot; no subsequent Portal probe updated open tabs. The fix uses the existing credentialed, tenant-bound boolean Portal session endpoint. Header and CTA consume one committed client observation; server data revalidation follows the state commit. Identical polls do not keep refreshing a persistent SSR disagreement. Hidden tabs skip polling; visible tabs poll every three seconds and recheck on focus, pageshow and visibility activation. Unknown/malformed/failed probes preserve the last confirmed status. No token or personal data is synchronized or stored by this mechanism.
+## Final implementation
 
-A separate real race was reproduced: middleware reissued a valid session cookie on passive requests. Holding a pre-logout session response, completing logout and then releasing the response restored the cookie. Signed-JWT middleware tests and the browser test both failed before the fix. Passive credential reissuance was removed; auth writes and logout clears retain the existing domain helpers. Historical host-only cookies require fresh authentication to obtain the shared-domain cookie.
+The existing tenant-bound, credentialed Portal endpoint supplies only a boolean. One Marketing context updates header and tour CTA together before server revalidation. Visible tabs poll every **2.5 seconds**, with a **two-second request deadline**, and recheck on focus, pageshow and visibility activation. Activation aborts a pending older check. Controller identity prevents obsolete completions or cleanup from replacing a newer observation. Hidden tabs do not initiate polling.
 
-Depending solely on a full server refresh for header/CTA remained unreliable in the injected-failure recovery test. Multiple refresh scheduling experiments were rejected. The final implementation commits the Portal observation to both consumers first and then refreshes server data; it has no custom refresh queue, broadcast channel or persisted synchronization state. The internal reason a previous full server render did not commit is not established; no framework bug is claimed.
+Non-2xx, malformed and failed probes preserve the last confirmed UI; endpoint exceptions return 503 rather than a successful signed-out response. Identical observations do not repeatedly refresh an SSR disagreement. No tokens or personal data are synchronized, persisted or broadcast. Portal remains the authority and protects private routes.
 
-An authenticated waitlist action also reopened login. A rendered-component regression failed on that behavior before adding the guest-only modal guard; members now follow the existing Portal intake link.
+The existing pure tour CTA model is reused. Member/self-registration and closed-tour behavior are preserved. An authenticated waitlist action follows Portal intake instead of reopening login; its rendered-component regression was RED before the guest-only modal guard.
 
-## Before / after evidence
+Historical host-only sessions require fresh authentication for shared-domain server personalization. The boolean adapter can show the generic account link while server personalization refreshes. No schema, dependency or visual-design change was made.
 
-- RED, real signed JWT: `probe-cookie-red.log`, `passive-cookie-red.log` — passive requests unexpectedly emitted a member cookie.
-- RED, real browser: `probe-cookie-browser-red2.log` — expected no cookie after releasing the old response, received a restored cookie. No cookie value is included here.
-- GREEN, same browser race: `probe-cookie-browser-green.log` — three successful repetitions; repeated in the final browser suite.
-- RED, previous server-refresh-only implementation: `e2e-recovery-react-state.log` — one pass, two stale-header failures after fault recovery.
-- GREEN, final shared-context implementation: `e2e-context-recovery.log` — three passes with 503, invalid response shape and broken connection; recovery within five seconds, input retained, no repeating page-refresh loop.
-- GREEN, core three-tab journey: `e2e-context-main-repeat.log` — three passes covering header login, logout, header/CTA, tenant JWT rejection, unrelated-origin CORS rejection, reload, Back and protected-route denial.
-- RED then GREEN for member waitlist: `session-ui-behavior-red.log`, `session-ui-green.log`.
+## RED / GREEN evidence
 
-## Verification
+- Signed-JWT passive-read RED: `probe-cookie-red.log`, `passive-cookie-red.log`.
+- Cookie-resurrection browser RED: `probe-cookie-browser-red2.log` (cookie absent after logout, restored after old response). Cookie values are not reproduced here.
+- Same cookie race GREEN: `probe-cookie-browser-green.log`, three repetitions; repeated successfully in the final runtime matrix. Portal source/build was unchanged by the later client timing fix.
+- Previous server-refresh-only recovery RED: `e2e-recovery-react-state.log`. Shared committed context resolved the measured recovery path; no framework-internal root cause is claimed.
+- Pending-probe deadline RED: `e2e-pending-probe-red.log` (two rendered account links remained after five seconds).
+- Final timing implementation GREEN: `e2e-pending-probe-green.log`, three repetitions, plus independent visible-polling and native-tab-activation cases in the final matrix.
+- Member waitlist RED/GREEN: `session-ui-behavior-red.log`, `session-ui-green.log`.
 
-- `pnpm --filter @apps/marketing run test`: 373 passed (`marketing-all-unit-final.log`).
-- `pnpm --filter @apps/portal run test`: 409 passed (`portal-all-unit.log`). The older embedded Chromium Domain check reported its browser unavailable; the new real-browser suite independently exercises actual cookie sharing and tenant separation.
-- Both app lint/typechecks passed; new Playwright config/spec has an additional focused TypeScript check.
-- Marketing and Portal production builds passed. Marketing build ID: `226sb6P0wLWAvkAwjY-Uo`; Portal build ID: `5Si_tJt8WeemXXEN1UYy9`.
-- Architecture, import boundaries, Portal profile boundary, architecture-truth, PCMS authority and doc-sync checks passed. Source-contract guards follow the extracted components and retain navigation/DOM requirements.
-- Final browser matrix: **8 passed, 0 failed, 0 skipped** (`e2e-acceptance.log`), including native hidden-tab behavior.
-- Custom apex `http://denali.club` / `http://portal.denali.club:3104`: core journey **3 passed** (`e2e-custom-apex-final.log`), including independent rendered account/login link assertions plus CTA mode.
-- Desktop authenticated and logged-out PDP screenshots inspected: header changed from account to login and CTA from continue to guest registration/sign-in. Images are retained locally under `screenshots/`. No appearance redesign was made.
+## Final-source checks
 
-## Limits and provenance
+Application build IDs: Marketing `JM2Cd4Eo-Lg0wy1H0k3JQ`; Portal `5Si_tJt8WeemXXEN1UYy9`. The Portal source/build is unchanged by the timing follow-up. Production-built apps ran against deterministic memory API fixtures over HTTP Profile B.
 
-Local integration uses a memory API, deterministic existing synthetic member/tour and production-built Marketing/Portal over HTTP Profile B. Cookie/CORS security is enabled; no `--disable-web-security`, TLS-ignore setting or auth bypass is used. Faults affect only the session probe through a loopback test proxy. The fake-ready loop case is explicitly fault injection and proves UI/refresh behavior, not authentication. Actual clock-based browser cookie expiry is separate from server token revocation.
+- Browser matrix: **10 passed, 0 failed, 0 skipped**, in two fresh fixture runtimes: `e2e-timing-auth.log` (4) and `e2e-timing-state.log` (6).
+- Coverage: header and PDP login; same-context logout/re-login without reloading the old PDP; rendered header links and CTA; desktop/mobile; reload/Back; protected-route denial; browser cookie expiry; Denali JWT rejected by Urban; unrelated-origin CORS rejection; 503/invalid/disconnected probe recovery; unsaved search retained; no refresh loop; late pre-logout response; native hidden-tab pause/recovery; old pending probe during visible polling and real tab activation.
+- Main journey on final app source: **three passes** — one in the localhost auth group and two on custom apex `denali.club` (`e2e-timing-custom-main.log`), all including same-context re-login.
+- Marketing full unit suite: **373 passed** (`marketing-all-unit-timing-final.log`); Portal: **409 passed** (`portal-all-unit.log`, unchanged Portal source). Focused final Marketing tests: 28 passed.
+- Both production builds, app lint/typecheck and focused Playwright TypeScript checks passed. Architecture/import boundaries, Portal profile/architecture-truth, PCMS authority and doc-sync checks passed. Formatting and final diff checks passed.
+- Authenticated and logged-out desktop PDP screenshots were inspected: account changed to login; continue changed to guest registration/sign-in. Final images are retained locally in the test output/evidence directory. Mobile interaction assertions passed; no visual redesign comparison is claimed.
 
-The initial headed run had six passes, one skip and one failed added CORS expectation. Its explicit single canonical Marketing origin also applied to the other localhost tenant, so the new expectation was incompatible with that fixture. The final test instead checks an unrelated tenant origin cannot read the Denali Portal, and separately presents the signed Denali cookie to Urban and requires ready=false plus protected-route rejection. It does not certify every deployment origin-map configuration.
+CI runs the same two groups with fresh managed API/Portal processes. This respects the real five-OTP/minute BFF quota: at most five OTP requests per group. A rapid earlier third re-login repetition hit that quota and is recorded as a fixture-rate failure, not a successful auth-sync test. No security limiter was disabled. Output folders are separate so screenshots survive both groups.
 
-Normal Playwright focus emulation reports background pages as visible. The real-hidden-tab case launches an isolated native browser and attaches using `noDefaults: true`, preserving native tab visibility; the browser profile is deleted on cleanup. This does not inject visibility events or disable browser web security.
+Native visibility tests launch an isolated browser and connect with `noDefaults: true`; ordinary Playwright focus overrides report background pages as visible. Native tests assert actual hidden/visible state and delete their browser profile on cleanup. No `--disable-web-security` or TLS-ignore setting is used. Fault injection affects only session probes through a loopback proxy; the fake-ready loop case is not evidence of authentication.
 
-No fixed version has been deployed to staging, and its current runtime SHA is unverified. Corrected staging behavior, production HTTPS cookie attributes, real SMS delivery, deployment CI and live multi-tenant origin-map configuration remain separate from these local results. No registration or profile was written on staging for this change.
+## Limits and rollout
 
-Rollback requires only reverting this PR; there is no schema or data migration. Reverting restores the stale-UI and late-cookie defects.
+Corrected staging behavior remains **unverified**: this revision is not deployed and current staging runtime SHA is unknown. Local HTTP tests do not certify production HTTPS attributes, real SMS delivery, every deployment origin-map configuration, or server token revocation. Actual browser cookie expiry is covered separately. The older embedded Chromium Domain unit check reported its bundled browser unavailable; the new browser tests independently exercised real cookie sharing.
 
-Final local review: PASS for changed-file scope, sensitive-data pattern inspection, response contract, direct component consumers, cleanup, tenant cookie rejection and no-refresh-loop behavior. Remote CI is pending PR creation. Corrected staging runtime remains unverified.
+The production fixture has one explicit canonical Marketing origin. An earlier added expectation that it would reject that configured origin on another localhost tenant was incompatible with that setup. Final tests separately prove rejection of an unrelated tenant origin and of a signed foreign-tenant cookie; no broader CORS-policy change was made.
+
+PR CI results must be checked against the final pushed head; historical CI greens do not establish a later revision. The local A–J ledger keeps corrected staging BLOCKED pending authorized deployment and runtime-version verification.
+
+Rollback: revert this PR. There is no schema/data migration; reverting restores the confirmed stale-UI, late-cookie and probe-deadline defects.
