@@ -217,18 +217,34 @@ test("probe failures preserve the current UI and unsaved filter until a confirme
     await expect(page).toHaveURL(/\/me\/registrations/, { timeout: 30_000 });
 
     const list = await context.newPage();
-    const probes: { at: number; status: number; ready: boolean | null }[] = [];
+    const probes: {
+      startedAt: number;
+      at: number;
+      status: number;
+      ok: boolean;
+      ready: boolean | null;
+      readable: boolean;
+    }[] = [];
     list.on("response", async (response) => {
       if (
         !response.url().includes("/api/public-auth/session") ||
         response.url().includes("session_sync_test=assert")
       )
         return;
+      const receivedAt = Date.now();
+      const startedAt = response.request().timing().startTime;
       const body = await response.json().catch(() => null);
+      const at = Date.now();
+      const headers = await response.allHeaders().catch(() => ({}) as Record<string, string>);
       probes.push({
-        at: Date.now(),
+        startedAt: startedAt > 0 ? startedAt : receivedAt,
+        at,
         status: response.status(),
+        ok: body?.ok === true,
         ready: typeof body?.ready === "boolean" ? body.ready : null,
+        readable:
+          headers["access-control-allow-origin"] === new URL(marketingBase).origin &&
+          headers["access-control-allow-credentials"] === "true",
       });
     });
     // SSR account markup alone does not prove that the browser observer is running.
@@ -282,43 +298,122 @@ test("probe failures preserve the current UI and unsaved filter until a confirme
       await expect(list.locator("[data-marketing-member-authenticated]")).toBeVisible();
       await expect(search).toHaveValue("unsaved search");
     }
+    // Observe actual guest UI concurrently, so a slow health check cannot hide
+    // an earlier UI transition or move the five-second deadline forwards.
+    let guestAt: number | null = null;
+    const guestObservation = list
+      .waitForFunction(
+        () => {
+          const guest =
+            !document.querySelector("[data-marketing-member-authenticated]") &&
+            !document.querySelector("[data-marketing-header-member]") &&
+            document.querySelector("[data-marketing-header-sign-in]");
+          return guest ? Date.now() : undefined;
+        },
+        undefined,
+        { timeout: 40_000, polling: "raf" }
+      )
+      .then(async (handle) => {
+        const at = await handle.jsonValue();
+        guestAt = typeof at === "number" ? at : null;
+        await handle.dispose();
+      });
+    void guestObservation.catch(() => undefined); // The explicit UI assertion below still fails.
     await setFault("normal");
     const restoredAt = Date.now();
     await list.bringToFront();
-    const source = await list.evaluate(async (origin) => {
-      try {
-        const response = await fetch(`${origin}/api/public-auth/session?session_sync_test=assert`, {
-          credentials: "include",
-          cache: "no-store",
-          signal: AbortSignal.timeout(2_000),
-        });
-        const body = await response.json();
-        return {
-          status: response.status,
-          ok: body?.ok === true,
-          ready: typeof body?.ready === "boolean" ? body.ready : null,
-        };
-      } catch {
-        return { status: null, ok: false, ready: null };
-      }
-    }, portal);
+    let source: { status: number | null; ok: boolean; ready: boolean | null } = {
+      status: null,
+      ok: false,
+      ready: null,
+    };
+    let confirmedAt: number | null = null;
+    const firstReadableProbe = () =>
+      probes
+        .filter(
+          (probe) =>
+            probe.startedAt >= restoredAt &&
+            probe.readable &&
+            probe.status >= 200 &&
+            probe.status < 300
+        )
+        .sort((a, b) => a.at - b.at)[0];
     try {
+      // Proxy control being normal is not proof that browser transport recovered.
+      // Either an app probe or an independent browser probe can establish that.
+      await expect
+        .poll(
+          async () => {
+            const existing = firstReadableProbe();
+            if (existing) {
+              source = { status: existing.status, ok: existing.ok, ready: existing.ready };
+              confirmedAt = existing.at;
+              return true;
+            }
+            source = await list.evaluate(async (origin) => {
+              try {
+                const response = await fetch(
+                  `${origin}/api/public-auth/session?session_sync_test=assert`,
+                  {
+                    credentials: "include",
+                    cache: "no-store",
+                    signal: AbortSignal.timeout(2_000),
+                  }
+                );
+                const body = await response.json().catch(() => null);
+                return {
+                  status: response.status,
+                  ok: body?.ok === true,
+                  ready: typeof body?.ready === "boolean" ? body.ready : null,
+                };
+              } catch {
+                return { status: null, ok: false, ready: null };
+              }
+            }, portal);
+            const earlier = firstReadableProbe();
+            if (earlier) {
+              source = { status: earlier.status, ok: earlier.ok, ready: earlier.ready };
+              confirmedAt = earlier.at;
+              return true;
+            }
+            if (source.status !== null && source.status >= 200 && source.status < 300) {
+              confirmedAt = Date.now();
+              return true;
+            }
+            return false;
+          },
+          { timeout: 30_000, intervals: [250, 500, 1_000] }
+        )
+        .toBe(true);
       expect(source).toEqual({ status: 200, ok: true, ready: false });
-      await expect(list.locator("[data-marketing-member-authenticated]")).toHaveCount(0, {
-        timeout: 5_000,
-      });
-      expect(Date.now() - restoredAt).toBeLessThanOrEqual(5_000);
+      const networkReadyAt = confirmedAt!;
+      await expect
+        .poll(() => guestAt, {
+          timeout: Math.max(1, networkReadyAt + 5_000 - Date.now()),
+          intervals: [25, 50],
+        })
+        .not.toBeNull();
+      expect(guestAt! - networkReadyAt).toBeLessThanOrEqual(5_000);
+      await expect(list.locator("[data-marketing-member-authenticated]")).toHaveCount(0);
+      await expect(list.locator("[data-marketing-header-member]")).toHaveCount(0);
     } catch (error) {
       // Only status, booleans and timing: never retain cookie/token/profile values.
       const observation = {
         source,
+        restoredAt,
+        confirmedAt,
+        guestAt,
         elapsedMs: Date.now() - restoredAt,
-        visibility: await list.evaluate(() => document.visibilityState),
-        cookiePresent: (await context.cookies()).some(
-          (cookie) => cookie.name === "atour_mb_session"
-        ),
-        renderedAuthenticated:
-          (await list.locator("[data-marketing-member-authenticated]").count()) > 0,
+        visibility: await list.evaluate(() => document.visibilityState).catch(() => "unavailable"),
+        cookiePresent: await context
+          .cookies()
+          .then((cookies) => cookies.some((cookie) => cookie.name === "atour_mb_session"))
+          .catch(() => null),
+        renderedAuthenticated: await list
+          .locator("[data-marketing-member-authenticated]")
+          .count()
+          .then((count) => count > 0)
+          .catch(() => null),
         probes: probes.slice(-12),
       };
       await mkdir(test.info().outputDir, { recursive: true });

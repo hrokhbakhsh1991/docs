@@ -237,6 +237,8 @@ jobs:
         run: |
           touch apps/api/.env apps/api/.env.local
           pnpm --filter @apps/api run prisma:generate
+      - name: Typecheck session regression
+        run: pnpm --filter @apps/marketing run typecheck:session-sync
       - name: Install browser
         id: browser
         run: pnpm --filter @apps/marketing exec playwright install --with-deps chromium

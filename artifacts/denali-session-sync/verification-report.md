@@ -64,3 +64,13 @@ The authenticated, initialized development-runtime recovery scenario passed five
 Session synchronization now has a dedicated CI job, isolated from the older session-bridge suites and their runtimes. Both fresh fixture groups still execute; the second runs after a first-group failure to retain independent evidence. Remote acceptance remains pending the next pushed-head results. The previous CI failure's exact internal rendering cause is not claimed from incomplete evidence.
 
 The final sanitized recovery test also passed three repetitions against the preserved production build (`e2e-ready-production-final.log`). Application code is byte-identical to `37957888e`; this follow-up changes test preconditions, safe failure evidence and CI isolation, not the five-second application criterion.
+
+## CI transport evidence on ad17e085f
+
+The dedicated CI job failed its recovery case; the remaining six state/race cases passed. Its sanitized observation records an absent member cookie but `source.status = null` after a 2,017 ms browser timeout. There was no confirmed signed-out response at that assertion. Preserving the last known account state on that transport error is intentional; this evidence does not establish a React-rendering failure. The PR remains draft.
+
+Recovery measurement now separates transport availability from UI latency. After restoration, it accepts the first readable fresh app probe or an independent credentialed browser probe (transport readiness has a separate 30-second limit). The first successful HTTP response must immediately satisfy the exact signed-out contract; a wrong boolean or invalid body is not retried until it becomes correct. An independently recorded DOM transition must occur within five seconds of the earliest successful observation. Search retention and refresh-loop assertions remain in place. This does not extend the normal logout/activation five-second tests, and no application source changed.
+
+A scoped `typecheck:session-sync` command and project config now check the regression suite and its imported native-browser helper in the Marketing package; CI runs it before browser installation. This avoids silently leaving E2E TypeScript outside the application's normal typecheck scope.
+
+The revised recovery measurement passed **three production-browser repetitions** (`e2e-transport-production.log`, 3 passed / 0 failed / 0 skipped). Scoped regression TypeScript, formatting and diff checks passed. Application source and production builds remain identical to the previous full matrix; remote acceptance is still pending the new pushed test revision.
