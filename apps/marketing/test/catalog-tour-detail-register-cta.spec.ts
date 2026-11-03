@@ -43,7 +43,9 @@ describe("catalog-tour-detail-register-cta — PCMS tour sign-in + Phase 3", () 
     assert.match(cta, /data-marketing-view-registration/);
     assert.match(cta, /data-marketing-register-another/);
     assert.match(cta, /data-marketing-tour-detail-cta-mode/);
-    assert.doesNotMatch(cta, /tourSignInUrl/);
+    // Session-aware rendering is covered by marketing-session-ui.spec.ts;
+    // the server-provided sign-in href must still never render independently.
+    assert.doesNotMatch(cta, /href=\{tourSignInUrl\}/);
   });
 
   it("MKT-PCMS-P3-07 sticky and rail reuse the shared CTA", () => {
@@ -112,10 +114,7 @@ describe("catalog-tour-detail-register-cta — PCMS tour sign-in + Phase 3", () 
   });
 
   it("MKT-PCMS-P3-11 tour detail page resolves CTA from session-aware server helper", () => {
-    const page = readFileSync(
-      join(repoRoot, "apps/marketing/app/tours/[tourId]/page.tsx"),
-      "utf8"
-    );
+    const page = readFileSync(join(repoRoot, "apps/marketing/app/tours/[tourId]/page.tsx"), "utf8");
     assert.match(page, /resolveMarketingTourDetailCta/);
     assert.match(page, /cta=\{cta\}/);
   });

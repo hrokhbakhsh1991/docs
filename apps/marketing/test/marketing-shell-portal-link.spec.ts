@@ -13,10 +13,16 @@ const marketingRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
 describe("marketing shell — PCMS-03", () => {
   it("MKT-PCMS-01 shell sign-in navigates to portal login URL (not marketing modal)", () => {
     const shell = readFileSync(path.join(marketingRoot, "src/shell/marketing-shell.tsx"), "utf8");
-    assert.match(shell, /data-marketing-portal-member/);
-    assert.match(shell, /data-marketing-header-sign-in/);
+    const account = readFileSync(
+      path.join(marketingRoot, "src/shell/marketing-header-account.tsx"),
+      "utf8"
+    );
+    assert.match(account, /data-marketing-portal-member/);
+    assert.match(account, /data-marketing-header-sign-in/);
     assert.match(shell, /portalMemberLoginUrl/);
-    assert.match(shell, /href=\{portalMemberLoginUrl\}/);
+    assert.match(shell, /loginHref=\{portalMemberLoginUrl\}/);
+    assert.match(account, /href=\{loginHref\}/);
+    assert.doesNotMatch(account, /MarketingLoginModalTrigger|openLoginModal/);
     assert.doesNotMatch(shell, /MarketingLoginModalTrigger/);
     assert.doesNotMatch(shell, /openLoginModal/);
     assert.doesNotMatch(shell, /resolvePortalMemberAreaUrl/);
@@ -32,10 +38,7 @@ describe("marketing shell — PCMS-03", () => {
   });
 
   it("MKT-PCMS-03 detail route owns the marketing login modal", () => {
-    const detail = readFileSync(
-      path.join(marketingRoot, "app/tours/[tourId]/page.tsx"),
-      "utf8"
-    );
+    const detail = readFileSync(path.join(marketingRoot, "app/tours/[tourId]/page.tsx"), "utf8");
     assert.match(detail, /MarketingLoginModalProvider/);
     assert.match(detail, /resolvePortalPublicBaseUrl/);
     assert.match(detail, /resolvePortalMemberModuleUrl/);

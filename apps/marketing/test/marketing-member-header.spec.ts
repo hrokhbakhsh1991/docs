@@ -16,15 +16,31 @@ describe("marketing member header — PCMS-03", () => {
     assert.match(layout, /memberHeader=/);
   });
 
-  it("MKT-PCMS-04 shell shows profile chip when authenticated", () => {
-    const shell = readFileSync(path.join(marketingRoot, "src/shell/marketing-shell.tsx"), "utf8");
-    assert.match(shell, /memberHeader !== null/);
-    assert.match(shell, /data-marketing-header-member/);
-    assert.match(shell, /data-marketing-member-authenticated/);
-    assert.match(shell, /memberHeader\.profileHref/);
-    assert.match(shell, /data-marketing-header-member-meta/);
-    assert.match(shell, /data-marketing-header-member-hint/);
-    assert.match(shell, /data-marketing-header-member-avatar-wrap/);
+  it("MKT-PCMS-04 shell shows profile chip when authenticated", async () => {
+    const { createElement: h } = await import("react");
+    const { MarketingShellFrame } = await import("../src/shell/marketing-shell-frame");
+    const { MarketingHeaderAccount } = await import("../src/shell/marketing-header-account");
+    const { renderSessionUi, PROFILE_HREF } = await import("./fixtures/render-session-ui");
+    const html = renderSessionUi(
+      h(MarketingShellFrame, {
+        initiallyAuthenticated: true,
+        children: h(MarketingHeaderAccount, {
+          memberHeader: { displayName: "SSR member", profileHref: PROFILE_HREF, avatarUrl: null },
+          loginHref: "https://portal.example.test/login",
+          variant: "toolbar",
+        }),
+      })
+    );
+    for (const marker of [
+      "data-marketing-header-member",
+      "data-marketing-member-authenticated",
+      "data-marketing-header-member-meta",
+      "data-marketing-header-member-hint",
+      "data-marketing-header-member-avatar-wrap",
+    ])
+      assert.ok(html.includes(marker));
+    assert.ok(html.includes(`href="${PROFILE_HREF}"`));
+    assert.ok(html.includes("SSR member"));
   });
 
   it("MKT-PCMS-05 read-only session probe lives in marketing auth module", () => {

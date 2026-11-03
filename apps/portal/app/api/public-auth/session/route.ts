@@ -7,7 +7,7 @@ import { resolvePortalIngressHost } from "@/tenant/resolve-portal-ingress-host";
 
 /**
  * PCMS-CORS-05 — boolean cookie probe for a future Marketing Portal-origin adapter.
- * No profile PII, no session token. Fail-closed to `ready: false`.
+ * No profile PII or session token. Probe failures are distinct from signed-out.
  */
 export async function GET(req: Request): Promise<NextResponse> {
   let ready = false;
@@ -19,8 +19,11 @@ export async function GET(req: Request): Promise<NextResponse> {
       ready = sessionMemberMatchesPortalTenant(session.tenantId, bootstrap.tenantId);
     }
   } catch {
-    ready = false;
+    return NextResponse.json(
+      { ok: false },
+      { status: 503, headers: { "Cache-Control": "no-store" } }
+    );
   }
 
-  return NextResponse.json({ ok: true, ready });
+  return NextResponse.json({ ok: true, ready }, { headers: { "Cache-Control": "no-store" } });
 }

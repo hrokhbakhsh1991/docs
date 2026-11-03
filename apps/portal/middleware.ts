@@ -8,8 +8,6 @@ import { validateSessionTokenAsync } from "@app-tour/session-client";
 import {
   SESSION_TOKEN_COOKIE,
   clearSessionCookieOnResponse,
-  setSessionCookieOnResponse,
-  shouldRefreshDevMemberSessionCookieDomain,
 } from "@/auth/build-session-cookie";
 import {
   applyPublicAuthCorsHeaders,
@@ -162,18 +160,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  const skipSessionCookieRefresh =
-    pathname === "/api/public-auth/expire-session" || pathname === "/api/public-auth/logout";
-  if (
-    !skipSessionCookieRefresh &&
-    validation.status === "valid" &&
-    typeof token === "string" &&
-    token.trim().length > 0 &&
-    shouldRefreshDevMemberSessionCookieDomain(host)
-  ) {
-    setSessionCookieOnResponse(response.headers, token.trim(), host, "shared");
-  }
-
+  // Session reads never reissue credentials: a late response must not undo logout.
   if (publicAuthCorsOrigin !== null) {
     applyPublicAuthCorsHeaders(response.headers, publicAuthCorsOrigin);
   }

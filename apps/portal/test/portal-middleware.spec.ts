@@ -28,10 +28,6 @@ describe("portal middleware — P8-1-N-003", () => {
     assert.match(source, /\/login\?portalReturn=%2Fme%2Fregistrations/);
     assert.doesNotMatch(source, /function redirectHome/);
     assert.match(source, /\/me\//);
-    assert.match(source, /shouldRefreshDevMemberSessionCookieDomain/);
-    assert.match(source, /setSessionCookieOnResponse/);
-    assert.match(source, /\/api\/public-auth\/expire-session/);
-    assert.match(source, /skipSessionCookieRefresh/);
     assert.match(source, /toCanonicalClubPortalHost/);
     assert.match(source, /NextResponse\.redirect\(target, 308\)/);
   });

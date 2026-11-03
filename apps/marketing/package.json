@@ -14,6 +14,7 @@
     "test": "node --import tsx --test test/**/*.spec.ts",
     "test:smoke": "playwright test -c playwright.marketing.config.ts",
     "test:smoke:session-bridge": "playwright test -c playwright.marketing-session-bridge.config.ts",
+    "test:smoke:session-sync": "playwright test -c playwright.session-sync-regression.config.ts",
     "test:smoke:seo": "playwright test -c playwright.marketing-seo.config.ts",
     "test:lighthouse": "lhci autorun",
     "test:lighthouse:production": "pnpm run build && lhci autorun --config=lighthouserc.production.json",
