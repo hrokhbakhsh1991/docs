@@ -257,7 +257,7 @@ jobs:
           SMOKE_OTP_ONLY: "1"
           SMOKE_API_STATIC_OTP: "false"
           SMOKE_API_OTP_FIXTURE_CODE: "654321"
-          SMOKE_OPERATOR_OWNER_PHONE: "+15550001996"
+          SMOKE_OPERATOR_OWNER_PHONE: "+15550001997"
           SESSION_SYNC_ADMIN_URL: http://denali.admin.localhost:3000
           SESSION_SYNC_HOST_RESOLVER_RULES: "MAP denali.localhost 127.0.0.1, MAP portal.denali.localhost 127.0.0.1, MAP denali.admin.localhost 127.0.0.1"
         run: xvfb-run -a pnpm --filter @apps/marketing exec playwright test -c playwright.otp-contract.config.ts --output=test-results/otp-six-digit

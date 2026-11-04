@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const phone = process.env.SESSION_SYNC_PHONE ?? "+15550001996";
+const adminPhone = process.env.SMOKE_OPERATOR_OWNER_PHONE ?? "+15550001997";
 const portal = process.env.SESSION_SYNC_PORTAL_URL ?? "http://portal.denali.localhost:3203";
 const admin = process.env.SESSION_SYNC_ADMIN_URL ?? "http://denali.admin.localhost:3200";
 const tour = process.env.SESSION_SYNC_TOUR_ID ?? "00000000-0000-4000-8000-000000000220";
@@ -47,7 +48,7 @@ test("six-digit OTP completes admin login with the issued code", async ({ page }
   await page.goto(`${admin}/auth/login`);
   const phoneInput = page.getByRole("textbox", { name: "شماره موبایل", exact: true });
   expect(requests, "Admin must not request a development OTP before user action").toBe(0);
-  await phoneInput.fill(phone);
+  await phoneInput.fill(adminPhone);
   const requested = page.waitForResponse(
     (response) =>
       response.url().includes("/api/auth/request-otp") && response.request().method() === "POST",
