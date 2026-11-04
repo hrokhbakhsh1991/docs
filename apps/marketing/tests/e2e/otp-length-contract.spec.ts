@@ -40,12 +40,12 @@ async function completeIssuedCode(page: Page, group: Locator, expectedChallengeI
 
 test("six-digit OTP completes admin login with the issued code", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${admin}/auth/login`);
-  const phoneInput = page.getByRole("textbox", { name: "شماره موبایل", exact: true });
   let requests = 0;
   page.on("request", (request) => {
     if (request.url().includes("/api/auth/request-otp")) requests += 1;
   });
+  await page.goto(`${admin}/auth/login`);
+  const phoneInput = page.getByRole("textbox", { name: "شماره موبایل", exact: true });
   expect(requests, "Admin must not request a development OTP before user action").toBe(0);
   await phoneInput.fill(phone);
   const requested = page.waitForResponse(
