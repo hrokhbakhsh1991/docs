@@ -19,14 +19,18 @@ async function completeIssuedCode(page: Page, group: Locator) {
   const verified = page.waitForResponse(
     (response) =>
       /\/api\/(auth\/login|public-auth\/verify-otp)/.test(response.url()) &&
-      response.request().method() === "POST",
+      response.request().method() === "POST" &&
+      response.request().postDataJSON()?.otp === code,
     { timeout: 60_000 }
   );
   await cells.nth(4).fill(code[4]!);
   await cells.nth(5).fill(code[5]!);
   const response = await verified;
-  expect(response.status()).toBe(200);
-  expect(response.request().postDataJSON().otp).toBe(code);
+  const payload = (await response.json().catch(() => ({}))) as { code?: unknown };
+  expect(
+    response.status(),
+    `OTP verification failed with ${String(payload.code ?? "unknown")}`
+  ).toBe(200);
 }
 
 test("six-digit OTP completes admin login with the issued code", async ({ page }) => {

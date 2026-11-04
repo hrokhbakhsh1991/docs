@@ -254,6 +254,7 @@ jobs:
         if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
         env:
           SMOKE_WITH_ADMIN: "1"
+          SMOKE_OTP_ONLY: "1"
           SMOKE_API_STATIC_OTP: "false"
           SMOKE_API_OTP_FIXTURE_CODE: "654321"
           SMOKE_OPERATOR_OWNER_PHONE: "+15550001996"

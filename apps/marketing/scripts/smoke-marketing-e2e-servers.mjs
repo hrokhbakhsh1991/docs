@@ -418,30 +418,39 @@ try {
     await waitForUrl("http://127.0.0.1:3000/health");
   }
 
-  // Warm portal BFF before SMK-MKT-03 (first compile can exceed 60s and Fast
-  // Refresh-reloads the register document mid POST /api/catalog/registrations).
-  await waitForUrl("http://127.0.0.1:3003/health", 30_000);
-  await warmPortalPath("/api/public-auth/request-otp", "POST", { phone: "+15550009901" }).catch(
-    (error) => {
-      console.warn("smoke-marketing-e2e-servers: request-otp warm skipped:", error.message);
-    }
-  );
-  await warmPortalPath("/api/public-auth/verify-otp", "POST", {
-    phone: "+15550009901",
-    otp: "1234",
-    challenge_id: "warm",
-  }).catch((error) => {
-    console.warn("smoke-marketing-e2e-servers: verify-otp warm skipped:", error.message);
-  });
-  await warmPortalPath("/api/catalog/registrations", "GET").catch((error) => {
-    console.warn("smoke-marketing-e2e-servers: catalog registrations warm skipped:", error.message);
-  });
-  // App Router page warmup must complete before readiness; the Playwright
-  // browser journey below remains the semantic assertion for registration behavior.
-  await warmPortalPath(`/catalog/${resolvedSmokePublishedTourId}/register`, "GET", null, {
-    timeoutMs: portalRegistrationPrimeTimeoutMs,
-  });
-  await warmMarketingPath("/tours");
+  if (process.env.SMOKE_OTP_ONLY === "1") {
+    // OTP contracts don't exercise catalog registration. Avoid compiling that
+    // much larger flow when a focused login fixture is requested.
+    await warmPortalPath("/login?portalReturn=%2Fme%2Fregistrations");
+  } else {
+    // Warm portal BFF before SMK-MKT-03 (first compile can exceed 60s and Fast
+    // Refresh-reloads the register document mid POST /api/catalog/registrations).
+    await waitForUrl("http://127.0.0.1:3003/health", 30_000);
+    await warmPortalPath("/api/public-auth/request-otp", "POST", { phone: "+15550009901" }).catch(
+      (error) => {
+        console.warn("smoke-marketing-e2e-servers: request-otp warm skipped:", error.message);
+      }
+    );
+    await warmPortalPath("/api/public-auth/verify-otp", "POST", {
+      phone: "+15550009901",
+      otp: "1234",
+      challenge_id: "warm",
+    }).catch((error) => {
+      console.warn("smoke-marketing-e2e-servers: verify-otp warm skipped:", error.message);
+    });
+    await warmPortalPath("/api/catalog/registrations", "GET").catch((error) => {
+      console.warn(
+        "smoke-marketing-e2e-servers: catalog registrations warm skipped:",
+        error.message
+      );
+    });
+    // App Router page warmup must complete before readiness; the Playwright
+    // browser journey below remains the semantic assertion for registration behavior.
+    await warmPortalPath(`/catalog/${resolvedSmokePublishedTourId}/register`, "GET", null, {
+      timeoutMs: portalRegistrationPrimeTimeoutMs,
+    });
+    await warmMarketingPath("/tours");
+  }
   await warmMarketingPath(`/tours/${resolvedSmokePublishedTourId}`);
 
   readinessReady = true;
