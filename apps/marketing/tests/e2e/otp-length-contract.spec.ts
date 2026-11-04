@@ -37,11 +37,21 @@ test("six-digit OTP completes admin login with the issued code", async ({ page }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${admin}/auth/login`);
   const phoneInput = page.getByRole("textbox", { name: "شماره موبایل", exact: true });
-  // The managed development fixture requests its seeded phone automatically.
-  if (process.env.PW_USE_PROD_SERVERS === "1") {
-    await phoneInput.fill(phone);
-    await page.getByRole("button", { name: "ارسال رمز", exact: true }).click();
-  }
+  let requests = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/api/auth/request-otp")) requests += 1;
+  });
+  expect(requests, "Admin must not request a development OTP before user action").toBe(0);
+  await phoneInput.fill(phone);
+  const requested = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/auth/request-otp") && response.request().method() === "POST",
+    { timeout: 60_000 }
+  );
+  await page.getByRole("button", { name: "ارسال رمز", exact: true }).click();
+  const otpResponse = await requested;
+  expect(otpResponse.status()).toBe(200);
+  expect(((await otpResponse.json()) as { otp_length?: unknown }).otp_length).toBe(6);
   await completeIssuedCode(page, page.getByRole("group", { name: "رمز یک‌بارمصرف" }));
   await expect(page).not.toHaveURL(/\/auth\/login/);
 });

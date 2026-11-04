@@ -38,6 +38,7 @@ const RESEND_COOLDOWN_SEC = 45;
  * Must match the operator smoke owner (`operator-smoke-identity.mjs`). */
 const DEV_LOGIN_PHONE = process.env.NEXT_PUBLIC_DEV_LOGIN_PHONE?.trim() || "09174070937";
 const DEV_LOGIN_OTP = process.env.NEXT_PUBLIC_DEV_LOGIN_OTP?.trim() || "1234";
+const DEV_LOGIN_AUTOMATION_ENABLED = process.env.NEXT_PUBLIC_DEV_LOGIN_AUTOMATION !== "false";
 
 function initialLoginPhone(): string {
   return "";
@@ -105,14 +106,18 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
   const devLoginAttemptedRef = useRef(false);
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && DEV_LOGIN_AUTOMATION_ENABLED) {
       setPhone(DEV_LOGIN_PHONE);
       setOtp(DEV_LOGIN_OTP);
     }
   }, []);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "development" || devOtpBootstrappedRef.current) {
+    if (
+      process.env.NODE_ENV !== "development" ||
+      !DEV_LOGIN_AUTOMATION_ENABLED ||
+      devOtpBootstrappedRef.current
+    ) {
       return;
     }
     const effectivePhone = normalizeNumericInputValue(phone, "phone");
@@ -124,7 +129,11 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
   }, [phone, challengeId]);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "development" || devLoginAttemptedRef.current) {
+    if (
+      process.env.NODE_ENV !== "development" ||
+      !DEV_LOGIN_AUTOMATION_ENABLED ||
+      devLoginAttemptedRef.current
+    ) {
       return;
     }
     if (step !== "otp" || challengeId.length === 0) {

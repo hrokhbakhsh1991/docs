@@ -396,6 +396,8 @@ try {
     const adminEnv = {
       ...portalEnv,
       NEXT_PUBLIC_DEV_LOGIN_PHONE: process.env.SMOKE_OPERATOR_OWNER_PHONE ?? "+15550001996",
+      NEXT_PUBLIC_DEV_LOGIN_OTP: process.env.SMOKE_API_OTP_FIXTURE_CODE ?? "654321",
+      NEXT_PUBLIC_DEV_LOGIN_AUTOMATION: process.env.SMOKE_OTP_ONLY === "1" ? "false" : "true",
     };
     if (useProductionServers) {
       execSync("pnpm --filter @apps/web run build", {
