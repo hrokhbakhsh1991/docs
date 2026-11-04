@@ -14,6 +14,8 @@ import { cleanNextDevCache } from "./smoke-next-dev-cache.mjs";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const marketingDir = path.join(repoRoot, "apps/marketing");
 const portalDir = path.join(repoRoot, "apps/portal");
+const adminDir = path.join(repoRoot, "apps/web");
+const withAdmin = process.env.SMOKE_WITH_ADMIN === "1";
 const useProductionServers = process.env.PW_USE_PROD_SERVERS === "1";
 
 const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
@@ -259,7 +261,14 @@ const apiEnv = {
   OPERATOR_SMOKE_E2E_SEED: "1",
   PORT: "3001",
   TENANT_RATE_LIMIT_ENABLED: "false",
-  AUTH_ALLOW_DEV_STATIC_OTP: "true",
+  AUTH_ALLOW_DEV_STATIC_OTP: process.env.SMOKE_API_STATIC_OTP ?? "true",
+  ...(process.env.SMOKE_API_OTP_FIXTURE_CODE
+    ? { OTP_FIXTURE_CODE: process.env.SMOKE_API_OTP_FIXTURE_CODE }
+    : {}),
+  ...(process.env.SMOKE_OPERATOR_OWNER_PHONE
+    ? { OPERATOR_OWNER_MOBILE: process.env.SMOKE_OPERATOR_OWNER_PHONE }
+    : {}),
+  SMS_OTP_ENABLED: "false",
   P5_VALIDATION_WORKERS_ENABLED: "false",
 };
 delete apiEnv.DATABASE_URL;
@@ -298,9 +307,11 @@ const marketingEnv = {
 let api;
 let marketing;
 let portal;
+let admin;
 
 const shutdown = (signal) => {
   readinessServer.close();
+  admin?.kill(signal);
   if (api) {
     api.kill(signal);
   }
@@ -324,9 +335,11 @@ try {
     cwd: repoRoot,
     stdio: "inherit",
   });
+  if (withAdmin) freePort(3000);
   freePort(3001);
   freePort(3002);
   freePort(3003);
+  if (withAdmin) await waitForPortFree(3000);
   await waitForPortFree(3001);
   await waitForPortFree(3002);
   await waitForPortFree(3003);
@@ -378,6 +391,32 @@ try {
     }
   );
   await waitForUrl("http://127.0.0.1:3002/health");
+
+  if (withAdmin) {
+    const adminEnv = {
+      ...portalEnv,
+      NEXT_PUBLIC_DEV_LOGIN_PHONE: process.env.SMOKE_OPERATOR_OWNER_PHONE ?? "+15550001996",
+    };
+    if (useProductionServers) {
+      execSync("pnpm --filter @apps/web run build", {
+        cwd: repoRoot,
+        env: adminEnv,
+        stdio: "inherit",
+      });
+    } else {
+      cleanNextDevCache(adminDir);
+    }
+    admin = spawn(
+      "pnpm",
+      ["exec", "next", useProductionServers ? "start" : "dev", "--port", "3000"],
+      {
+        cwd: adminDir,
+        env: adminEnv,
+        stdio: "inherit",
+      }
+    );
+    await waitForUrl("http://127.0.0.1:3000/health");
+  }
 
   // Warm portal BFF before SMK-MKT-03 (first compile can exceed 60s and Fast
   // Refresh-reloads the register document mid POST /api/catalog/registrations).

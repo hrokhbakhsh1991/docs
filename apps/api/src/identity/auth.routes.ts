@@ -7,11 +7,7 @@ import { parseRequestAuth } from "../auth/request-context";
 import { sendJson } from "../http/json";
 import { handleHttpError } from "../middleware/error-interceptor";
 import { assertRequiredAuthHeaders } from "../tenant-kernel/assert-required-headers";
-import {
-  OtpChallengeInvalidError,
-  OtpExpiredError,
-  OtpInvalidError,
-} from "./identity.errors";
+import { OtpChallengeInvalidError, OtpExpiredError, OtpInvalidError } from "./identity.errors";
 import {
   AUTH_TENANT_SUSPENDED,
   AuthPhoneNotAuthorizedError,
@@ -19,7 +15,10 @@ import {
   MobileRequiredError,
   TenantSuspendedForLoginError,
 } from "./phone-preflight.errors";
-import { assertTenantActiveForOperatorLogin, type TenantLoginStatusResolver } from "./assert-tenant-active-for-login";
+import {
+  assertTenantActiveForOperatorLogin,
+  type TenantLoginStatusResolver,
+} from "./assert-tenant-active-for-login";
 import {
   isLoginMobileFormatValid,
   isPhoneAuthorizedForTenantLogin,
@@ -28,10 +27,7 @@ import {
 import { hydrateMembershipFromDb } from "./hydrate-membership";
 import { OtpRateLimitedError } from "./otp-rate-limit";
 import { findPendingInviteByPhone } from "./resolve-pending-invite-auth";
-import {
-  getIdentityRepository,
-  type IdentityRepository,
-} from "./create-identity-repository";
+import { getIdentityRepository, type IdentityRepository } from "./create-identity-repository";
 import { createMobileOtpChallenge, verifyMobileOtp } from "./otp.service";
 import { readIdentityRequestBody } from "./read-identity-request-body";
 import { requireOperatorSession } from "./require-operator-session";
@@ -128,12 +124,12 @@ export async function handleRequestOtp(
       throw new AuthPhoneNotAuthorizedError();
     }
 
-    const { challengeId } = await createMobileOtpChallenge(mobile, repo, {
+    const { challengeId, otpLength } = await createMobileOtpChallenge(mobile, repo, {
       tenantId,
       workspaceType: await resolveWorkspaceTypeForTenant(tenantId),
       purpose: "operator_login",
     });
-    sendJson(res, 200, { challengeId });
+    sendJson(res, 200, { challengeId, otpLength });
   } catch (error) {
     if (error instanceof MobileRequiredError || error instanceof MobileInvalidError) {
       sendJson(res, 400, { error: error.message, code: error.code });

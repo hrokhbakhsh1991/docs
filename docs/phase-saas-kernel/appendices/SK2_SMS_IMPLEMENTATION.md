@@ -47,3 +47,9 @@ provider adapter.
 The approved static OTP contract may remain enabled: the same code is encrypted
 into the SMS job and delivered by the provider. Provider credentials and the
 encryption key must never be committed or printed in logs.
+
+## Real-code rollout contract (2026-11-04)
+
+Random OTPs use six digits; explicitly enabled static fixtures keep four. The issued challenge carries non-secret length metadata through Admin and Portal BFFs to all input surfaces, including the Marketing PDP modal. See [OTP challenge length](../../standards/otp-challenge-length.mdoc). Do not disable static fixtures on a live environment until a matching client is deployed and handset delivery is verified.
+
+The REST adapter accepts the official `Value` / `RetStatus` envelope and rejects unsuccessful HTTP or provider responses, including numeric error values. Reference: [official Melipayamak REST SDK](https://github.com/Melipayamak/melipayamak-Asp.net-Core/blob/master/RestClientAsync.cs). A successful provider response establishes submission, not handset delivery.

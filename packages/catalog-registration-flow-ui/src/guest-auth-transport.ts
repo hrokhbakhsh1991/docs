@@ -15,8 +15,12 @@ export type GuestAuthVerifyOutcome =
  * Portal same-origin and Marketing Portal-origin are separate factories.
  */
 export type GuestAuthTransport = {
-  readonly preflightPhone: (input: { readonly phone: string }) => Promise<{ readonly exists: boolean }>;
-  readonly requestOtp: (input: { readonly phone: string }) => Promise<{ readonly challengeId: string }>;
+  readonly preflightPhone: (input: {
+    readonly phone: string;
+  }) => Promise<{ readonly exists: boolean }>;
+  readonly requestOtp: (input: {
+    readonly phone: string;
+  }) => Promise<{ readonly challengeId: string; readonly otpLength?: 4 | 6 }>;
   readonly verifyOtp: (input: {
     readonly phone: string;
     readonly otp: string;
@@ -50,6 +54,7 @@ export function readGuestAuthFailureCode(error: unknown): string {
 
 type PublicAuthJson = PublicRegistrationApiError & {
   readonly exists?: boolean;
+  readonly otp_length?: unknown;
   readonly session_token?: unknown;
 };
 
@@ -79,9 +84,12 @@ function createGuestAuthTransportFromPublicAuthBase(
 ): GuestAuthTransport {
   return {
     async preflightPhone(input) {
-      const { ok, data } = await postPublicAuthJson(urlForPath("/api/public-auth/phone-preflight"), {
-        phone: input.phone,
-      });
+      const { ok, data } = await postPublicAuthJson(
+        urlForPath("/api/public-auth/phone-preflight"),
+        {
+          phone: input.phone,
+        }
+      );
       if (!ok) {
         throw new GuestAuthTransportError(readPublicRegistrationErrorCode(data));
       }
@@ -94,7 +102,10 @@ function createGuestAuthTransportFromPublicAuthBase(
       if (!ok || data.ok !== true || typeof data.challenge_id !== "string") {
         throw new GuestAuthTransportError(readPublicRegistrationErrorCode(data));
       }
-      return { challengeId: data.challenge_id };
+      if (data.otp_length !== undefined && data.otp_length !== 4 && data.otp_length !== 6) {
+        throw new GuestAuthTransportError("OTP_REQUEST_FAILED");
+      }
+      return { challengeId: data.challenge_id, otpLength: data.otp_length === 6 ? 6 : 4 };
     },
     async verifyOtp(input) {
       const { ok, data } = await postPublicAuthJson(urlForPath("/api/public-auth/verify-otp"), {

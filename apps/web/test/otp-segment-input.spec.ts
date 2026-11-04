@@ -45,3 +45,11 @@ describe("otp-segment-input.spec.ts", () => {
     assert.equal(value, "1234");
   });
 });
+
+describe("six-digit SMS challenge", () => {
+  it("preserves six localized digits instead of submitting the first four", () => {
+    assert.equal(normalizeOtpDigits("۰۱۲۳۴۵", 6), "012345");
+    assert.equal(normalizeOtpDigits("٠١٢٣٤٥", 6), "012345");
+    assert.equal(normalizeOtpDigits("12-34-56-78", 6), "123456");
+  });
+});

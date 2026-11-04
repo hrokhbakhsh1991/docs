@@ -22,6 +22,7 @@ export type CatalogRegistrationFlowState = Readonly<{
   readonly phone: string;
   readonly otp: string;
   readonly challengeId: string;
+  readonly otpLength?: 4 | 6;
   readonly onboardingToken: string;
   readonly displayName: string;
   readonly profileEmail: string;
@@ -57,6 +58,7 @@ export const CATALOG_REGISTRATION_FLOW_STATE_KEYS = [
   "phone",
   "otp",
   "challengeId",
+  "otpLength",
   "onboardingToken",
   "displayName",
   "profileEmail",
@@ -92,6 +94,7 @@ export function createCatalogRegistrationFlowInitialData(): CatalogRegistrationF
     phone: initialPublicRegistrationPhone(),
     otp: initialPublicRegistrationOtp(),
     challengeId: "",
+    otpLength: 4,
     onboardingToken: "",
     displayName: "",
     profileEmail: "",
@@ -167,7 +170,7 @@ export function assertCatalogRegistrationFlowState(
   }
   const record = data as Record<string, unknown>;
   for (const key of CATALOG_REGISTRATION_FLOW_STATE_KEYS) {
-    if (!(key in record)) {
+    if (key !== "otpLength" && !(key in record)) {
       throw new CatalogRegistrationFlowStateError(`${label}: missing key "${key}"`);
     }
   }
@@ -204,6 +207,9 @@ export function assertCatalogRegistrationFlowState(
     if (typeof record[key] !== "string") {
       throw new CatalogRegistrationFlowStateError(`${label}: "${key}" must be string`);
     }
+  }
+  if (record.otpLength !== undefined && record.otpLength !== 4 && record.otpLength !== 6) {
+    throw new CatalogRegistrationFlowStateError(`${label}: otpLength must be 4 or 6`);
   }
   if (record.registrantTarget !== "self" && record.registrantTarget !== "other") {
     throw new CatalogRegistrationFlowStateError(

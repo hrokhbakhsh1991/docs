@@ -410,11 +410,14 @@ export class PrismaIdentityRepository implements IdentityRepository {
     };
   }
 
-  async markOtpChallengeUsed(challengeId: string): Promise<void> {
-    await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_OTP).mobileOtpChallenge.updateMany({
-      where: { id: challengeId.trim(), used: false },
+  async markOtpChallengeUsed(challengeId: string): Promise<boolean> {
+    const result = await getIdentityAdminClient(
+      IDENTITY_ADMIN_REASON.ID_OTP
+    ).mobileOtpChallenge.updateMany({
+      where: { id: challengeId.trim(), used: false, expiresAt: { gt: new Date() } },
       data: { used: true },
     });
+    return result.count === 1;
   }
 
   async createPendingInvite(input: CreatePendingInviteInput): Promise<PendingInviteRecord> {

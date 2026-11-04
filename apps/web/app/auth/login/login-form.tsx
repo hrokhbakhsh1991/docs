@@ -56,6 +56,7 @@ type LoginFormProps = {
 
 type ApiErrorPayload = {
   ok?: boolean;
+  otp_length?: number;
   challenge_id?: string;
   error?: { code?: string };
 };
@@ -94,6 +95,7 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
   const [phone, setPhone] = useState(initialLoginPhone);
   const [otp, setOtp] = useState(initialLoginOtp);
   const [challengeId, setChallengeId] = useState("");
+  const [otpLength, setOtpLength] = useState<4 | 6>(OTP_SEGMENT_LENGTH);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -128,13 +130,13 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
     if (step !== "otp" || challengeId.length === 0) {
       return;
     }
-    const code = normalizeOtpDigits(otp);
-    if (code.length < OTP_SEGMENT_LENGTH) {
+    const code = normalizeOtpDigits(otp, otpLength);
+    if (code.length !== otpLength) {
       return;
     }
     devLoginAttemptedRef.current = true;
     void login(code);
-  }, [step, challengeId, otp]);
+  }, [step, challengeId, otp, otpLength]);
 
   useEffect(() => {
     if (resendCooldown <= 0) {
@@ -172,6 +174,7 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
         return false;
       }
       setChallengeId(data.challenge_id);
+      setOtpLength(data.otp_length === 6 ? 6 : 4);
       setOtp("");
       setOtpError(null);
       setStep("otp");
@@ -187,8 +190,8 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
 
   async function login(otpOverride?: string): Promise<void> {
     const effectivePhone = readPhoneForSubmit(phone);
-    const code = normalizeOtpDigits(otpOverride ?? otp);
-    if (code.length < OTP_SEGMENT_LENGTH) {
+    const code = normalizeOtpDigits(otpOverride ?? otp, otpLength);
+    if (code.length !== otpLength) {
       setOtpError(resolveLoginErrorMessage(t, "OTP_INVALID"));
       return;
     }
@@ -205,12 +208,12 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-      body: JSON.stringify({
-        phone: effectivePhone,
-        otp: code,
-        challenge_id: challengeId,
-        ...(inviteToken !== null ? { invite_token: inviteToken } : {}),
-      }),
+        body: JSON.stringify({
+          phone: effectivePhone,
+          otp: code,
+          challenge_id: challengeId,
+          ...(inviteToken !== null ? { invite_token: inviteToken } : {}),
+        }),
       });
       const data = (await res.json()) as ApiErrorPayload;
       if (!res.ok || !data.ok) {
@@ -388,6 +391,7 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
                 </p>
                 <OtpSegmentInput
                   value={otp}
+                  length={otpLength}
                   onChange={(value) => {
                     setOtp(value);
                     if (otpError !== null) {
@@ -415,7 +419,7 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
               <Button
                 type="button"
                 className="w-full"
-                disabled={loading || otp.replace(/\D/g, "").length < OTP_SEGMENT_LENGTH}
+                disabled={loading || otp.replace(/\D/g, "").length !== otpLength}
                 onClick={() => {
                   void login();
                 }}

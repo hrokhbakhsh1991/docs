@@ -17,6 +17,39 @@ describe("createPortalSameOriginGuestAuthTransport", () => {
     globalThis.fetch = originalFetch;
   });
 
+  it("keeps the issued six-digit challenge metadata without exposing an OTP", async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          ok: true,
+          challenge_id: "six-digit-challenge",
+          otp_length: 6,
+        }),
+        { status: 200 }
+      )) as typeof fetch;
+    const result = await createPortalSameOriginGuestAuthTransport().requestOtp({
+      phone: "+989121234567",
+    });
+    assert.deepEqual(result, { challengeId: "six-digit-challenge", otpLength: 6 });
+  });
+
+  it("rejects malformed length metadata instead of silently truncating a code", async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          ok: true,
+          challenge_id: "unsupported",
+          otp_length: 5,
+        }),
+        { status: 200 }
+      )) as typeof fetch;
+    await assert.rejects(
+      () => createPortalSameOriginGuestAuthTransport().requestOtp({ phone: "+989121234567" }),
+      (error: unknown) =>
+        error instanceof GuestAuthTransportError && error.code === "OTP_REQUEST_FAILED"
+    );
+  });
+
   it("posts relative public-auth paths with credentials include", async () => {
     const calls: Array<{ readonly url: string; readonly init: RequestInit }> = [];
     globalThis.fetch = (async (input, init) => {
@@ -132,7 +165,9 @@ describe("tryCreatePortalOriginGuestAuthTransport", () => {
       });
     }) as typeof fetch;
 
-    const transport = tryCreatePortalOriginGuestAuthTransport("https://portal.denali.club:3003/extra");
+    const transport = tryCreatePortalOriginGuestAuthTransport(
+      "https://portal.denali.club:3003/extra"
+    );
     assert.ok(transport);
     const preflight = await transport.preflightPhone({ phone: "+989121111111" });
     const otp = await transport.requestOtp({ phone: "+989121111111" });
@@ -185,7 +220,10 @@ describe("tryCreatePortalOriginGuestAuthTransport", () => {
     assert.equal(tryCreatePortalOriginGuestAuthTransport("*"), null);
     assert.equal(tryCreatePortalOriginGuestAuthTransport("/portal"), null);
     assert.equal(tryCreatePortalOriginGuestAuthTransport("ftp://portal.example.com"), null);
-    assert.equal(tryCreatePortalOriginGuestAuthTransport("https://user:pass@portal.example.com"), null);
+    assert.equal(
+      tryCreatePortalOriginGuestAuthTransport("https://user:pass@portal.example.com"),
+      null
+    );
     assert.throws(
       () => createPortalOriginGuestAuthTransport("*"),
       (error: unknown) => {

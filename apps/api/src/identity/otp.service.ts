@@ -79,7 +79,7 @@ export async function createMobileOtpChallenge(
   repo: IdentityRepository = getIdentityRepository(),
   deliveryContext?: OtpDeliveryContext,
   deliveryDependencies: OtpDeliveryDependencies = {}
-): Promise<{ challengeId: string }> {
+): Promise<{ challengeId: string; otpLength: number }> {
   assertOtpRequestRateLimit(mobile);
   // DL-44: when static DEV OTP is enabled, issue the same code the UI hints (1234)
   // so otp-dev logs match PUBLIC_REGISTRATION_DEV_OTP / otp.devHint.
@@ -89,7 +89,7 @@ export async function createMobileOtpChallenge(
   if (deliveryContext === undefined) deliverOtpCode(mobile, code);
   else
     await enqueueRealOtpDelivery(mobile, code, challengeId, deliveryContext, deliveryDependencies);
-  return { challengeId };
+  return { challengeId, otpLength: code.length };
 }
 
 export async function verifyMobileOtp(
@@ -116,6 +116,6 @@ export async function verifyMobileOtp(
     throw new OtpInvalidError();
   }
 
-  await repo.markOtpChallengeUsed(challengeId);
+  if (!(await repo.markOtpChallengeUsed(challengeId))) throw new OtpExpiredError();
   return { mobile: row.mobile };
 }

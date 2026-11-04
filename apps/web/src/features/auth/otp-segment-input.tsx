@@ -25,6 +25,7 @@ export { normalizeOtpDigits, OTP_SEGMENT_LENGTH } from "@/features/auth/otp-segm
 
 type OtpSegmentInputProps = {
   readonly value: string;
+  readonly length?: 4 | 6;
   readonly onChange: (value: string) => void;
   readonly onComplete?: (value: string) => void;
   readonly disabled?: boolean;
@@ -51,6 +52,7 @@ const visuallyHiddenStyle: CSSProperties = {
 
 export function OtpSegmentInput({
   value,
+  length = OTP_SEGMENT_LENGTH,
   onChange,
   onComplete,
   disabled = false,
@@ -65,61 +67,64 @@ export function OtpSegmentInput({
   const valueRef = useRef(value);
 
   valueRef.current = value;
-  const cells = digitsFromOtpValue(value);
+  const cells = digitsFromOtpValue(value, length);
 
   const emitValue = useCallback(
     (nextDigits: string[]) => {
-      const next = nextDigits.join("").slice(0, OTP_SEGMENT_LENGTH);
+      const next = nextDigits.join("").slice(0, length);
       valueRef.current = next;
       onChange(next);
-      if (next.length === OTP_SEGMENT_LENGTH) {
+      if (next.length === length) {
         onComplete?.(next);
       }
     },
-    [onChange, onComplete]
+    [onChange, onComplete, length]
   );
 
-  const focusCell = useCallback((index: number): void => {
-    const clamped = Math.max(0, Math.min(OTP_SEGMENT_LENGTH - 1, index));
-    const target = inputRefs.current[clamped];
-    if (!target) {
-      return;
-    }
-    target.focus({ preventScroll: true });
-    target.select();
-  }, []);
+  const focusCell = useCallback(
+    (index: number): void => {
+      const clamped = Math.max(0, Math.min(length - 1, index));
+      const target = inputRefs.current[clamped];
+      if (!target) {
+        return;
+      }
+      target.focus({ preventScroll: true });
+      target.select();
+    },
+    [length]
+  );
 
   const applyDigitsAtIndex = useCallback(
     (startIndex: number, raw: string): void => {
-      const incoming = normalizeOtpDigits(raw);
+      const incoming = normalizeOtpDigits(raw, length);
       if (incoming.length === 0) {
         return;
       }
-      const next = digitsFromOtpValue(valueRef.current);
+      const next = digitsFromOtpValue(valueRef.current, length);
       let writeIndex = startIndex;
       for (const digit of incoming) {
-        if (writeIndex >= OTP_SEGMENT_LENGTH) {
+        if (writeIndex >= length) {
           break;
         }
         next[writeIndex] = digit;
         writeIndex += 1;
       }
       emitValue(next);
-      focusCell(Math.min(writeIndex, OTP_SEGMENT_LENGTH - 1));
+      focusCell(Math.min(writeIndex, length - 1));
     },
-    [emitValue, focusCell]
+    [emitValue, focusCell, length]
   );
 
   const commitDigitAtIndex = useCallback(
     (index: number, digit: string): void => {
-      const next = digitsFromOtpValue(valueRef.current);
+      const next = digitsFromOtpValue(valueRef.current, length);
       next[index] = digit;
       emitValue(next);
-      if (index < OTP_SEGMENT_LENGTH - 1) {
+      if (index < length - 1) {
         focusCell(index + 1);
       }
     },
-    [emitValue, focusCell]
+    [emitValue, focusCell, length]
   );
 
   useEffect(() => {
@@ -130,9 +135,9 @@ export function OtpSegmentInput({
   }, [disabled, value]);
 
   function handleCellChange(index: number, raw: string): void {
-    const incoming = normalizeOtpDigits(raw);
+    const incoming = normalizeOtpDigits(raw, length);
     if (incoming.length === 0) {
-      const next = digitsFromOtpValue(valueRef.current);
+      const next = digitsFromOtpValue(valueRef.current, length);
       next[index] = "";
       emitValue(next);
       return;
@@ -145,10 +150,10 @@ export function OtpSegmentInput({
   }
 
   function handleKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>): void {
-    const current = digitsFromOtpValue(valueRef.current);
+    const current = digitsFromOtpValue(valueRef.current, length);
 
     if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
-      const digit = normalizeOtpDigits(event.key);
+      const digit = normalizeOtpDigits(event.key, length);
       if (digit.length === 1) {
         event.preventDefault();
         commitDigitAtIndex(index, digit);
@@ -178,7 +183,7 @@ export function OtpSegmentInput({
       focusCell(index - 1);
       return;
     }
-    if (event.key === "ArrowRight" && index < OTP_SEGMENT_LENGTH - 1) {
+    if (event.key === "ArrowRight" && index < length - 1) {
       event.preventDefault();
       focusCell(index + 1);
     }
@@ -194,11 +199,7 @@ export function OtpSegmentInput({
   }
 
   return (
-    <div
-      data-otp-segment-input
-      className="relative w-full max-w-full overflow-x-hidden"
-      dir="ltr"
-    >
+    <div data-otp-segment-input className="relative w-full max-w-full overflow-x-hidden" dir="ltr">
       <div data-otp-autofill-sink-host aria-hidden="true" style={visuallyHiddenStyle}>
         <Input
           id={autofillSinkId}
@@ -244,7 +245,7 @@ export function OtpSegmentInput({
             data-otp-cell={index}
             dir="ltr"
             className={cn(
-              "box-border !w-10 !max-w-10 shrink-0 basis-10 !px-0 !py-0 text-center text-lg font-semibold tabular-nums shadow-sm sm:!w-11 sm:!max-w-11 sm:basis-11 sm:text-xl",
+              "box-border !min-w-0 !w-10 !max-w-10 shrink basis-10 !px-0 !py-0 text-center text-lg font-semibold tabular-nums shadow-sm sm:!w-11 sm:!max-w-11 sm:basis-11 sm:text-xl",
               "h-12 sm:h-14",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             )}

@@ -6,10 +6,7 @@ import {
 } from "@app-tour/catalog-registration-auth";
 
 import { bffCodedError } from "@/auth/bff-coded-error";
-import {
-  checkBffLoginRateLimit,
-  readBffLoginRateLimitKey,
-} from "@/auth/bff-login-rate-limit";
+import { checkBffLoginRateLimit, readBffLoginRateLimitKey } from "@/auth/bff-login-rate-limit";
 import { mapPublicAuthBffCatchError } from "@/auth/public-auth-bff-error";
 import { buildIdentityBffHeadersAsync } from "@/auth/resolve-identity-bff-tenant";
 import { resolveTourOpsApiBaseUrl } from "@/env";
@@ -56,8 +53,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
   }
 
+  if (payload.otpLength !== undefined && payload.otpLength !== 4 && payload.otpLength !== 6) {
+    return bffCodedError("OTP_REQUEST_FAILED", 502);
+  }
+
   return NextResponse.json(
-    { ok: true, challenge_id: payload.challengeId },
+    { ok: true, challenge_id: payload.challengeId, otp_length: payload.otpLength === 6 ? 6 : 4 },
     { status: 200 }
   );
 }

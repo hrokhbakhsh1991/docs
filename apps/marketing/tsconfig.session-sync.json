@@ -5,6 +5,8 @@
   },
   "include": [
     "playwright.session-sync-regression.config.ts",
+    "playwright.otp-contract.config.ts",
+    "tests/e2e/otp-length-contract.spec.ts",
     "tests/e2e/session-sync-regression.spec.ts"
   ],
   "exclude": ["node_modules"]
