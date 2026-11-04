@@ -6,7 +6,7 @@ const admin = process.env.SESSION_SYNC_ADMIN_URL ?? "http://denali.admin.localho
 const tour = process.env.SESSION_SYNC_TOUR_ID ?? "00000000-0000-4000-8000-000000000220";
 const code = "654321"; // Local/CI fixture only; these tests never call an SMS provider.
 
-async function completeIssuedCode(page: Page, group: Locator) {
+async function completeIssuedCode(page: Page, group: Locator, expectedChallengeId?: string) {
   const cells = group.getByRole("textbox");
   await expect(cells).toHaveCount(6);
   await page.screenshot({ path: test.info().outputPath("six-digit-input.png") });
@@ -20,16 +20,21 @@ async function completeIssuedCode(page: Page, group: Locator) {
     (response) =>
       /\/api\/(auth\/login|public-auth\/verify-otp)/.test(response.url()) &&
       response.request().method() === "POST" &&
-      response.request().postDataJSON()?.otp === code,
+      response.request().postDataJSON()?.otp === code &&
+      (expectedChallengeId === undefined ||
+        response.request().postDataJSON()?.challenge_id === expectedChallengeId),
     { timeout: 60_000 }
   );
   await cells.nth(4).fill(code[4]!);
   await cells.nth(5).fill(code[5]!);
   const response = await verified;
-  const payload = (await response.json().catch(() => ({}))) as { code?: unknown };
+  const payload = (await response.json().catch(() => ({}))) as {
+    code?: unknown;
+    error?: { code?: unknown };
+  };
   expect(
     response.status(),
-    `OTP verification failed with ${String(payload.code ?? "unknown")}`
+    `OTP verification failed with ${String(payload.code ?? payload.error?.code ?? "unknown")}`
   ).toBe(200);
 }
 
@@ -51,8 +56,17 @@ test("six-digit OTP completes admin login with the issued code", async ({ page }
   await page.getByRole("button", { name: "ارسال رمز", exact: true }).click();
   const otpResponse = await requested;
   expect(otpResponse.status()).toBe(200);
-  expect(((await otpResponse.json()) as { otp_length?: unknown }).otp_length).toBe(6);
-  await completeIssuedCode(page, page.getByRole("group", { name: "رمز یک‌بارمصرف" }));
+  const challenge = (await otpResponse.json()) as {
+    challenge_id?: unknown;
+    otp_length?: unknown;
+  };
+  expect(challenge.otp_length).toBe(6);
+  expect(typeof challenge.challenge_id).toBe("string");
+  await completeIssuedCode(
+    page,
+    page.getByRole("group", { name: "رمز یک‌بارمصرف" }),
+    challenge.challenge_id as string
+  );
   await expect(page).not.toHaveURL(/\/auth\/login/);
 });
 
