@@ -22,11 +22,11 @@ function mockVerifyOtp(status: number, payload: Record<string, unknown>): void {
   globalThis.fetch = (async () => Response.json(payload, { status })) as typeof fetch;
 }
 
-function loginRequest(): Request {
+function loginRequest(otp = "1234"): Request {
   return new Request("http://admin.localhost/api/platform/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone: "+989121234567", otp: "1234", challenge_id: "challenge" }),
+    body: JSON.stringify({ phone: "+989121234567", otp, challenge_id: "challenge" }),
   });
 }
 
@@ -52,6 +52,21 @@ describe("platform auth BFF", () => {
     const setCookie = response.headers.get("Set-Cookie") ?? "";
     assert.match(setCookie, new RegExp(`platform_session=${platformToken}`));
     assert.match(setCookie, /HttpOnly/);
+  });
+
+  it("preserves all six OTP digits when forwarding verification", async () => {
+    process.env.PLATFORM_OPS_PHONES = "+989121234567";
+    process.env.TOUR_OPS_API_URL = "http://api.test";
+    let forwardedCode: unknown;
+    globalThis.fetch = (async (_input, init) => {
+      forwardedCode = JSON.parse(String(init?.body)).otp;
+      return Response.json({ platformSessionToken: "header.token.signature", role: "owner" });
+    }) as typeof fetch;
+
+    const response = await POST(loginRequest("654321"));
+
+    assert.equal(response.status, 200);
+    assert.equal(forwardedCode, "654321");
   });
 
   it("preserves failed OTP verification behavior", async () => {
