@@ -80,15 +80,14 @@ export type WorkspaceCreateTourWizardClientProps = {
 };
 
 /** Phase 14.3 — shared create-tour orchestrator for non-extended-chrome workspaces. */
-export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTourWizardClientProps) {
+export function WorkspaceCreateTourWizardClient({
+  pluginId,
+}: WorkspaceCreateTourWizardClientProps) {
   const t = useTranslations("wizard");
   const router = useRouter();
   const searchParams = useAppSearchParams();
   const session = useAppSession();
-  const cloneTourId = useMemo(
-    () => resolveCloneTourId(searchParams.get("clone")),
-    [searchParams]
-  );
+  const cloneTourId = useMemo(() => resolveCloneTourId(searchParams.get("clone")), [searchParams]);
   const presetId = useMemo(() => resolvePresetId(searchParams.get("preset")), [searchParams]);
   const [workspacePlugin, setWorkspacePlugin] = useState<WorkspacePlugin | null>(null);
   const [supportsTourClone, setSupportsTourClone] = useState(false);
@@ -133,12 +132,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
   const prepareEnvelope = useCallback(
     (form: TourWizardDraft, meta: WorkspaceWizardDraftMeta): PlatformCreateTourDraftEnvelope =>
       workspacePlugin != null
-        ? prepareWizardDraftEnvelope(
-            workspacePlugin,
-            form,
-            meta,
-            createPlatformWizardDraftEnvelope
-          )
+        ? prepareWizardDraftEnvelope(workspacePlugin, form, meta, createPlatformWizardDraftEnvelope)
         : createPlatformWizardDraftEnvelope(form, meta),
     [workspacePlugin]
   );
@@ -165,8 +159,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
     draftKey: platformCreateTourDraftKey(pluginId),
     conflictStrategy: "REFETCH_REAPPLY",
     merge: mergeEnvelope
-      ? (local, server) =>
-          mergeEnvelope(local, server) as PlatformCreateTourDraftEnvelope
+      ? (local, server) => mergeEnvelope(local, server) as PlatformCreateTourDraftEnvelope
       : undefined,
     hydrateFromRemote: shouldHydrateDraftFromRemote(cloneTourId, supportsTourClone),
     normalizeRemote,
@@ -202,6 +195,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
   });
 
   useWizardCreatePresetPrefill({
+    tenantId: session.tenantId,
     pluginId,
     presetId,
     gate,
@@ -237,9 +231,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
     (next: TourWizardDraft) => {
       const envelope = draftSyncDataRef.current;
       if (envelope == null) {
-        draftSync.setData(
-          prepareEnvelope(next, { currentStepIndex: 0, freshStart: true })
-        );
+        draftSync.setData(prepareEnvelope(next, { currentStepIndex: 0, freshStart: true }));
         return;
       }
       draftSync.setData(prepareEnvelope(next, envelope.meta));
@@ -267,8 +259,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
   );
 
   const showSeedBanner =
-    gate.seedLabel.length > 0 &&
-    !shouldSkipWizardTemplatePrefill(cloneTourId, supportsTourClone);
+    gate.seedLabel.length > 0 && !shouldSkipWizardTemplatePrefill(cloneTourId, supportsTourClone);
 
   const onSubmit = () => {
     setSubmitError(null);
@@ -330,11 +321,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
   }
 
   if (!draftReady) {
-    return (
-      <CreateTourWizardLoadingMessage
-        testId="wizard-draft-hydrate-loading"
-      />
-    );
+    return <CreateTourWizardLoadingMessage testId="wizard-draft-hydrate-loading" />;
   }
 
   return (
@@ -366,7 +353,7 @@ export function WorkspaceCreateTourWizardClient({ pluginId }: WorkspaceCreateTou
           seedLabel={gate.seedLabel}
           draftTitle={
             typeof (draft.data as { title?: unknown } | undefined)?.title === "string"
-              ? ((draft.data as { title: string }).title)
+              ? (draft.data as { title: string }).title
               : ""
           }
         />
