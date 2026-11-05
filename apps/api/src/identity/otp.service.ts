@@ -34,6 +34,8 @@ export type OtpDeliveryDependencies = {
   readonly resolveWorkspaceName?: (tenantId: string) => Promise<string | null>;
 };
 
+const OTP_MAX_VERIFY_ATTEMPTS = 5;
+
 async function enqueueRealOtpDelivery(
   mobile: string,
   code: string,
@@ -106,13 +108,18 @@ export async function verifyMobileOtp(
   if (row === null) {
     throw new OtpChallengeInvalidError();
   }
-  if (row.used || row.expiresAt.getTime() < Date.now()) {
+  if (
+    row.used ||
+    row.attemptCount >= OTP_MAX_VERIFY_ATTEMPTS ||
+    row.expiresAt.getTime() < Date.now()
+  ) {
     throw new OtpExpiredError();
   }
 
   const devBypass = isDevStaticOtpEnabled() && trimmedCode === DEV_STATIC_OTP;
   const hashValid = await verifyOtpCodeHash(trimmedCode, row.codeHash);
   if (!devBypass && !hashValid) {
+    await repo.recordOtpChallengeFailure(challengeId, OTP_MAX_VERIFY_ATTEMPTS);
     throw new OtpInvalidError();
   }
 

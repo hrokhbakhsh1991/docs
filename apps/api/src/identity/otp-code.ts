@@ -3,7 +3,7 @@ import { promisify } from "node:util";
 
 const scryptAsync = promisify(scrypt);
 
-export function generateOtpCode(length = 6): string {
+export function generateOtpCode(length = 4): string {
   let code = "";
   for (let index = 0; index < length; index += 1) {
     code += String(randomInt(0, 10));
@@ -16,7 +16,7 @@ export function resolveOtpCodeForChallenge(): string {
   if (fixture !== undefined && fixture.length > 0 && process.env.NODE_ENV !== "production") {
     return fixture;
   }
-  return generateOtpCode(6);
+  return generateOtpCode(4);
 }
 
 export async function hashOtpCode(code: string): Promise<string> {

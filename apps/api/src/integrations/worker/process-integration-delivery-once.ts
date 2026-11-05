@@ -412,14 +412,10 @@ export async function executeIntegrationDeliveryJob(
     let variables = plainVariables;
     if (encryptedOtp !== null) {
       try {
-        const workspaceName =
-          typeof job.payload.smsWorkspaceName === "string"
-            ? job.payload.smsWorkspaceName.trim()
-            : "";
         const code = decryptOtpDeliveryCode(encryptedOtp);
-        // Keep the existing one-placeholder Pattern compatible: the provider
-        // receives one clean variable containing the numeric code and name.
-        variables = [workspaceName.length === 0 ? code : `${code} ${workspaceName}`];
+        // The approved MeliPayamak Pattern already includes the workspace
+        // branding as fixed text; its only placeholder is the numeric OTP.
+        variables = [code];
       } catch {
         return { ok: false, error: { code: "SMS_DELIVERY_SECRET_INVALID" } };
       }

@@ -21,7 +21,7 @@ describe("catalog registration flow state (canonical-v1)", () => {
     assertCatalogRegistrationFlowState(state.data);
   });
 
-  it("accepts persisted four-digit state and newly issued six-digit challenges", () => {
+  it("accepts persisted four-digit state and legacy six-digit challenge metadata", () => {
     const { otpLength: _length, ...persisted } = createCatalogRegistrationFlowInitialData();
     assert.doesNotThrow(() => assertCatalogRegistrationFlowState(persisted));
     assert.doesNotThrow(() => assertCatalogRegistrationFlowState({ ...persisted, otpLength: 6 }));

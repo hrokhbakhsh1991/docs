@@ -17,7 +17,7 @@ describe("createPortalSameOriginGuestAuthTransport", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("keeps the issued six-digit challenge metadata without exposing an OTP", async () => {
+  it("keeps legacy six-digit challenge metadata without exposing an OTP", async () => {
     globalThis.fetch = (async () =>
       new Response(
         JSON.stringify({
