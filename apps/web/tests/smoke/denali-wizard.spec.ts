@@ -61,9 +61,11 @@ test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
 
     expect(consoleErrors, "SMK-P6-02: no console errors").toEqual([]);
 
-    const primary = await page.locator("body").evaluate((el) =>
-      getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
-    );
+    const primary = await page
+      .locator("body")
+      .evaluate((el) =>
+        getComputedStyle(el).getPropertyValue("--color-primary").trim().toLowerCase()
+      );
     expect(primary).toBe("#059669");
 
     const continueBtn = page.getByTestId("workspace-wizard-step-next");
@@ -120,4 +122,66 @@ test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
     const body = (await res.json()) as { error?: string };
     expect(body.error ?? "").toMatch(/CANONICAL_VALIDATION_FAILED|title|program/i);
   });
+});
+
+// Runs against the real smoke BFF/API/Postgres fixture, never a public staging tenant.
+test.describe("preset rule editor smoke", () => {
+  test.use({ baseURL: process.env.SMOKE_BASE_URL ?? "http://denali.localhost:3000" });
+  for (const viewport of [
+    { width: 1280, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`preset rules persist through the real editor (${viewport.width}px)`, async ({
+      page,
+    }, testInfo) => {
+      const base = process.env.SMOKE_BASE_URL ?? "http://denali.localhost:3000";
+      expect(new URL(base).hostname.endsWith(".localhost")).toBe(true);
+      await page.setViewportSize(viewport);
+      await loginDenaliSmokeOwner(page);
+      const endpoint = "/api/settings/tour-presets/advanced";
+      const beforeResponse = await page.request.get(endpoint);
+      expect(beforeResponse.ok()).toBe(true);
+      const before = await beforeResponse.json();
+      const runId = `preset-smoke-${viewport.width}-${Date.now()}`;
+      const resource = await page.request.post("/api/settings/resources/tour_presets", {
+        data: { name: runId, isActive: true },
+      });
+      expect(resource.status()).toBe(201);
+      const preset = await resource.json();
+      try {
+        await page.goto("/settings/tour-presets/advanced");
+        await page.getByTestId("operator-presets-advanced-rule-id").fill(runId);
+        await page.getByTestId("operator-presets-advanced-rule-add").click();
+        await page.locator(`[id="rule-${runId}-tourType"]`).fill("mountain_day");
+        await page.locator(`[id="rule-${runId}-presetId"]`).fill(preset.id);
+        await page.getByTestId("operator-presets-advanced-save").click();
+        await expect(page.getByTestId("operator-presets-advanced-success")).toBeVisible();
+        await page.reload();
+        await expect(page.locator(`[id="rule-${runId}-tourType"]`)).toHaveValue("mountain_day");
+        await expect(page.locator(`[id="rule-${runId}-presetId"]`)).toHaveValue(preset.id);
+        const stored = await page.request.get(endpoint);
+        expect(stored.ok()).toBe(true);
+        expect((await stored.json()).payload.matchRules).toContainEqual({
+          id: runId,
+          tourType: "mountain_day",
+          themeId: null,
+          presetId: preset.id,
+          enabled: true,
+        });
+        await page.screenshot({
+          path: testInfo.outputPath(`preset-editor-${viewport.width}.png`),
+          fullPage: true,
+        });
+      } finally {
+        const restored = await page.request.put(endpoint, {
+          data: { configVersion: before.configVersion, payload: before.payload },
+        });
+        expect(restored.ok()).toBe(true);
+        const removed = await page.request.delete(
+          `/api/settings/resources/tour_presets/${preset.id}`
+        );
+        expect(removed.ok()).toBe(true);
+      }
+    });
+  }
 });

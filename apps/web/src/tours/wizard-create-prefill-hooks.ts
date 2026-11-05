@@ -1,18 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 
 import type { WorkspaceWizardDraftMeta } from "@app-tour/workspace-sdk";
 
-import type { TourPresetResource, TourThemeResource } from "@/features/settings/settings-module-types";
+import type { TourPresetResource } from "@/features/settings/settings-module-types";
 
-import {
-  applyTourPresetToDraft,
-  findActiveTourPreset,
-  readActiveThemeIds,
-} from "./tour-preset-prefill-logic";
+import { applyTourPresetToDraft, readActiveThemeIds } from "./tour-preset-prefill-logic";
 import { shouldSkipWizardTemplatePrefill } from "./tour-clone-hydrate-logic";
+import { resolveTourPreset, readPresetMatchingConfig } from "./resolve-tour-preset";
+import {
+  PRESETS_ADVANCED_CONFIG_VERSION,
+  type PresetsAdvancedPayload,
+} from "@/features/settings/presets-advanced-types";
 import type { TourWizardDraft } from "./tour-wizard-draft";
 import type { WizardTemplateGateState } from "./wizard-template-gate-logic";
 
@@ -72,6 +73,7 @@ export function useWizardCreateSeedPrefill<TEnvelope, TForm extends TourWizardDr
 
 type UseWizardCreatePresetPrefillInput<TEnvelope, TForm extends TourWizardDraft> = {
   readonly pluginId: string;
+  readonly tenantId: string;
   readonly presetId: string | null;
   readonly gate: WizardTemplateGateState;
   readonly cloneTourId: string | null;
@@ -87,80 +89,112 @@ type UseWizardCreatePresetPrefillInput<TEnvelope, TForm extends TourWizardDraft>
 export function useWizardCreatePresetPrefill<TEnvelope, TForm extends TourWizardDraft>(
   input: UseWizardCreatePresetPrefillInput<TEnvelope, TForm>
 ): void {
-  const appliedPresetIdRef = useRef<string | null>(null);
+  const appliedPresetIdsRef = useRef(new Set<string>());
+  const onPresetAppliedChangeRef = useRef(input.onPresetAppliedChange);
+  onPresetAppliedChangeRef.current = input.onPresetAppliedChange;
+  const [resources, setResources] = useState<{
+    scope: string;
+    presets: readonly TourPresetResource[];
+    activeThemeIds: readonly string[];
+    config: PresetsAdvancedPayload | null;
+  } | null>(null);
+  const scope = JSON.stringify([input.tenantId, input.pluginId, input.presetId, input.cloneTourId]);
 
   useEffect(() => {
-    if (!input.presetId || !input.gate.published || input.cloneTourId !== null) {
-      appliedPresetIdRef.current = null;
-      input.onPresetAppliedChange(false);
-      return;
-    }
-    if (appliedPresetIdRef.current === input.presetId) {
-      return;
-    }
-
+    setResources(null);
+    appliedPresetIdsRef.current.clear();
+    onPresetAppliedChangeRef.current(false);
+    if (!input.gate.published || input.cloneTourId !== null) return;
     let cancelled = false;
-    void Promise.all([
-      fetch("/api/settings/resources/tour_presets", { cache: "no-store" }),
-      fetch("/api/settings/resources/tour_themes", { cache: "no-store" }),
-    ])
-      .then(async ([presetsRes, themesRes]) => {
-        if (!presetsRes.ok) {
-          return null;
-        }
-        const presetsPayload = (await presetsRes.json()) as { items?: readonly TourPresetResource[] };
-        const themesPayload = themesRes.ok
-          ? ((await themesRes.json()) as { items?: readonly TourThemeResource[] })
-          : { items: [] as readonly TourThemeResource[] };
-        const preset = findActiveTourPreset(presetsPayload.items ?? [], input.presetId!);
-        if (preset == null) {
-          return null;
-        }
-        const activeThemeIds = readActiveThemeIds(input.pluginId, themesPayload.items ?? []);
-        return { preset, activeThemeIds };
-      })
-      .then((resolved) => {
-        if (cancelled || resolved == null) {
-          return;
-        }
-        appliedPresetIdRef.current = input.presetId;
-        const applyPreset = (base: TForm) =>
-          applyTourPresetToDraft(base, resolved.preset, resolved.activeThemeIds) as TForm;
-        const currentEnvelope = input.draftSyncDataRef.current;
-        if (currentEnvelope != null) {
-          const envelope = currentEnvelope as unknown as {
-            form: TForm;
-            meta: WorkspaceWizardDraftMeta;
-          };
-          input.draftSync.setData(
-            input.prepareEnvelope(applyPreset(envelope.form), envelope.meta)
+    void (async () => {
+      // An explicitly selected preset must not depend on advanced configuration availability.
+      let config: PresetsAdvancedPayload | null = null;
+      if (input.presetId === null) {
+        const response = await fetch("/api/settings/tour-presets/advanced", { cache: "no-store" });
+        if (!response.ok) return;
+        const body = await response.json();
+        if (body?.configVersion !== PRESETS_ADVANCED_CONFIG_VERSION) return;
+        config = readPresetMatchingConfig(body?.payload);
+        if (config?.autoMatchEnabled !== true) return;
+      }
+      const [presetsRes, themesRes] = await Promise.all([
+        fetch("/api/settings/resources/tour_presets", { cache: "no-store" }),
+        fetch("/api/settings/resources/tour_themes", { cache: "no-store" }),
+      ]);
+      if (!presetsRes.ok || !themesRes.ok) return;
+      const presets = await presetsRes.json();
+      const themes = await themesRes.json();
+      if (!Array.isArray(presets.items) || !Array.isArray(themes.items)) return;
+      if (
+        !presets.items.every((preset: unknown) => {
+          if (preset === null || typeof preset !== "object") return false;
+          const entry = preset as Record<string, unknown>;
+          return (
+            typeof entry.id === "string" &&
+            typeof entry.name === "string" &&
+            typeof entry.isActive === "boolean" &&
+            (entry.themeId === null || typeof entry.themeId === "string")
           );
-        } else {
-          input.draftSync.setData(
-            input.prepareEnvelope(applyPreset(input.buildPrefilledForm(input.gate)), input.buildPresetMeta())
-          );
-        }
-        input.onPresetAppliedChange(true);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          input.onPresetAppliedChange(false);
-        }
-      });
-
+        })
+      )
+        return;
+      if (!cancelled)
+        setResources({
+          scope,
+          presets: presets.items,
+          activeThemeIds: readActiveThemeIds(input.pluginId, themes.items),
+          config,
+        });
+    })().catch(() => {
+      /* A failed optional prefill must not replace the current draft. */
+    });
     return () => {
       cancelled = true;
     };
   }, [
+    scope,
+    input.tenantId,
     input.pluginId,
+    input.presetId,
+    input.cloneTourId,
+    input.gate.published,
+  ]);
+
+  useEffect(() => {
+    if (!input.gate.published || input.cloneTourId !== null || resources?.scope !== scope) return;
+    if (!["IDLE", "DIRTY"].includes(input.draftSync.status)) return;
+    const envelope = input.draftSyncDataRef.current as {
+      form: TForm;
+      meta: WorkspaceWizardDraftMeta;
+    } | null;
+    const base = envelope?.form ?? input.buildPrefilledForm(input.gate);
+    const preset = resolveTourPreset({
+      presetId: input.presetId,
+      presets: resources.presets,
+      config: resources.config,
+      draft: base,
+    });
+    if (preset === null || appliedPresetIdsRef.current.has(preset.id)) return;
+    const next = applyTourPresetToDraft(base, preset, resources.activeThemeIds) as TForm;
+    // Mark even a no-op as considered, so later user edits are never re-filled.
+    appliedPresetIdsRef.current.add(preset.id);
+    if (next === base) return;
+    input.draftSync.setData(input.prepareEnvelope(next, envelope?.meta ?? input.buildPresetMeta()));
+    input.onPresetAppliedChange(true);
+  }, [
+    resources,
+    scope,
+    input.tenantId,
     input.presetId,
     input.gate,
     input.cloneTourId,
+    input.draftSync.data,
+    input.draftSync.status,
     input.draftSync.setData,
-    input.prepareEnvelope,
+    input.draftSyncDataRef,
     input.buildPrefilledForm,
+    input.prepareEnvelope,
     input.buildPresetMeta,
     input.onPresetAppliedChange,
-    input.draftSyncDataRef,
   ]);
 }

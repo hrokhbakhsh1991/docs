@@ -206,6 +206,7 @@ export function useOperatorCreateTourWizard(options: {
   });
 
   useWizardCreatePresetPrefill({
+    tenantId: session.tenantId,
     pluginId: wizardPlugin.id,
     presetId,
     gate,
