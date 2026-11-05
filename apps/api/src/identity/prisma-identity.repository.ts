@@ -385,6 +385,7 @@ export class PrismaIdentityRepository implements IdentityRepository {
         purpose: "login",
         codeHash,
         expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        attemptCount: 0,
         used: false,
       },
     });
@@ -406,15 +407,38 @@ export class PrismaIdentityRepository implements IdentityRepository {
       purpose: "login",
       codeHash: row.codeHash,
       expiresAt: row.expiresAt,
+      attemptCount: row.attemptCount,
       used: row.used,
     };
   }
 
-  async markOtpChallengeUsed(challengeId: string): Promise<void> {
-    await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_OTP).mobileOtpChallenge.updateMany({
-      where: { id: challengeId.trim(), used: false },
+  async recordOtpChallengeFailure(challengeId: string, maximumAttempts: number): Promise<void> {
+    const client = getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_OTP);
+    const where = {
+      id: challengeId.trim(),
+      used: false,
+      expiresAt: { gt: new Date() },
+    };
+    const ordinaryAttempts = await client.mobileOtpChallenge.updateMany({
+      where: { ...where, attemptCount: { lt: maximumAttempts - 1 } },
+      data: { attemptCount: { increment: 1 } },
+    });
+    if (ordinaryAttempts.count > 0) return;
+
+    await client.mobileOtpChallenge.updateMany({
+      where: { ...where, attemptCount: maximumAttempts - 1 },
+      data: { attemptCount: maximumAttempts, used: true },
+    });
+  }
+
+  async markOtpChallengeUsed(challengeId: string): Promise<boolean> {
+    const result = await getIdentityAdminClient(
+      IDENTITY_ADMIN_REASON.ID_OTP
+    ).mobileOtpChallenge.updateMany({
+      where: { id: challengeId.trim(), used: false, expiresAt: { gt: new Date() } },
       data: { used: true },
     });
+    return result.count === 1;
   }
 
   async createPendingInvite(input: CreatePendingInviteInput): Promise<PendingInviteRecord> {

@@ -33,12 +33,11 @@ provider adapter.
 2. Store the Melipayamak web-service username and APIKey through the existing
    secret store. The `password` credential field carries the APIKey shown under
    the panel's Web service settings; it is not the panel login password.
-3. If a Pattern is approved later, configure its `bodyId` with one variable;
-   the variable contains the numeric code `1234` followed by the
-   Admin-configured workspace display name. This keeps the existing one-variable
-   Pattern compatible; otherwise standard SendSMS is used.
-4. Configure a test recipient and use the connection test; it sends `1234` plus
-   the Admin-configured workspace name and incurs the provider's normal SMS charge.
+3. For the approved Denali Pattern, configure its `bodyId` with one variable:
+   the numeric OTP only. Workspace branding is already fixed text in the
+   approved template. Otherwise, standard SendSMS is used.
+4. Configure an authorized test recipient before sending a connection test;
+   provider messages incur the normal SMS charge.
 5. Set a unique 32-byte `SMS_DELIVERY_ENCRYPTION_KEY` for each environment.
 6. Set `SMS_OTP_ENABLED=true` only after the connection and key are verified.
 7. Run one staging OTP and inspect the delivery result plus `sms_usage_events`.
@@ -47,3 +46,9 @@ provider adapter.
 The approved static OTP contract may remain enabled: the same code is encrypted
 into the SMS job and delivered by the provider. Provider credentials and the
 encryption key must never be committed or printed in logs.
+
+## Real-code rollout contract (2026-11-04)
+
+Random OTPs use four digits; explicitly enabled static fixtures also use four. The issued challenge carries non-secret length metadata through Admin and Portal BFFs to all input surfaces, including the Marketing PDP modal. Each challenge is invalidated after five incorrect guesses using its persisted attempt counter. See [OTP challenge length](../../standards/otp-challenge-length.mdoc). Do not disable static fixtures on a live environment until a matching client is deployed and handset delivery is verified.
+
+The REST adapter accepts the official `Value` / `RetStatus` envelope and rejects unsuccessful HTTP or provider responses, including numeric error values. Reference: [official Melipayamak REST SDK](https://github.com/Melipayamak/melipayamak-Asp.net-Core/blob/master/RestClientAsync.cs). A successful provider response establishes submission, not handset delivery.

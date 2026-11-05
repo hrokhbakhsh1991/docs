@@ -26,12 +26,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   const body = (await req.json().catch(() => ({}))) as LoginPayload;
-  const phone = canonicalizeOperatorLoginPhone(
-    typeof body.phone === "string" ? body.phone : "",
-  );
-  const otp = normalizeOtpDigits(typeof body.otp === "string" ? body.otp.trim() : "");
-  const challengeId =
-    typeof body.challenge_id === "string" ? body.challenge_id.trim() : "";
+  const phone = canonicalizeOperatorLoginPhone(typeof body.phone === "string" ? body.phone : "");
+  const otp = normalizeOtpDigits(typeof body.otp === "string" ? body.otp.trim() : "", 6);
+  const challengeId = typeof body.challenge_id === "string" ? body.challenge_id.trim() : "";
 
   if (phone.length === 0) {
     return bffCodedError("MOBILE_REQUIRED", 400);
@@ -70,7 +67,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!backendRes.ok) {
     return bffCodedError(
       typeof backendBody.code === "string" ? backendBody.code : "LOGIN_FAILED",
-      backendRes.status,
+      backendRes.status
     );
   }
 
@@ -78,8 +75,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     return bffCodedError("AUTH_PHONE_NOT_AUTHORIZED", 403);
   }
 
-  const sessionToken =
-    typeof backendBody.sessionToken === "string" ? backendBody.sessionToken : "";
+  const sessionToken = typeof backendBody.sessionToken === "string" ? backendBody.sessionToken : "";
   if (sessionToken.length === 0) {
     return bffCodedError("SESSION_TOKEN_MISSING", 502);
   }
@@ -97,7 +93,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       user_id: backendBody.userId,
       tenant_id: backendBody.tenantId,
     },
-    { status: 200 },
+    { status: 200 }
   );
   setSessionCookieOnResponse(res.headers, sessionToken);
   return res;

@@ -21,6 +21,16 @@ describe("catalog registration flow state (canonical-v1)", () => {
     assertCatalogRegistrationFlowState(state.data);
   });
 
+  it("accepts persisted four-digit state and legacy six-digit challenge metadata", () => {
+    const { otpLength: _length, ...persisted } = createCatalogRegistrationFlowInitialData();
+    assert.doesNotThrow(() => assertCatalogRegistrationFlowState(persisted));
+    assert.doesNotThrow(() => assertCatalogRegistrationFlowState({ ...persisted, otpLength: 6 }));
+    assert.throws(
+      () => assertCatalogRegistrationFlowState({ ...persisted, otpLength: 5 }),
+      /otpLength must be 4 or 6/
+    );
+  });
+
   it("accepts the mixed participant outcome for a multi-person registration", () => {
     const data = createCatalogRegistrationFlowInitialData();
     assertCatalogRegistrationFlowState({ ...data, submissionOutcome: "partial" });

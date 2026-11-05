@@ -33,30 +33,51 @@ function resolveConfig(ctx: IntegrationDeliveryContext, key: string): string | n
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
-function classifyProviderResponse(status: number, body: MelipayamakResponse): IntegrationDeliveryResult {
+function classifyProviderResponse(
+  status: number,
+  body: MelipayamakResponse
+): IntegrationDeliveryResult {
+  if (status >= 500) return { ok: false, errorCode: "MELIPAYAMAK_SERVER_ERROR" };
+  const httpOk = status >= 200 && status < 300;
   if (typeof body === "number" || typeof body === "string") {
     const value = String(body).trim();
-    if (/^\d{10,}$/.test(value)) return { ok: true, providerMessageId: value };
-    return {
-      ok: false,
-      errorCode: status >= 500 ? "MELIPAYAMAK_SERVER_ERROR" : `MELIPAYAMAK_${value || "UNKNOWN_ERROR"}`,
-    };
+    if (httpOk && /^\d{10,}$/.test(value)) return { ok: true, providerMessageId: value };
+    return { ok: false, errorCode: `MELIPAYAMAK_${value || "UNKNOWN_ERROR"}` };
   }
-
   if (body !== null) {
-    const providerMessageId = readString(body, "recId", "RecId", "messageId", "MessageId", "value");
-    const errorCode = readString(body, "errorCode", "ErrorCode", "code", "Code", "RetStatus");
-    const errorMessage = readString(body, "errorMessage", "ErrorMessage", "message", "Message");
-    const success = body.success === true || body.Success === true || providerMessageId !== undefined;
-    if (success) return { ok: true, ...(providerMessageId ? { providerMessageId } : {}) };
+    const providerMessageId = readString(
+      body,
+      "recId",
+      "RecId",
+      "messageId",
+      "MessageId",
+      "value",
+      "Value"
+    );
+    const providerStatus = readString(body, "RetStatus", "retStatus");
+    const validMessageId = providerMessageId !== undefined && /^\d{10,}$/.test(providerMessageId);
+    if (httpOk && validMessageId && (providerStatus === undefined || providerStatus === "1")) {
+      return { ok: true, providerMessageId };
+    }
+    const errorCode =
+      readString(body, "errorCode", "ErrorCode", "code", "Code") ??
+      (providerStatus !== undefined && providerStatus !== "1" ? providerStatus : undefined) ??
+      (providerMessageId !== undefined && !validMessageId ? providerMessageId : undefined);
+    const errorMessage = readString(
+      body,
+      "errorMessage",
+      "ErrorMessage",
+      "message",
+      "Message",
+      "StrRetStatus"
+    );
     return {
       ok: false,
       errorCode: errorCode ? `MELIPAYAMAK_${errorCode}` : "MELIPAYAMAK_SEND_FAILED",
       ...(errorMessage ? { errorMessage } : {}),
     };
   }
-
-  return { ok: false, errorCode: status >= 500 ? "MELIPAYAMAK_SERVER_ERROR" : "MELIPAYAMAK_EMPTY_RESPONSE" };
+  return { ok: false, errorCode: "MELIPAYAMAK_EMPTY_RESPONSE" };
 }
 
 /** REST Pattern adapter for the official Melipayamak BaseServiceNumber API. */
@@ -72,7 +93,8 @@ export class MelipayamakSmsProviderAdapter implements IntegrationProviderAdapter
     const password = resolveCredential(ctx, "password");
     const bodyId = input.templateId.trim() || resolveConfig(ctx, "bodyId");
     const sender = resolveConfig(ctx, "sender");
-    if (username === null || password === null) return { ok: false, errorCode: "MELIPAYAMAK_CREDENTIALS_MISSING" };
+    if (username === null || password === null)
+      return { ok: false, errorCode: "MELIPAYAMAK_CREDENTIALS_MISSING" };
     if (bodyId === null && sender === null) {
       return { ok: false, errorCode: "MELIPAYAMAK_SENDER_MISSING" };
     }
@@ -80,7 +102,8 @@ export class MelipayamakSmsProviderAdapter implements IntegrationProviderAdapter
       return { ok: false, errorCode: "MELIPAYAMAK_SMS_PAYLOAD_INVALID" };
     }
 
-    const endpoint = resolveConfig(ctx, "endpoint") ?? (bodyId === null ? STANDARD_ENDPOINT : PATTERN_ENDPOINT);
+    const endpoint =
+      resolveConfig(ctx, "endpoint") ?? (bodyId === null ? STANDARD_ENDPOINT : PATTERN_ENDPOINT);
     const form = new URLSearchParams({
       username,
       password,

@@ -15,7 +15,10 @@ describe("auth-bff-login-codes.spec.ts", () => {
       })
     );
     assert.equal(res.status, 400);
-    const body = (await res.json()) as { ok?: boolean; error?: { code?: string; message?: string } };
+    const body = (await res.json()) as {
+      ok?: boolean;
+      error?: { code?: string; message?: string };
+    };
     assert.equal(body.ok, false);
     assert.equal(body.error?.code, "MOBILE_REQUIRED");
     assert.equal(body.error?.message, undefined);
@@ -123,14 +126,15 @@ describe("auth-bff-login-codes.spec.ts", () => {
         role: "owner",
         exp: Math.floor(Date.now() / 1000) + 3600,
       })
-    )
-      .toString("base64url");
+    ).toString("base64url");
     const ownerToken = `header.${payload}.sig`;
     const originalFetch = globalThis.fetch;
     const prevApiBase = process.env.TOUR_OPS_API_URL;
+    let forwardedOtp: unknown;
     process.env.TOUR_OPS_API_URL = "http://127.0.0.1:3001";
-    globalThis.fetch = async () =>
-      new Response(
+    globalThis.fetch = async (_input, init) => {
+      forwardedOtp = JSON.parse(String(init?.body)).code;
+      return new Response(
         JSON.stringify({
           sessionToken: ownerToken,
           userId: "00000000-0000-4000-8000-000000000101",
@@ -138,16 +142,18 @@ describe("auth-bff-login-codes.spec.ts", () => {
         }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
+    };
     try {
       const { POST } = await import("../app/api/auth/login-web-session/route");
       const res = await POST(
         new Request("http://denali.localhost:3000/api/auth/login-web-session", {
           method: "POST",
           headers: { "Content-Type": "application/json", host: "denali.localhost:3000" },
-          body: JSON.stringify({ phone: "09174070937", otp: "1234", challenge_id: "c1" }),
+          body: JSON.stringify({ phone: "09174070937", otp: "654321", challenge_id: "c1" }),
         })
       );
       assert.equal(res.status, 200);
+      assert.equal(forwardedOtp, "654321");
       const setCookie = res.headers.getSetCookie?.() ?? [res.headers.get("set-cookie") ?? ""];
       const joined = setCookie.join("; ");
       assert.match(joined, /operator-welcome-armed=1/);
@@ -184,8 +190,7 @@ describe("auth-bff-login-codes.spec.ts", () => {
         role: "admin",
         exp: Math.floor(Date.now() / 1000) + 3600,
       })
-    )
-      .toString("base64url");
+    ).toString("base64url");
     const adminToken = `header.${payload}.sig`;
     const originalFetch = globalThis.fetch;
     const prevApiBase = process.env.TOUR_OPS_API_URL;
@@ -209,7 +214,10 @@ describe("auth-bff-login-codes.spec.ts", () => {
         })
       );
       assert.equal(res.status, 403);
-      const body = (await res.json()) as { ok?: boolean; error?: { code?: string; message?: string } };
+      const body = (await res.json()) as {
+        ok?: boolean;
+        error?: { code?: string; message?: string };
+      };
       assert.equal(body.ok, false);
       assert.equal(body.error?.code, "AUTH_OWNER_PANEL_ONLY");
       assert.equal(body.error?.message, undefined);

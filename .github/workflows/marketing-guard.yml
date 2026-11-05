@@ -243,13 +243,24 @@ jobs:
         id: browser
         run: pnpm --filter @apps/marketing exec playwright install --with-deps chromium
       - name: Configure fixture hosts
-        run: echo '127.0.0.1 denali.localhost portal.denali.localhost portal.urban.localhost' | sudo tee -a /etc/hosts
+        run: echo '127.0.0.1 denali.localhost portal.denali.localhost portal.urban.localhost denali.admin.localhost' | sudo tee -a /etc/hosts
       # Fresh API/Portal per group respects the real five-OTP/minute BFF quota.
       - name: Login, re-login and fault recovery (normal browser security)
         run: xvfb-run -a pnpm --filter @apps/marketing run test:smoke:session-sync --grep 'open marketing PDP|PDP login|probe failures' --output=test-results/session-sync-auth
       - name: Expiry, pending responses and native visibility
         if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
         run: xvfb-run -a pnpm --filter @apps/marketing run test:smoke:session-sync --grep-invert 'open marketing PDP|PDP login|probe failures' --output=test-results/session-sync-state
+      - name: Six-digit OTP across Admin, Portal and PDP
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        env:
+          SMOKE_WITH_ADMIN: "1"
+          SMOKE_OTP_ONLY: "1"
+          SMOKE_API_STATIC_OTP: "false"
+          SMOKE_API_OTP_FIXTURE_CODE: "654321"
+          SMOKE_OPERATOR_OWNER_PHONE: "+15550001997"
+          SESSION_SYNC_ADMIN_URL: http://denali.admin.localhost:3000
+          SESSION_SYNC_HOST_RESOLVER_RULES: "MAP denali.localhost 127.0.0.1, MAP portal.denali.localhost 127.0.0.1, MAP denali.admin.localhost 127.0.0.1"
+        run: xvfb-run -a pnpm --filter @apps/marketing exec playwright test -c playwright.otp-contract.config.ts --output=test-results/otp-six-digit
       - name: Session synchronization evidence
         if: always()
         uses: actions/upload-artifact@v4

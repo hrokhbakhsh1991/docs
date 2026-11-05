@@ -38,6 +38,7 @@ const RESEND_COOLDOWN_SEC = 45;
  * Must match the operator smoke owner (`operator-smoke-identity.mjs`). */
 const DEV_LOGIN_PHONE = process.env.NEXT_PUBLIC_DEV_LOGIN_PHONE?.trim() || "09174070937";
 const DEV_LOGIN_OTP = process.env.NEXT_PUBLIC_DEV_LOGIN_OTP?.trim() || "1234";
+const DEV_LOGIN_AUTOMATION_ENABLED = process.env.NEXT_PUBLIC_DEV_LOGIN_AUTOMATION !== "false";
 
 function initialLoginPhone(): string {
   return "";
@@ -56,6 +57,7 @@ type LoginFormProps = {
 
 type ApiErrorPayload = {
   ok?: boolean;
+  otp_length?: number;
   challenge_id?: string;
   error?: { code?: string };
 };
@@ -94,6 +96,7 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
   const [phone, setPhone] = useState(initialLoginPhone);
   const [otp, setOtp] = useState(initialLoginOtp);
   const [challengeId, setChallengeId] = useState("");
+  const [otpLength, setOtpLength] = useState<4 | 6>(OTP_SEGMENT_LENGTH);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -103,14 +106,18 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
   const devLoginAttemptedRef = useRef(false);
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && DEV_LOGIN_AUTOMATION_ENABLED) {
       setPhone(DEV_LOGIN_PHONE);
       setOtp(DEV_LOGIN_OTP);
     }
   }, []);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "development" || devOtpBootstrappedRef.current) {
+    if (
+      process.env.NODE_ENV !== "development" ||
+      !DEV_LOGIN_AUTOMATION_ENABLED ||
+      devOtpBootstrappedRef.current
+    ) {
       return;
     }
     const effectivePhone = normalizeNumericInputValue(phone, "phone");
@@ -122,19 +129,23 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
   }, [phone, challengeId]);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "development" || devLoginAttemptedRef.current) {
+    if (
+      process.env.NODE_ENV !== "development" ||
+      !DEV_LOGIN_AUTOMATION_ENABLED ||
+      devLoginAttemptedRef.current
+    ) {
       return;
     }
     if (step !== "otp" || challengeId.length === 0) {
       return;
     }
-    const code = normalizeOtpDigits(otp);
-    if (code.length < OTP_SEGMENT_LENGTH) {
+    const code = normalizeOtpDigits(otp, otpLength);
+    if (code.length !== otpLength) {
       return;
     }
     devLoginAttemptedRef.current = true;
     void login(code);
-  }, [step, challengeId, otp]);
+  }, [step, challengeId, otp, otpLength]);
 
   useEffect(() => {
     if (resendCooldown <= 0) {
@@ -172,6 +183,7 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
         return false;
       }
       setChallengeId(data.challenge_id);
+      setOtpLength(data.otp_length === 6 ? 6 : 4);
       setOtp("");
       setOtpError(null);
       setStep("otp");
@@ -187,8 +199,8 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
 
   async function login(otpOverride?: string): Promise<void> {
     const effectivePhone = readPhoneForSubmit(phone);
-    const code = normalizeOtpDigits(otpOverride ?? otp);
-    if (code.length < OTP_SEGMENT_LENGTH) {
+    const code = normalizeOtpDigits(otpOverride ?? otp, otpLength);
+    if (code.length !== otpLength) {
       setOtpError(resolveLoginErrorMessage(t, "OTP_INVALID"));
       return;
     }
@@ -205,12 +217,12 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-      body: JSON.stringify({
-        phone: effectivePhone,
-        otp: code,
-        challenge_id: challengeId,
-        ...(inviteToken !== null ? { invite_token: inviteToken } : {}),
-      }),
+        body: JSON.stringify({
+          phone: effectivePhone,
+          otp: code,
+          challenge_id: challengeId,
+          ...(inviteToken !== null ? { invite_token: inviteToken } : {}),
+        }),
       });
       const data = (await res.json()) as ApiErrorPayload;
       if (!res.ok || !data.ok) {
@@ -388,6 +400,7 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
                 </p>
                 <OtpSegmentInput
                   value={otp}
+                  length={otpLength}
                   onChange={(value) => {
                     setOtp(value);
                     if (otpError !== null) {
@@ -415,7 +428,7 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
               <Button
                 type="button"
                 className="w-full"
-                disabled={loading || otp.replace(/\D/g, "").length < OTP_SEGMENT_LENGTH}
+                disabled={loading || otp.replace(/\D/g, "").length !== otpLength}
                 onClick={() => {
                   void login();
                 }}

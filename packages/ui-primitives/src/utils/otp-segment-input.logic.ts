@@ -14,12 +14,12 @@ function mapLocaleDigitToAscii(char: string): string {
   return char;
 }
 
-export function normalizeOtpDigits(raw: string): string {
+export function normalizeOtpDigits(raw: string, length = OTP_SEGMENT_LENGTH): string {
   const normalized = Array.from(raw, mapLocaleDigitToAscii).join("");
-  return normalized.replace(/\D/g, "").slice(0, OTP_SEGMENT_LENGTH);
+  return normalized.replace(/\D/g, "").slice(0, length);
 }
 
-export function digitsFromOtpValue(value: string): string[] {
-  const normalized = normalizeOtpDigits(value);
-  return Array.from({ length: OTP_SEGMENT_LENGTH }, (_, index) => normalized[index] ?? "");
+export function digitsFromOtpValue(value: string, length = OTP_SEGMENT_LENGTH): string[] {
+  const normalized = normalizeOtpDigits(value, length);
+  return Array.from({ length }, (_, index) => normalized[index] ?? "");
 }

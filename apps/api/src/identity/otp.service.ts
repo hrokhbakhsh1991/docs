@@ -34,6 +34,8 @@ export type OtpDeliveryDependencies = {
   readonly resolveWorkspaceName?: (tenantId: string) => Promise<string | null>;
 };
 
+const OTP_MAX_VERIFY_ATTEMPTS = 5;
+
 async function enqueueRealOtpDelivery(
   mobile: string,
   code: string,
@@ -79,7 +81,7 @@ export async function createMobileOtpChallenge(
   repo: IdentityRepository = getIdentityRepository(),
   deliveryContext?: OtpDeliveryContext,
   deliveryDependencies: OtpDeliveryDependencies = {}
-): Promise<{ challengeId: string }> {
+): Promise<{ challengeId: string; otpLength: number }> {
   assertOtpRequestRateLimit(mobile);
   // DL-44: when static DEV OTP is enabled, issue the same code the UI hints (1234)
   // so otp-dev logs match PUBLIC_REGISTRATION_DEV_OTP / otp.devHint.
@@ -89,7 +91,7 @@ export async function createMobileOtpChallenge(
   if (deliveryContext === undefined) deliverOtpCode(mobile, code);
   else
     await enqueueRealOtpDelivery(mobile, code, challengeId, deliveryContext, deliveryDependencies);
-  return { challengeId };
+  return { challengeId, otpLength: code.length };
 }
 
 export async function verifyMobileOtp(
@@ -106,16 +108,21 @@ export async function verifyMobileOtp(
   if (row === null) {
     throw new OtpChallengeInvalidError();
   }
-  if (row.used || row.expiresAt.getTime() < Date.now()) {
+  if (
+    row.used ||
+    row.attemptCount >= OTP_MAX_VERIFY_ATTEMPTS ||
+    row.expiresAt.getTime() < Date.now()
+  ) {
     throw new OtpExpiredError();
   }
 
   const devBypass = isDevStaticOtpEnabled() && trimmedCode === DEV_STATIC_OTP;
   const hashValid = await verifyOtpCodeHash(trimmedCode, row.codeHash);
   if (!devBypass && !hashValid) {
+    await repo.recordOtpChallengeFailure(challengeId, OTP_MAX_VERIFY_ATTEMPTS);
     throw new OtpInvalidError();
   }
 
-  await repo.markOtpChallengeUsed(challengeId);
+  if (!(await repo.markOtpChallengeUsed(challengeId))) throw new OtpExpiredError();
   return { mobile: row.mobile };
 }

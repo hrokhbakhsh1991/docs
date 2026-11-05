@@ -113,10 +113,11 @@ export function CatalogRegistrationPhoneStep({
       } catch {
         // hint is optional — still request OTP
       }
-      const { challengeId } = await transport.requestOtp({ phone: effectivePhone });
+      const { challengeId, otpLength } = await transport.requestOtp({ phone: effectivePhone });
       mergeFlowState(state, dispatch, {
         phone: effectivePhone,
         challengeId,
+        otpLength: otpLength ?? 4,
         otp: "",
       });
       transitionFlowStep(dispatch, "otp");
@@ -222,6 +223,10 @@ export function CatalogRegistrationOtpStep({
   async function verifyOtp(otpOverride?: string): Promise<void> {
     const code = (otpOverride ?? data.otp).replace(/\D/g, "");
     if (verifyInFlightRef.current) return;
+    if (code.length !== (data.otpLength ?? 4)) {
+      setError(resolveError("OTP_INVALID"));
+      return;
+    }
     verifyInFlightRef.current = true;
     setLoading(true);
     setError(null);
@@ -249,8 +254,8 @@ export function CatalogRegistrationOtpStep({
     setLoading(true);
     setError(null);
     try {
-      const { challengeId } = await host.transport.requestOtp({ phone: data.phone });
-      mergeFlowState(state, dispatch, { challengeId, otp: "" });
+      const { challengeId, otpLength } = await host.transport.requestOtp({ phone: data.phone });
+      mergeFlowState(state, dispatch, { challengeId, otpLength: otpLength ?? 4, otp: "" });
       setResendCooldown(PUBLIC_REGISTRATION_RESEND_COOLDOWN_SEC);
     } catch (error) {
       setError(resolveError(readGuestAuthFailureCode(error)));
@@ -287,6 +292,7 @@ export function CatalogRegistrationOtpStep({
       <OtpSegmentInput
         id="otp"
         value={data.otp}
+        length={data.otpLength ?? 4}
         onChange={(nextValue) => {
           setError(null);
           mergeFlowState(state, dispatch, { otp: nextValue });
@@ -305,7 +311,7 @@ export function CatalogRegistrationOtpStep({
         <button
           type="button"
           onClick={() => void verifyOtp()}
-          disabled={loading}
+          disabled={loading || data.otp.length !== (data.otpLength ?? 4)}
           data-action="verify-otp"
         >
           {loading ? t("otp.verifying") : t("otp.verify")}

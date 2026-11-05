@@ -661,13 +661,14 @@ model UserTenant {
 
 /// Phase 9.1 — OTP challenge store (single-use · 5m TTL in service layer).
 model MobileOtpChallenge {
-  id        String   @id @default(uuid()) @db.Uuid
-  mobile    String
-  purpose   String   @default("login")
-  codeHash  String   @default("") @map("code_hash")
-  expiresAt DateTime @map("expires_at")
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  mobile       String
+  purpose      String   @default("login")
+  codeHash     String   @default("") @map("code_hash")
+  expiresAt    DateTime @map("expires_at")
+  attemptCount Int      @default(0) @map("attempt_count")
+  used         Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
 
   @@index([mobile, createdAt(sort: Desc)], map: "idx_mobile_otp_mobile_created")
   @@map("mobile_otp_challenges")

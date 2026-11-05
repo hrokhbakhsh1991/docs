@@ -91,7 +91,7 @@ describe("identity-otp-production.spec.ts — 1C.2", () => {
     process.env.AUTH_JWT_ISSUER = "tour-ops";
     process.env.AUTH_JWT_AUDIENCE = "tour-ops-api";
     process.env.AUTH_ALLOW_DEV_STATIC_OTP = "false";
-    process.env.OTP_FIXTURE_CODE = "882211";
+    process.env.OTP_FIXTURE_CODE = "8822";
     resetSessionTokenKeyCacheForTests();
     seedOperatorIdentityFixture();
   });
@@ -124,7 +124,7 @@ describe("identity-otp-production.spec.ts — 1C.2", () => {
       headers: operatorAuthHeaders(),
       body: {
         challengeId: issued.body.challengeId,
-        code: "882211",
+        code: "8822",
       },
     });
     assert.equal(verified.status, 200);

@@ -53,6 +53,7 @@ export type OtpChallengeRecord = {
   readonly purpose: "login";
   readonly codeHash: string;
   readonly expiresAt: Date;
+  attemptCount: number;
   used: boolean;
 };
 
@@ -133,7 +134,8 @@ export type IdentityRepository = {
   ): Promise<readonly MembershipWithUserRecord[]>;
   createOtpChallenge(mobile: string, codeHash: string): Promise<{ challengeId: string }>;
   findOtpChallenge(challengeId: string): Promise<OtpChallengeRecord | null>;
-  markOtpChallengeUsed(challengeId: string): Promise<void>;
+  recordOtpChallengeFailure(challengeId: string, maximumAttempts: number): Promise<void>;
+  markOtpChallengeUsed(challengeId: string): Promise<boolean>;
   createPendingInvite(input: CreatePendingInviteInput): Promise<PendingInviteRecord>;
   listPendingInvitesByTenant(tenantId: string): Promise<readonly PendingInviteRecord[]>;
   findPendingInviteByPhone(tenantId: string, phone: string): Promise<PendingInviteRecord | null>;
@@ -330,6 +332,7 @@ export class InMemoryIdentityRepository implements IdentityRepository {
       purpose: "login",
       codeHash,
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      attemptCount: 0,
       used: false,
     };
     this.challenges.set(id, record);
@@ -340,11 +343,18 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     return this.challenges.get(challengeId.trim()) ?? null;
   }
 
-  async markOtpChallengeUsed(challengeId: string): Promise<void> {
+  async recordOtpChallengeFailure(challengeId: string, maximumAttempts: number): Promise<void> {
     const row = this.challenges.get(challengeId.trim());
-    if (row !== undefined) {
-      row.used = true;
-    }
+    if (row === undefined || row.used || row.expiresAt.getTime() <= Date.now()) return;
+    row.attemptCount = Math.min(row.attemptCount + 1, maximumAttempts);
+    if (row.attemptCount >= maximumAttempts) row.used = true;
+  }
+
+  async markOtpChallengeUsed(challengeId: string): Promise<boolean> {
+    const row = this.challenges.get(challengeId.trim());
+    if (row === undefined || row.used || row.expiresAt.getTime() <= Date.now()) return false;
+    row.used = true;
+    return true;
   }
 
   async registerPublicGuest(input: RegisterPublicGuestInput): Promise<RegisterPublicGuestResult> {

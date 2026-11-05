@@ -12,6 +12,8 @@ const ENV_NAMES = [
   "AUTH_ALLOW_DEV_STATIC_OTP",
   "SMS_OTP_ENABLED",
   "SMS_DELIVERY_ENCRYPTION_KEY",
+  "STAGING_ALLOW_STATIC_OTP",
+  "OTP_FIXTURE_CODE",
 ] as const;
 const environment = Object.fromEntries(ENV_NAMES.map((name) => [name, process.env[name]]));
 
@@ -73,5 +75,89 @@ describe("real OTP SMS enqueue", () => {
     assert.equal(payload.smsEncryptedVariables?.toString().includes("1234"), false);
     assert.equal(decryptOtpDeliveryCode(String(payload.smsEncryptedVariables)), "1234");
     await verifyMobileOtp(result.challengeId, "1234", repo);
+  });
+});
+
+describe("random SMS challenge contract", () => {
+  for (const purpose of ["operator_login", "member_login"] as const) {
+    it(`issues and verifies a complete four-digit code for ${purpose}`, async () => {
+      process.env.NODE_ENV = "production";
+      process.env.APP_INFRA_PROFILE = "staging";
+      process.env.STAGING_ALLOW_STATIC_OTP = "false";
+      process.env.AUTH_ALLOW_DEV_STATIC_OTP = "false";
+      process.env.SMS_OTP_ENABLED = "true";
+      process.env.SMS_DELIVERY_ENCRYPTION_KEY = "33".repeat(32);
+      const repo = new InMemoryIdentityRepository();
+      let delivered = "";
+      const result = await createMobileOtpChallenge(
+        "+989121234568",
+        repo,
+        {
+          tenantId: "tenant-denali",
+          workspaceType: "denali",
+          purpose,
+        },
+        {
+          resolveConnection: async () => ({
+            id: "sms-connection",
+            tenantId: "tenant-denali",
+            workspaceType: "denali",
+            provider: "melipayamak",
+            status: "enabled",
+            enabled: true,
+            capabilities: ["sms.send"],
+            config: { sender: "50000000000000" },
+            secretRef: "sms-secret",
+            credentials: {},
+            createdAt: new Date(0),
+            updatedAt: new Date(0),
+          }),
+          resolveWorkspaceName: async () => "دنالی",
+          enqueueJob: async (job) => {
+            delivered = decryptOtpDeliveryCode(String(job.payload.smsEncryptedVariables));
+            assert.equal(job.payload.smsPurpose, purpose);
+            return true;
+          },
+        }
+      );
+      assert.equal(result.otpLength, 4);
+      assert.match(delivered, /^\d{4}$/);
+      assert.equal("code" in result, false);
+      await assert.rejects(() => verifyMobileOtp(result.challengeId, delivered.slice(0, 3), repo));
+      await verifyMobileOtp(result.challengeId, delivered, repo);
+      await assert.rejects(() => verifyMobileOtp(result.challengeId, delivered, repo));
+    });
+  }
+});
+
+describe("single-use OTP under simultaneous verification", () => {
+  it("allows exactly one successful verification of the same challenge", async () => {
+    process.env.NODE_ENV = "test";
+    process.env.AUTH_ALLOW_DEV_STATIC_OTP = "true";
+    process.env.SMS_OTP_ENABLED = "false";
+    const repo = new InMemoryIdentityRepository();
+    const { challengeId } = await createMobileOtpChallenge("+989121234569", repo);
+    const results = await Promise.allSettled([
+      verifyMobileOtp(challengeId, "1234", repo),
+      verifyMobileOtp(challengeId, "1234", repo),
+    ]);
+    assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
+    assert.equal(results.filter((r) => r.status === "rejected").length, 1);
+  });
+});
+
+describe("OTP verification attempt limit", () => {
+  it("invalidates a challenge after five incorrect guesses", async () => {
+    process.env.NODE_ENV = "test";
+    process.env.AUTH_ALLOW_DEV_STATIC_OTP = "false";
+    process.env.SMS_OTP_ENABLED = "false";
+    process.env.OTP_FIXTURE_CODE = "1234";
+    const repo = new InMemoryIdentityRepository();
+    const { challengeId } = await createMobileOtpChallenge("+989121234570", repo);
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await assert.rejects(() => verifyMobileOtp(challengeId, "0000", repo));
+    }
+    await assert.rejects(() => verifyMobileOtp(challengeId, "1234", repo));
   });
 });

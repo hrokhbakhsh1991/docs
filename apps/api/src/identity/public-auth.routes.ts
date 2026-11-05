@@ -5,15 +5,8 @@ import { parseRequestAuth } from "../auth/request-context";
 import { sendJson } from "../http/json";
 import { handleHttpError } from "../middleware/error-interceptor";
 import { assertRequiredAuthHeaders } from "../tenant-kernel/assert-required-headers";
-import {
-  OtpChallengeInvalidError,
-  OtpExpiredError,
-  OtpInvalidError,
-} from "./identity.errors";
-import {
-  getIdentityRepository,
-  type IdentityRepository,
-} from "./create-identity-repository";
+import { OtpChallengeInvalidError, OtpExpiredError, OtpInvalidError } from "./identity.errors";
+import { getIdentityRepository, type IdentityRepository } from "./create-identity-repository";
 import { hydrateMembershipFromDb } from "./hydrate-membership";
 import {
   OnboardingTokenInvalidError,
@@ -23,10 +16,7 @@ import {
 import { OtpRateLimitedError } from "./otp-rate-limit";
 import { createMobileOtpChallenge, verifyMobileOtp } from "./otp.service";
 import { DisplayNameRequiredError } from "./public-auth.errors";
-import {
-  isLoginMobileFormatValid,
-  normalizeLoginMobile,
-} from "./phone-login-authorization";
+import { isLoginMobileFormatValid, normalizeLoginMobile } from "./phone-login-authorization";
 import { MobileInvalidError, MobileRequiredError } from "./phone-preflight.errors";
 import { readIdentityRequestBody } from "./read-identity-request-body";
 import { signSessionToken } from "./sign-session-token";
@@ -101,12 +91,12 @@ export async function handlePublicRequestOtp(
     assertLoginMobilePresent(mobile);
     assertLoginMobileFormat(mobile);
 
-    const { challengeId } = await createMobileOtpChallenge(mobile, repo, {
+    const { challengeId, otpLength } = await createMobileOtpChallenge(mobile, repo, {
       tenantId,
       workspaceType: await resolveWorkspaceTypeForTenant(tenantId),
       purpose: "member_login",
     });
-    sendJson(res, 200, { challengeId });
+    sendJson(res, 200, { challengeId, otpLength });
   } catch (error) {
     if (error instanceof MobileRequiredError || error instanceof MobileInvalidError) {
       handleMobileValidationError(res, error);

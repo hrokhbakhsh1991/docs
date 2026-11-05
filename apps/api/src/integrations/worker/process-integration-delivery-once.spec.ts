@@ -8,6 +8,7 @@ import {
   processIntegrationDeliveryOnce,
 } from "./process-integration-delivery-once";
 import type { IntegrationDeliveryRepository } from "../infrastructure/prisma-integration-delivery.repository";
+import { encryptOtpDeliveryCode } from "../../identity/otp-delivery-secret";
 import {
   resolveIntegrationDeliveryChannelId,
   resolveTelegramDeliveryThreadId,
@@ -787,6 +788,67 @@ describe("Telegram worker delivery", () => {
       error: { code: "INTEGRATION_TOUR_PDP_URL_UNAVAILABLE" },
     });
     assert.equal(sends, 0);
+  });
+});
+
+describe("MeliPayamak OTP template delivery", () => {
+  it("sends only the numeric OTP as the approved single template variable", async () => {
+    const previousKey = process.env.SMS_DELIVERY_ENCRYPTION_KEY;
+    process.env.SMS_DELIVERY_ENCRYPTION_KEY = "44".repeat(32);
+    let captured: { recipient: string; templateId: string; variables: readonly string[] } | null =
+      null;
+    try {
+      const result = await executeIntegrationDeliveryJob(
+        deliveryJob({
+          provider: "melipayamak",
+          capability: "sms.send",
+          payload: {
+            workspaceType: "denali",
+            integrationConnectionId: "sms-connection",
+            recipient: "+989121234567",
+            smsTemplateId: "578050",
+            smsEncryptedVariables: encryptOtpDeliveryCode("4826"),
+            smsWorkspaceName: "دنالی",
+          },
+        }),
+        {
+          resolveConnection: async () => ({
+            id: "sms-connection",
+            tenantId: "tenant-denali",
+            workspaceType: "denali",
+            provider: "melipayamak",
+            status: "enabled",
+            enabled: true,
+            capabilities: ["sms.send"],
+            config: { bodyId: "578050" },
+            secretRef: "sms-secret",
+            credentials: { username: "test", password: "not-used-in-test" },
+            createdAt: new Date(0),
+            updatedAt: new Date(0),
+          }),
+          getProvider: () => ({
+            id: "melipayamak",
+            supportedCapabilities: ["sms.send"],
+            async sendMessage() {
+              return { ok: false, errorCode: "UNEXPECTED_MESSAGE_SEND" };
+            },
+            async sendSms(_ctx, input) {
+              captured = input;
+              return { ok: true };
+            },
+          }),
+        }
+      );
+      assert.deepEqual(result, { ok: true });
+      assert.deepEqual(captured, {
+        recipient: "+989121234567",
+        templateId: "578050",
+        variables: ["4826"],
+      });
+    } finally {
+      if (previousKey === undefined) delete process.env.SMS_DELIVERY_ENCRYPTION_KEY;
+      else process.env.SMS_DELIVERY_ENCRYPTION_KEY = previousKey;
+    }
   });
 });
 

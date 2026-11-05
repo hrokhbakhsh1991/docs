@@ -15,7 +15,10 @@ function readPlatformOpsPhones(): string[] {
   if (!raw) {
     return [];
   }
-  return raw.split(",").map((entry) => entry.trim()).filter(Boolean);
+  return raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 type LoginPayload = {
@@ -36,7 +39,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     typeof body.phone === "string" ? body.phone.trim() : "",
     "phone"
   );
-  const otp = normalizeOtpDigits(typeof body.otp === "string" ? body.otp.trim() : "");
+  const otp = normalizeOtpDigits(typeof body.otp === "string" ? body.otp.trim() : "", 6);
   const allowedPhones = readPlatformOpsPhones();
   if (allowedPhones.length > 0 && !allowedPhones.includes(phone)) {
     return NextResponse.json(

@@ -12,19 +12,24 @@ import {
   type KeyboardEvent,
 } from "react";
 
+import {
+  normalizeOtpDigits,
+  digitsFromOtpValue as digitsFromValue,
+  OTP_SEGMENT_LENGTH,
+} from "@app-tour/ui-primitives/otp-segment-input-logic";
+
 import { formatOtpDigitIndex } from "./format-otp-digit-index";
 
 type OtpSegmentInputProps = {
   readonly id?: string;
   readonly value: string;
+  readonly length?: 4 | 6;
   readonly onChange: (value: string) => void;
   readonly onComplete?: (value: string) => void;
   readonly disabled?: boolean;
   readonly "aria-invalid"?: boolean;
   readonly "aria-describedby"?: string;
 };
-
-const OTP_SEGMENT_LENGTH = 4;
 
 /** Visually hide the group name; cells remain the only textboxes. */
 const visuallyHiddenStyle: CSSProperties = {
@@ -39,18 +44,10 @@ const visuallyHiddenStyle: CSSProperties = {
   border: 0,
 };
 
-function normalizeOtpDigits(value: string): string {
-  return value.replace(/\D/g, "").slice(0, OTP_SEGMENT_LENGTH);
-}
-
-function digitsFromValue(value: string): string[] {
-  const normalized = normalizeOtpDigits(value);
-  return Array.from({ length: OTP_SEGMENT_LENGTH }, (_, index) => normalized[index] ?? "");
-}
-
 export function OtpSegmentInput({
   id,
   value,
+  length = OTP_SEGMENT_LENGTH,
   onChange,
   onComplete,
   disabled = false,
@@ -64,39 +61,39 @@ export function OtpSegmentInput({
   const valueRef = useRef(value);
 
   valueRef.current = value;
-  const cells = digitsFromValue(value);
+  const cells = digitsFromValue(value, length);
 
   const emitValue = useCallback(
     (nextDigits: string[]) => {
-      const next = nextDigits.join("").slice(0, OTP_SEGMENT_LENGTH);
+      const next = nextDigits.join("").slice(0, length);
       valueRef.current = next;
       onChange(next);
-      if (next.length === OTP_SEGMENT_LENGTH) {
+      if (next.length === length) {
         onComplete?.(next);
       }
     },
-    [onChange, onComplete]
+    [onChange, onComplete, length]
   );
 
   const applyDigitsAtIndex = useCallback(
     (startIndex: number, raw: string): void => {
-      const incoming = normalizeOtpDigits(raw);
+      const incoming = normalizeOtpDigits(raw, length);
       if (incoming.length === 0) {
         return;
       }
-      const next = digitsFromValue(valueRef.current);
+      const next = digitsFromValue(valueRef.current, length);
       let writeIndex = startIndex;
       for (const digit of incoming) {
-        if (writeIndex >= OTP_SEGMENT_LENGTH) {
+        if (writeIndex >= length) {
           break;
         }
         next[writeIndex] = digit;
         writeIndex += 1;
       }
       emitValue(next);
-      focusCell(Math.min(writeIndex, OTP_SEGMENT_LENGTH - 1));
+      focusCell(Math.min(writeIndex, length - 1));
     },
-    [emitValue]
+    [emitValue, length]
   );
 
   useEffect(() => {
@@ -107,7 +104,7 @@ export function OtpSegmentInput({
   }, [disabled, value]);
 
   function focusCell(index: number): void {
-    const clamped = Math.max(0, Math.min(OTP_SEGMENT_LENGTH - 1, index));
+    const clamped = Math.max(0, Math.min(length - 1, index));
     const target = inputRefs.current[clamped];
     if (!target) {
       return;
@@ -119,9 +116,9 @@ export function OtpSegmentInput({
   }
 
   function handleCellChange(index: number, raw: string): void {
-    const incoming = normalizeOtpDigits(raw);
+    const incoming = normalizeOtpDigits(raw, length);
     if (incoming.length === 0) {
-      const next = digitsFromValue(valueRef.current);
+      const next = digitsFromValue(valueRef.current, length);
       next[index] = "";
       emitValue(next);
       return;
@@ -130,16 +127,16 @@ export function OtpSegmentInput({
       applyDigitsAtIndex(index, incoming);
       return;
     }
-    const next = digitsFromValue(valueRef.current);
+    const next = digitsFromValue(valueRef.current, length);
     next[index] = incoming;
     emitValue(next);
-    if (index < OTP_SEGMENT_LENGTH - 1) {
+    if (index < length - 1) {
       focusCell(index + 1);
     }
   }
 
   function handleKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>): void {
-    const current = digitsFromValue(valueRef.current);
+    const current = digitsFromValue(valueRef.current, length);
 
     if (event.key === "Backspace") {
       event.preventDefault();
@@ -164,7 +161,7 @@ export function OtpSegmentInput({
       return;
     }
 
-    if (event.key === "ArrowRight" && index < OTP_SEGMENT_LENGTH - 1) {
+    if (event.key === "ArrowRight" && index < length - 1) {
       event.preventDefault();
       focusCell(index + 1);
     }
@@ -177,16 +174,14 @@ export function OtpSegmentInput({
 
   return (
     <div data-otp-segment-input dir="ltr" style={{ position: "relative" }}>
-      <div
-        id={id}
-        role="group"
-        aria-labelledby={labelId}
-        aria-describedby={ariaDescribedBy}
-      >
+      <div id={id} role="group" aria-labelledby={labelId} aria-describedby={ariaDescribedBy}>
         <span id={labelId} style={visuallyHiddenStyle}>
           {t("otp.groupLabel")}
         </span>
-        <div data-otp-segment-cells>
+        <div
+          data-otp-segment-cells
+          style={{ gridTemplateColumns: `repeat(${length}, minmax(0, 1fr))` }}
+        >
           {cells.map((digit, index) => (
             <Input
               key={index}
@@ -199,7 +194,7 @@ export function OtpSegmentInput({
               autoComplete={index === 0 ? "one-time-code" : "off"}
               autoCorrect="off"
               spellCheck={false}
-              maxLength={index === 0 ? OTP_SEGMENT_LENGTH : 1}
+              maxLength={index === 0 ? length : 1}
               value={digit}
               disabled={disabled}
               aria-invalid={ariaInvalid}

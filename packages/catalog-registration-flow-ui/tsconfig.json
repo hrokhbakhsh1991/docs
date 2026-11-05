@@ -7,7 +7,10 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "baseUrl": ".",
     "paths": {
-      "@app-tour/ui-primitives/input": ["../ui-primitives/dist/Input/Input"]
+      "@app-tour/ui-primitives/input": ["../ui-primitives/dist/Input/Input"],
+      "@app-tour/ui-primitives/otp-segment-input-logic": [
+        "../ui-primitives/dist/utils/otp-segment-input.logic"
+      ]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]

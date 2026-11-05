@@ -1,0 +1,26 @@
+---
+title: OTP challenge length contract
+status: implementation-in-progress
+---
+
+# OTP challenge length
+
+Identity is the authority for OTP generation and verification. A newly issued challenge returns `challengeId` and `otpLength` (4 for static fixtures and random SMS codes). Admin and Portal BFFs forward this non-secret metadata as `otp_length`. Marketing authenticates through Portal and consumes the same metadata. No OTP value is returned to the browser.
+
+Each input renders and validates the issued challenge length. Resend replaces both the challenge and its length and clears the old input. Existing API fixtures without this additive property retain their four-digit behavior during rollout. Normalization and paste/autofill must preserve all four digits, including Persian/Arabic digits and leading zeroes. Submission occurs only for the exact expected length.
+
+Staging SMS activation requires a tenant/workspace-scoped enabled Melipayamak connection, a valid environment-specific encryption key and a running delivery worker. Sending SMS and enabling static test OTP are separate settings. Random codes require static bypass to be disabled after the updated client is deployed. Connection tests and real delivery require a designated authorized recipient; they incur normal provider charges.
+
+Acceptance covers Admin login, Portal login, PDP modal, resend, invalid/expired/reused codes, operator membership restrictions, tenant isolation and network/provider failure. Provider acceptance and actual handset delivery are separate evidence. Preserve an audited rollback of the deployed artifact and SMS configuration; do not silently fall back to accepting a fixed code.
+
+Successful verification must atomically consume an unused, unexpired challenge. Only the request that updates the challenge may issue a session; a concurrent loser receives the existing expired/used error. The persisted attempt counter locks a challenge after five incorrect guesses. Melipayamak REST responses use the official `Value`/`RetStatus` envelope; only a successful HTTP response with a valid message identifier and successful provider status is accepted.
+
+## Activation order and tenant impact
+
+1. Deploy the client/BFF/API contract together while retaining the current delivery policy. Confirm the release SHA and four-digit compatibility first.
+2. Configure the existing enabled Denali workspace connection with the webservice username and APIKey using the integration secret store, not repository files. Set an environment-specific delivery encryption key and verify worker readiness.
+3. Confirm the provider template and designated test recipient. Test provider acceptance and handset receipt separately; a queued job or provider message ID alone does not prove receipt.
+4. Audit every tenant served by this API before changing `SMS_OTP_ENABLED` or static OTP flags: both are currently process-wide. A tenant without an enabled matching connection will fail OTP requests when SMS is enabled. Do not silently fall back to static codes or activate only Denali while assuming other tenants are unaffected.
+5. Disable static OTP only with the compatible release and a working delivery path. Repeat Admin, Portal page, PDP desktop/mobile, logout, resend, expiry and single-use checks on the identified staging release.
+
+Rollback must restore the previous artifact and recorded configuration together under explicit staging authorization. Do not commit provider credentials, encryption keys, phone numbers, cookies or challenge values to the rollout evidence. Real provider setup and delivery remain pending until separately verified; this document is not evidence of activation.

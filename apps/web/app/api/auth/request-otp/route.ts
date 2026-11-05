@@ -3,10 +3,7 @@ import { NextResponse } from "next/server";
 import { operatorApiFetch } from "@/auth/operator-api-fetch";
 
 import { bffCodedError } from "@/auth/bff-coded-error";
-import {
-  checkBffLoginRateLimit,
-  readBffLoginRateLimitKey,
-} from "@/auth/bff-login-rate-limit";
+import { checkBffLoginRateLimit, readBffLoginRateLimitKey } from "@/auth/bff-login-rate-limit";
 import { buildIdentityBffHeadersAsync } from "@/auth/identity-bff-headers";
 import { mapOperatorAuthBffCatchError } from "@/auth/operator-auth-bff-error";
 import { canonicalizeOperatorLoginPhone } from "@/features/auth/canonicalize-operator-login-phone";
@@ -18,9 +15,7 @@ type RequestOtpBody = {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const body = (await req.json().catch(() => ({}))) as RequestOtpBody;
-  const phone = canonicalizeOperatorLoginPhone(
-    typeof body.phone === "string" ? body.phone : ""
-  );
+  const phone = canonicalizeOperatorLoginPhone(typeof body.phone === "string" ? body.phone : "");
   if (phone.length === 0) {
     return bffCodedError("MOBILE_REQUIRED", 400);
   }
@@ -53,8 +48,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
   }
 
+  if (payload.otpLength !== undefined && payload.otpLength !== 4 && payload.otpLength !== 6) {
+    return bffCodedError("OTP_REQUEST_FAILED", 502);
+  }
+
   return NextResponse.json(
-    { ok: true, challenge_id: payload.challengeId },
+    { ok: true, challenge_id: payload.challengeId, otp_length: payload.otpLength === 6 ? 6 : 4 },
     { status: 200 }
   );
 }

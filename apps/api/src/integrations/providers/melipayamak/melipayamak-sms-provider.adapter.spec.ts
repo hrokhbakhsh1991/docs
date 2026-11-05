@@ -114,3 +114,44 @@ describe("Melipayamak SMS provider adapter", () => {
     }
   });
 });
+
+describe("official REST response contract", () => {
+  for (const [name, status, body, expected] of [
+    [
+      "accepts the official Value/RetStatus envelope",
+      200,
+      { Value: "1234567890123456", RetStatus: 1, StrRetStatus: "Ok" },
+      true,
+    ],
+    ["rejects a provider error in lowercase value", 200, { value: "-4" }, false],
+    [
+      "rejects a failure status even with a message id",
+      500,
+      { Value: "1234567890123456", RetStatus: 1 },
+      false,
+    ],
+    [
+      "rejects a negative provider status even with a message id",
+      200,
+      { Value: "1234567890123456", RetStatus: -1 },
+      false,
+    ],
+  ] as const) {
+    it(name, async () => {
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = (async () =>
+        new Response(JSON.stringify(body), { status })) as typeof fetch;
+      try {
+        const result = await new MelipayamakSmsProviderAdapter().sendSms(context, {
+          recipient: "989121234567",
+          templateId: "12345",
+          variables: ["482193 دنالی"],
+        });
+        assert.equal(result.ok, expected);
+        if (expected) assert.equal(result.providerMessageId, "1234567890123456");
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+  }
+});
