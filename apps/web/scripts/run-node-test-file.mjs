@@ -5,10 +5,7 @@
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  classifyWebTestSpec,
-  SpecKind,
-} from "../../../scripts/lib/classify-web-test-spec.mjs";
+import { classifyWebTestSpec, SpecKind } from "../../../scripts/lib/classify-web-test-spec.mjs";
 
 const WEB_ROOT = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -61,7 +58,12 @@ const result = spawnSync(
   {
     cwd: WEB_ROOT,
     stdio: "inherit",
-    env: { ...process.env, NODE_ENV: "test" },
+    env: {
+      ...process.env,
+      NODE_ENV: "test",
+      TSX_TSCONFIG_PATH:
+        process.env.TSX_TSCONFIG_PATH ?? resolve(WEB_ROOT, "test/tsconfig.react.json"),
+    },
   }
 );
 
