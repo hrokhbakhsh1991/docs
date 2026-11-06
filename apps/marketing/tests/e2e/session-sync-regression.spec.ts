@@ -8,6 +8,8 @@ const portal = process.env.SESSION_SYNC_PORTAL_URL ?? "http://portal.denali.loca
 const tour = process.env.SESSION_SYNC_TOUR_ID ?? "00000000-0000-4000-8000-000000000220";
 const phone = process.env.SESSION_SYNC_PHONE;
 const otp = process.env.SESSION_SYNC_OTP;
+// Match the deployed MEMBER_SESSION_COOKIE_NAME; local fixtures use the default.
+const memberCookieName = process.env.SESSION_SYNC_MEMBER_COOKIE_NAME?.trim() || "atour_mb_session";
 
 test.beforeEach(async () => {
   const control = process.env.SESSION_SYNC_FAULT_CONTROL_URL;
@@ -53,11 +55,11 @@ test("open marketing PDP and header follow portal logout", async ({ page, contex
     expect(await response?.json()).toEqual({ ok: true, ready: false });
     expect(
       (await context.cookies(`http://portal.urban.localhost:${portalUrl.port}`)).some(
-        (cookie) => cookie.name === "atour_mb_session"
+        (cookie) => cookie.name === memberCookieName
       )
     ).toBe(false);
     const memberCookie = (await context.cookies(portal)).find(
-      (cookie) => cookie.name === "atour_mb_session"
+      (cookie) => cookie.name === memberCookieName
     );
     expect(memberCookie).toBeTruthy();
     await context.addCookies([{ ...memberCookie!, domain: "urban.localhost" }]);
@@ -79,9 +81,9 @@ test("open marketing PDP and header follow portal logout", async ({ page, contex
     expect(await foreignProbe?.json()).toEqual({ ok: true, ready: false });
     await otherTenant.goto(`http://portal.urban.localhost:${portalUrl.port}/me/profile`);
     await expect(otherTenant).toHaveURL(/\/login/);
-    expect(
-      (await context.cookies(portal)).some((cookie) => cookie.name === "atour_mb_session")
-    ).toBe(true);
+    expect((await context.cookies(portal)).some((cookie) => cookie.name === memberCookieName)).toBe(
+      true
+    );
     await otherTenant.close();
   }
 
@@ -286,7 +288,7 @@ test("probe failures preserve the current UI and unsaved filter until a confirme
       .first()
       .click();
     await (await loggedOut).finished();
-    expect((await context.cookies()).some((cookie) => cookie.name === "atour_mb_session")).toBe(
+    expect((await context.cookies()).some((cookie) => cookie.name === memberCookieName)).toBe(
       false
     );
     await list.bringToFront();
@@ -407,7 +409,7 @@ test("probe failures preserve the current UI and unsaved filter until a confirme
         visibility: await list.evaluate(() => document.visibilityState).catch(() => "unavailable"),
         cookiePresent: await context
           .cookies()
-          .then((cookies) => cookies.some((cookie) => cookie.name === "atour_mb_session"))
+          .then((cookies) => cookies.some((cookie) => cookie.name === memberCookieName))
           .catch(() => null),
         renderedAuthenticated: await list
           .locator("[data-marketing-member-authenticated]")
@@ -451,7 +453,7 @@ test("an expired member cookie updates marketing and protects portal routes", as
   await pdp.goto(`/tours/${tour}`);
   await expect(pdp.locator("[data-marketing-member-authenticated]")).toBeVisible();
   const memberCookie = (await context.cookies(portal)).find(
-    (cookie) => cookie.name === "atour_mb_session"
+    (cookie) => cookie.name === memberCookieName
   );
   expect(memberCookie).toBeTruthy();
   const expiresAt = Math.floor(Date.now() / 1000) + 2;
@@ -518,13 +520,13 @@ test("a late pre-logout session response cannot restore authentication", async (
       .click();
     await loggedOut;
     await expect(page).toHaveURL(new URL("/", marketingBase).href);
-    expect((await context.cookies()).some((cookie) => cookie.name === "atour_mb_session")).toBe(
+    expect((await context.cookies()).some((cookie) => cookie.name === memberCookieName)).toBe(
       false
     );
     await setMode("normal");
     expect(await delayedProbe).toEqual({ status: 200, body: { ok: true, ready: true } });
     expect(
-      (await context.cookies()).some((cookie) => cookie.name === "atour_mb_session"),
+      (await context.cookies()).some((cookie) => cookie.name === memberCookieName),
       "a read-only probe must not resurrect the cleared cookie"
     ).toBe(false);
     await page.goto(`${portal}/me/profile`);
@@ -594,7 +596,7 @@ test("a session that marketing SSR cannot read does not create a refresh loop", 
     await page.waitForTimeout(6_500);
     expect(refreshes).toBe(1);
     await expect(page.locator("[data-marketing-member-authenticated]")).toHaveCount(1);
-    expect((await context.cookies()).some((cookie) => cookie.name === "atour_mb_session")).toBe(
+    expect((await context.cookies()).some((cookie) => cookie.name === memberCookieName)).toBe(
       false
     );
   } finally {
