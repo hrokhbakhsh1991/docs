@@ -274,7 +274,7 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
     setResendCooldown(0);
   }
 
-  const showDevOtpHint = process.env.NODE_ENV === "development";
+  const showDevOtpHint = process.env.NODE_ENV === "development" && DEV_LOGIN_AUTOMATION_ENABLED;
 
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center overflow-x-hidden bg-muted/40 px-4 py-4 sm:py-6">

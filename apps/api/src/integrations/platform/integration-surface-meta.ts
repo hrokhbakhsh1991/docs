@@ -51,7 +51,9 @@ export async function buildWorkspaceIntegrationSurfaceMeta(
   return {
     workspaceType,
     exposureCandidateFields,
-    providers: surface.providers.map((provider) => ({
+    providers: surface.providers.filter((provider) =>
+      process.env.SMS_PROVIDER_MODE?.trim() !== "platform" || provider.id !== "melipayamak"
+    ).map((provider) => ({
       id: provider.id,
       configFields: provider.configFields.map((field) => ({
         id: field.id,

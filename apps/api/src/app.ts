@@ -1515,6 +1515,13 @@ async function dispatchRequest(
     return;
   }
 
+  const workspaceSmsUsageMatch = url.pathname.match(/^\/workspaces\/([^/]+)\/sms-usage$/);
+  if (workspaceSmsUsageMatch && method === "GET") {
+    const { handleGetWorkspaceSmsUsage } = await import("./integrations/http/integrations.routes");
+    await handleGetWorkspaceSmsUsage(req, res, decodeURIComponent(workspaceSmsUsageMatch[1]!));
+    return;
+  }
+
   const workspaceIntegrationsMatch = url.pathname.match(/^\/workspaces\/([^/]+)\/integrations$/);
   if (workspaceIntegrationsMatch) {
     const workspaceId = decodeURIComponent(workspaceIntegrationsMatch[1]!);

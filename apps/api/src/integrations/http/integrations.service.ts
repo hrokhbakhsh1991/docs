@@ -133,6 +133,12 @@ export class IntegrationInvalidBodyError extends Error {
   }
 }
 
+function assertWorkspaceSmsNotPlatformManaged(provider: string): void {
+  if (provider === "melipayamak" && process.env.SMS_PROVIDER_MODE?.trim() === "platform") {
+    throw new IntegrationInvalidBodyError("PLATFORM_SMS_MANAGED_CENTRALLY");
+  }
+}
+
 export class IntegrationConnectionAlreadyExistsError extends Error {
   readonly code = "INTEGRATION_CONNECTION_ALREADY_EXISTS";
   constructor() {
@@ -684,6 +690,7 @@ export async function createWorkspaceIntegration(
   }
   const record = body as Record<string, unknown>;
   const provider = parseProvider(record.provider);
+  assertWorkspaceSmsNotPlatformManaged(provider);
   const workspaceType = await resolveWorkspaceTypeForRoute(auth.tenantId, workspaceId);
   const rawConfig =
     typeof record.config === "object" && record.config !== null
@@ -783,6 +790,31 @@ export function emptyWorkspaceIntegrationsListResponse(): WorkspaceIntegrationsL
   return { items, summary: computeWorkspaceIntegrationsSummary(items) };
 }
 
+export async function getWorkspaceSmsUsage(auth: TenantAuthContext, workspaceId: string): Promise<{
+  periodDays: 30; accepted: number; failed: number; unknown: number; total: number; cost: null;
+}> {
+  if (auth.role !== "owner" && auth.role !== "admin") throw new IntegrationWorkspaceForbiddenError();
+  await assertWorkspaceScope(auth, workspaceId);
+  const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const rows = await withTenantRls(auth.tenantId, async (tx) => tx.$queryRaw<Array<{ status: string; count: number }>>`
+    SELECT status, COUNT(*)::integer AS count FROM (
+      SELECT DISTINCT ON (delivery_job_id) status
+      FROM sms_usage_events
+      WHERE tenant_id = ${auth.tenantId}::uuid AND workspace_type = ${workspaceType} AND created_at >= ${since}
+      ORDER BY delivery_job_id, attempt_number DESC
+    ) latest GROUP BY status
+  `);
+  const counts = { periodDays: 30 as const, accepted: 0, failed: 0, unknown: 0, total: 0, cost: null };
+  for (const row of rows) {
+    if (row.status === "sent") counts.accepted += row.count;
+    else if (row.status === "failed") counts.failed += row.count;
+    else counts.unknown += row.count;
+    counts.total += row.count;
+  }
+  return counts;
+}
+
 export async function listWorkspaceIntegrations(
   auth: TenantAuthContext,
   workspaceId: string
@@ -802,7 +834,10 @@ export async function listWorkspaceIntegrations(
       workspaceType,
     });
 
-    connectionItems = await Promise.all(rows.map((row) => toPublicDto(auth.tenantId, row)));
+    const visibleRows = rows.filter((row) =>
+      process.env.SMS_PROVIDER_MODE?.trim() !== "platform" || row.provider !== "melipayamak"
+    );
+    connectionItems = await Promise.all(visibleRows.map((row) => toPublicDto(auth.tenantId, row)));
   } catch {
     // Degraded operator settings read when integration schema is not fully armed.
   }
@@ -881,6 +916,7 @@ export async function patchIntegration(
     if (existing === null) {
       throw new IntegrationNotFoundError();
     }
+    assertWorkspaceSmsNotPlatformManaged(existing.provider);
 
     let config =
       typeof record.config === "object" && record.config !== null
@@ -1065,6 +1101,7 @@ export async function patchIntegrationEventPolicy(
   if (existing === null) {
     throw new IntegrationNotFoundError();
   }
+  assertWorkspaceSmsNotPlatformManaged(existing.provider);
   await assertTenantOwnsWorkspaceType(auth, existing.workspaceType);
 
   const meta = await buildWorkspaceIntegrationSurfaceMeta(existing.workspaceType);
@@ -1227,6 +1264,7 @@ export async function patchConnectionExposureIntentForIntegration(
   if (existing === null) {
     throw new IntegrationNotFoundError();
   }
+  assertWorkspaceSmsNotPlatformManaged(existing.provider);
   await assertTenantOwnsWorkspaceType(auth, existing.workspaceType);
 
   const meta = await buildWorkspaceIntegrationSurfaceMeta(existing.workspaceType);
@@ -1319,6 +1357,7 @@ export async function deleteIntegration(
     if (existing === null) {
       throw new IntegrationNotFoundError();
     }
+    assertWorkspaceSmsNotPlatformManaged(existing.provider);
     if (existing.secretRef !== null) {
       await getIntegrationSecretStore().delete(auth.tenantId, existing.secretRef);
     }
@@ -1360,6 +1399,7 @@ async function setIntegrationEnabled(
     if (existing === null) {
       throw new IntegrationNotFoundError();
     }
+    assertWorkspaceSmsNotPlatformManaged(existing.provider);
     if (enabled) {
       const readinessError = resolveIntegrationEnableReadinessError({
         provider: existing.provider,
@@ -1486,6 +1526,7 @@ export async function testIntegrationConnection(
   if (connection === null) {
     throw new IntegrationNotFoundError();
   }
+  assertWorkspaceSmsNotPlatformManaged(connection.provider);
 
   const { resolveIntegrationConnectionCredentials } =
     await import("../application/resolve-integration-connection-credentials");

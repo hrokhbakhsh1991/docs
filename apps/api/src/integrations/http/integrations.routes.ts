@@ -11,6 +11,7 @@ import {
   disableIntegration,
   enableIntegration,
   getIntegrationDetail,
+  getWorkspaceSmsUsage,
   getWorkspaceIntegrationMeta,
   IntegrationConnectionAlreadyExistsError,
   IntegrationInvalidBodyError,
@@ -111,6 +112,17 @@ export async function handleListWorkspaceIntegrations(
       },
       { rateLimit: "read" }
     );
+  } catch (error) {
+    mapIntegrationRouteError(res, error);
+  }
+}
+
+export async function handleGetWorkspaceSmsUsage(req: IncomingMessage, res: ServerResponse, workspaceId: string): Promise<void> {
+  try {
+    const auth = await requireOperatorSession(req);
+    await runWithHttpRequestContext(req, auth, async () => {
+      sendJson(res, 200, await getWorkspaceSmsUsage(auth, workspaceId));
+    }, { rateLimit: "read" });
   } catch (error) {
     mapIntegrationRouteError(res, error);
   }

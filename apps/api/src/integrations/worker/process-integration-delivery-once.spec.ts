@@ -792,6 +792,91 @@ describe("Telegram worker delivery", () => {
 });
 
 describe("MeliPayamak OTP template delivery", () => {
+  it("treats an unrecognized provider response as unknown without persisting provider text", async () => {
+    let recorded: { status: string; errorCode?: string } | undefined;
+    const result = await executeIntegrationDeliveryJob(deliveryJob({
+      provider: "melipayamak", capability: "sms.send", eventType: "auth.otp.requested",
+      payload: { workspaceType: "denali", integrationConnectionId: "sms-connection", recipient: "+989121234567", smsTemplateId: "578050", smsVariables: ["4826"] },
+    }), {
+      resolveConnection: async () => ({ id: "sms-connection", tenantId: "tenant-denali", workspaceType: "denali", provider: "melipayamak", status: "enabled", enabled: true, capabilities: ["sms.send"], config: {}, secretRef: null, credentials: {}, createdAt: new Date(0), updatedAt: new Date(0) }),
+      prepareSmsUsage: async () => "ready",
+      recordSmsUsage: async (input) => { recorded = input; },
+      getProvider: () => ({ id: "melipayamak", supportedCapabilities: ["sms.send"], async sendMessage() { return { ok: false }; }, async sendSms() { return { ok: false, errorCode: "unexpected secret", errorMessage: "secret" }; } }),
+    });
+    assert.deepEqual(result, { ok: false, error: { code: "MELIPAYAMAK_RESPONSE_INVALID" } });
+    assert.equal(recorded?.status, "unknown");
+    assert.equal(recorded?.errorCode, "MELIPAYAMAK_RESPONSE_INVALID");
+    assert.equal(JSON.stringify(result).includes("secret"), false);
+  });
+  it("does not resend a previously accepted message after a job reclaim", async () => {
+    let calls = 0;
+    const result = await executeIntegrationDeliveryJob(deliveryJob({
+      provider: "melipayamak", capability: "sms.send", eventType: "auth.otp.requested",
+      payload: { workspaceType: "denali", integrationConnectionId: "sms-connection", recipient: "+989121234567", smsTemplateId: "578050", smsVariables: ["4826"] },
+    }), {
+      resolveConnection: async () => ({ id: "sms-connection", tenantId: "tenant-denali", workspaceType: "denali", provider: "melipayamak", status: "enabled", enabled: true, capabilities: ["sms.send"], config: {}, secretRef: null, credentials: {}, createdAt: new Date(0), updatedAt: new Date(0) }),
+      prepareSmsUsage: async () => "already_sent",
+      getProvider: () => ({ id: "melipayamak", supportedCapabilities: ["sms.send"], async sendMessage() { return { ok: false }; }, async sendSms() { calls++; return { ok: true }; } }),
+    });
+    assert.deepEqual(result, { ok: true });
+    assert.equal(calls, 0);
+  });
+  it("does not contact the provider when accounting is unavailable or an earlier outcome is uncertain", async () => {
+    for (const unavailable of [true, false]) {
+      let calls = 0;
+      const result = await executeIntegrationDeliveryJob(deliveryJob({
+        provider: "melipayamak", capability: "sms.send", eventType: "auth.otp.requested",
+        payload: { workspaceType: "denali", integrationConnectionId: "sms-connection", recipient: "+989121234567", smsTemplateId: "578050", smsVariables: ["4826"] },
+      }), {
+        resolveConnection: async () => ({ id: "sms-connection", tenantId: "tenant-denali", workspaceType: "denali", provider: "melipayamak", status: "enabled", enabled: true, capabilities: ["sms.send"], config: {}, secretRef: null, credentials: {}, createdAt: new Date(0), updatedAt: new Date(0) }),
+        prepareSmsUsage: async () => { if (unavailable) throw new Error("db unavailable"); return "unknown"; },
+        getProvider: () => ({ id: "melipayamak", supportedCapabilities: ["sms.send"], async sendMessage() { return { ok: false }; }, async sendSms() { calls++; return { ok: true }; } }),
+      });
+      assert.equal(calls, 0);
+      assert.equal(result.error?.code, unavailable ? "SMS_USAGE_PREPARE_FAILED" : "SMS_USAGE_OUTCOME_UNKNOWN");
+    }
+  });
+  it("delivers a central OTP with server credentials without resolving a tenant connection", async () => {
+    const names = ["SMS_PROVIDER_MODE", "SMS_OTP_ENABLED", "SMS_DELIVERY_ENCRYPTION_KEY", "MELIPAYAMAK_USERNAME", "MELIPAYAMAK_API_KEY", "SMS_OTP_TEMPLATE_ID", "SMS_OTP_TEMPLATE_SCOPE"] as const;
+    const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+    process.env.SMS_PROVIDER_MODE = "platform";
+    process.env.SMS_OTP_ENABLED = "true";
+    process.env.SMS_DELIVERY_ENCRYPTION_KEY = "44".repeat(32);
+    process.env.MELIPAYAMAK_USERNAME = "platform-user";
+    process.env.MELIPAYAMAK_API_KEY = "platform-key";
+    process.env.SMS_OTP_TEMPLATE_ID = "578050";
+    process.env.SMS_OTP_TEMPLATE_SCOPE = "denali";
+    try {
+      for (const tenantId of ["tenant-a", "tenant-b"]) {
+        let seenTenant = "";
+        const result = await executeIntegrationDeliveryJob(deliveryJob({
+          tenantId, provider: "melipayamak", capability: "sms.send", eventType: "auth.otp.requested",
+          payload: { workspaceType: "denali", smsDeliverySource: "platform", recipient: "+989121234567", smsTemplateId: "578050", smsEncryptedVariables: encryptOtpDeliveryCode("4826") },
+        }), {
+          prepareSmsUsage: async () => "ready",
+          recordSmsUsage: async () => {},
+          resolveConnection: async () => { throw new Error("unexpected tenant connection"); },
+          getProvider: () => ({
+            id: "melipayamak", supportedCapabilities: ["sms.send"],
+            async sendMessage() { return { ok: false }; },
+            async sendSms(ctx, input) {
+              seenTenant = ctx.tenantId;
+              assert.equal(ctx.credentials.password, "platform-key");
+              assert.deepEqual(input.variables, ["4826"]);
+              return { ok: true, providerMessageId: "1234567890123456" };
+            },
+          }),
+        });
+        assert.equal(result.ok, true);
+        assert.equal(seenTenant, tenantId);
+      }
+    } finally {
+      for (const name of names) {
+        if (previous[name] === undefined) delete process.env[name];
+        else process.env[name] = previous[name];
+      }
+    }
+  });
   it("sends only the numeric OTP as the approved single template variable", async () => {
     const previousKey = process.env.SMS_DELIVERY_ENCRYPTION_KEY;
     process.env.SMS_DELIVERY_ENCRYPTION_KEY = "44".repeat(32);
@@ -812,6 +897,8 @@ describe("MeliPayamak OTP template delivery", () => {
           },
         }),
         {
+          prepareSmsUsage: async () => "ready",
+          recordSmsUsage: async () => {},
           resolveConnection: async () => ({
             id: "sms-connection",
             tenantId: "tenant-denali",
@@ -912,6 +999,19 @@ describe("integration delivery retry lifecycle", () => {
     };
     return repository;
   }
+
+  it("does not retry an SMS with an unknown provider outcome", async () => {
+    for (const code of ["MELIPAYAMAK_NETWORK_ERROR", "MELIPAYAMAK_SERVER_ERROR"]) {
+      const events: string[] = [];
+      const result = await processIntegrationDeliveryOnce({
+        deliveryRepository: repositoryFor(deliveryJob({ provider: "melipayamak", capability: "sms.send" }), events),
+        reclaimStaleProcessingJobs: async () => 0,
+        executeJob: async () => ({ ok: false, error: { code } }),
+      }, 1);
+      assert.equal(result.retried, 0);
+      assert.deepEqual(events, ["claim", `dead:${code}`]);
+    }
+  });
 
   it("marks a transient Telegram failure for retry once without a second send", async () => {
     const events: string[] = [];
