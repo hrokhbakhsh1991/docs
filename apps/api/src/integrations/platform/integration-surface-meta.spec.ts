@@ -4,6 +4,18 @@ import { describe, it } from "node:test";
 import { buildWorkspaceIntegrationSurfaceMeta } from "./integration-surface-meta";
 
 describe("integration surface meta", () => {
+  it("hides the workspace SMS provider when the account is centrally managed", async () => {
+    const previous = process.env.SMS_PROVIDER_MODE;
+    process.env.SMS_PROVIDER_MODE = "platform";
+    try {
+      const meta = await buildWorkspaceIntegrationSurfaceMeta("denali");
+      assert.equal(meta.providers.some((provider) => provider.id === "melipayamak"), false);
+      assert.equal(meta.providers.some((provider) => provider.id === "telegram"), true);
+    } finally {
+      if (previous === undefined) delete process.env.SMS_PROVIDER_MODE;
+      else process.env.SMS_PROVIDER_MODE = previous;
+    }
+  });
   it("exposes Denali provider fields without secret values", async () => {
     const meta = await buildWorkspaceIntegrationSurfaceMeta("denali");
     const telegram = meta.providers.find((provider) => provider.id === "telegram");

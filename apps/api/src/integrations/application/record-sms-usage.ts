@@ -7,6 +7,34 @@ function hashRecipient(recipient: string): string {
   return createHash("sha256").update(recipient.trim()).digest("hex");
 }
 
+/** Reserve an attempt before contacting the provider; uncertain earlier attempts
+ * must be reconciled rather than blindly sent a second time. */
+export async function prepareSmsUsageAttempt(job: IntegrationDeliveryJobRecord, recipient: string): Promise<"ready" | "already_sent" | "unknown"> {
+  return withTenantRls(job.tenantId, async (tx) => {
+    const previous = await tx.smsUsageEvent.findFirst({
+      where: { tenantId: job.tenantId, deliveryJobId: job.id },
+      orderBy: { attemptNumber: "desc" },
+      select: { status: true },
+    });
+    if (previous?.status === "sent") return "already_sent";
+    if (previous?.status === "attempted" || previous?.status === "unknown") return "unknown";
+    await tx.smsUsageEvent.create({
+      data: {
+        tenantId: job.tenantId,
+        workspaceType: typeof job.payload.workspaceType === "string" ? job.payload.workspaceType : null,
+        deliveryJobId: job.id,
+        attemptNumber: job.attemptCount + 1,
+        provider: job.provider,
+        purpose: typeof job.payload.smsPurpose === "string" ? job.payload.smsPurpose : job.eventType,
+        templateKey: typeof job.payload.smsTemplateKey === "string" ? job.payload.smsTemplateKey : null,
+        recipientHash: hashRecipient(recipient),
+        status: "attempted",
+      },
+    });
+    return "ready";
+  });
+}
+
 export async function recordSmsUsageAttempt(input: {
   readonly job: IntegrationDeliveryJobRecord;
   readonly recipient: string;

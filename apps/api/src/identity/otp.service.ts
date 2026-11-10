@@ -12,6 +12,8 @@ import {
 import type { IntegrationConnectionRecord } from "../integrations/platform/integration-connection.types";
 import type { EnqueueIntegrationDeliveryJobInput } from "../integrations/platform/integration-delivery.types";
 import { resolveOtpWorkspaceName } from "./resolve-otp-workspace-name";
+import { readPlatformSmsConfig } from "../integrations/application/platform-sms-config";
+import { assertPlatformOtpRateLimit } from "./platform-otp-rate-limit";
 
 const DEV_STATIC_OTP = STAGING_STATIC_OTP_CODE;
 
@@ -26,6 +28,7 @@ export type OtpDeliveryContext = {
 };
 
 export type OtpDeliveryDependencies = {
+  readonly assertPlatformBudget?: (tenantId: string, mobile: string) => Promise<void>;
   readonly resolveConnection?: (input: {
     readonly tenantId: string;
     readonly workspaceType: string;
@@ -43,19 +46,24 @@ async function enqueueRealOtpDelivery(
   context: OtpDeliveryContext,
   dependencies: OtpDeliveryDependencies = {}
 ): Promise<void> {
+  const platformMode = process.env.SMS_PROVIDER_MODE?.trim() === "platform";
+  if (platformMode && process.env.SMS_OTP_ENABLED?.trim() !== "true") {
+    throw new Error("PLATFORM_SMS_DELIVERY_DISABLED");
+  }
   if (process.env.SMS_OTP_ENABLED?.trim() !== "true") {
     deliverOtpCode(mobile, code);
     return;
   }
-  const connection = await (dependencies.resolveConnection ?? resolveOtpDeliveryConnection)(
-    context
-  );
-  if (connection === null) throw new Error("MELIPAYAMAK_CONNECTION_NOT_CONFIGURED");
+  if (platformMode && isDevStaticOtpEnabled()) throw new Error("PLATFORM_SMS_STATIC_OTP_FORBIDDEN");
+  const platformConfig = platformMode ? readPlatformSmsConfig() : null;
+  if (platformConfig && platformConfig.workspaceScope !== "*" && platformConfig.workspaceScope !== context.workspaceType) {
+    throw new Error("PLATFORM_SMS_TEMPLATE_SCOPE_MISMATCH");
+  }
+  const connection = platformMode ? null : await (dependencies.resolveConnection ?? resolveOtpDeliveryConnection)(context);
+  if (!platformMode && connection === null) throw new Error("MELIPAYAMAK_CONNECTION_NOT_CONFIGURED");
   const encryptedCode = encryptOtpDeliveryCode(code);
   const enqueueJob = dependencies.enqueueJob ?? enqueueOtpDeliveryJob;
-  const workspaceName = await (dependencies.resolveWorkspaceName ?? resolveOtpWorkspaceName)(
-    context.tenantId
-  );
+  const workspaceName = platformMode ? null : await (dependencies.resolveWorkspaceName ?? resolveOtpWorkspaceName)(context.tenantId);
   const created = await enqueueJob({
     tenantId: context.tenantId,
     provider: "melipayamak",
@@ -64,11 +72,11 @@ async function enqueueRealOtpDelivery(
     eventType: "auth.otp.requested",
     payload: {
       workspaceType: context.workspaceType,
-      integrationConnectionId: connection.id,
+      ...(platformMode ? { smsDeliverySource: "platform" } : { integrationConnectionId: connection!.id }),
       recipient: mobile,
       smsPurpose: context.purpose,
       smsTemplateKey: "auth.otp",
-      smsTemplateId: typeof connection.config.bodyId === "string" ? connection.config.bodyId : "",
+      smsTemplateId: platformConfig?.config.bodyId ?? (typeof connection?.config.bodyId === "string" ? connection.config.bodyId : ""),
       smsEncryptedVariables: encryptedCode,
       ...(workspaceName === null ? {} : { smsWorkspaceName: workspaceName }),
     },
@@ -83,6 +91,19 @@ export async function createMobileOtpChallenge(
   deliveryDependencies: OtpDeliveryDependencies = {}
 ): Promise<{ challengeId: string; otpLength: number }> {
   assertOtpRequestRateLimit(mobile);
+  if (process.env.SMS_PROVIDER_MODE?.trim() === "platform") {
+    if (deliveryContext === undefined) throw new Error("PLATFORM_SMS_TENANT_CONTEXT_REQUIRED");
+    if (process.env.NODE_ENV !== "production" && process.env.OTP_FIXTURE_CODE?.trim()) {
+      throw new Error("PLATFORM_SMS_FIXTURE_OTP_FORBIDDEN");
+    }
+    if (process.env.SMS_OTP_ENABLED?.trim() !== "true") throw new Error("PLATFORM_SMS_DELIVERY_DISABLED");
+    if (isDevStaticOtpEnabled()) throw new Error("PLATFORM_SMS_STATIC_OTP_FORBIDDEN");
+    const config = readPlatformSmsConfig();
+    if (config.workspaceScope !== "*" && config.workspaceScope !== deliveryContext.workspaceType) {
+      throw new Error("PLATFORM_SMS_TEMPLATE_SCOPE_MISMATCH");
+    }
+    await (deliveryDependencies.assertPlatformBudget ?? assertPlatformOtpRateLimit)(deliveryContext.tenantId, mobile);
+  }
   // DL-44: when static DEV OTP is enabled, issue the same code the UI hints (1234)
   // so otp-dev logs match PUBLIC_REGISTRATION_DEV_OTP / otp.devHint.
   const code = isDevStaticOtpEnabled() ? DEV_STATIC_OTP : resolveOtpCodeForChallenge();

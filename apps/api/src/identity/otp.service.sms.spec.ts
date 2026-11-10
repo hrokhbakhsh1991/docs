@@ -14,6 +14,11 @@ const ENV_NAMES = [
   "SMS_DELIVERY_ENCRYPTION_KEY",
   "STAGING_ALLOW_STATIC_OTP",
   "OTP_FIXTURE_CODE",
+  "SMS_PROVIDER_MODE",
+  "MELIPAYAMAK_USERNAME",
+  "MELIPAYAMAK_API_KEY",
+  "SMS_OTP_TEMPLATE_ID",
+  "SMS_OTP_TEMPLATE_SCOPE",
 ] as const;
 const environment = Object.fromEntries(ENV_NAMES.map((name) => [name, process.env[name]]));
 
@@ -26,6 +31,53 @@ afterEach(() => {
 });
 
 describe("real OTP SMS enqueue", () => {
+  it("uses platform credentials without resolving a tenant connection", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.APP_INFRA_PROFILE = "production";
+    process.env.AUTH_ALLOW_DEV_STATIC_OTP = "false";
+    process.env.ALLOW_PRODUCTION_STATIC_OTP = "false";
+    process.env.SMS_OTP_ENABLED = "true";
+    process.env.SMS_PROVIDER_MODE = "platform";
+    process.env.MELIPAYAMAK_USERNAME = "test-user";
+    process.env.MELIPAYAMAK_API_KEY = "test-key";
+    process.env.SMS_OTP_TEMPLATE_ID = "98765";
+    process.env.SMS_OTP_TEMPLATE_SCOPE = "denali";
+    process.env.SMS_DELIVERY_ENCRYPTION_KEY = "22".repeat(32);
+
+    let payload: Record<string, unknown> | undefined;
+    await createMobileOtpChallenge(
+      "+989121234571",
+      new InMemoryIdentityRepository(),
+      { tenantId: "tenant-a", workspaceType: "denali", purpose: "operator_login" },
+      {
+        assertPlatformBudget: async () => {},
+        resolveConnection: async () => { throw new Error("tenant connection should not be used"); },
+        enqueueJob: async (job) => { payload = job.payload; return true; },
+      }
+    );
+    assert.equal(payload?.smsDeliverySource, "platform");
+    assert.equal(payload?.smsTemplateId, "98765");
+    assert.equal(payload?.integrationConnectionId, undefined);
+    assert.equal(JSON.stringify(payload).includes("test-key"), false);
+    await assert.rejects(
+      () => createMobileOtpChallenge("+989121234574", new InMemoryIdentityRepository(),
+        { tenantId: "tenant-b", workspaceType: "urban", purpose: "member_login" }),
+      /PLATFORM_SMS_TEMPLATE_SCOPE_MISMATCH/
+    );
+  });
+
+  it("fails closed in platform mode when delivery is disabled or static OTP is enabled", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.APP_INFRA_PROFILE = "production";
+    process.env.SMS_PROVIDER_MODE = "platform";
+    process.env.SMS_OTP_ENABLED = "false";
+    const context: OtpDeliveryContext = { tenantId: "tenant-a", workspaceType: "denali", purpose: "operator_login" };
+    await assert.rejects(() => createMobileOtpChallenge("+989121234572", new InMemoryIdentityRepository(), context), /PLATFORM_SMS_DELIVERY_DISABLED/);
+    process.env.SMS_OTP_ENABLED = "true";
+    process.env.ALLOW_PRODUCTION_STATIC_OTP = "true";
+    process.env.AUTH_ALLOW_DEV_STATIC_OTP = "true";
+    await assert.rejects(() => createMobileOtpChallenge("+989121234573", new InMemoryIdentityRepository(), context), /PLATFORM_SMS_STATIC_OTP_FORBIDDEN/);
+  });
   it("queues encrypted static OTP 1234 for the workspace-scoped Melipayamak connection", async () => {
     process.env.NODE_ENV = "production";
     process.env.APP_INFRA_PROFILE = "production";

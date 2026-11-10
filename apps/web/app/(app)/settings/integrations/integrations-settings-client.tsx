@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { SettingsPageHeader } from "@/admin/patterns/settings-page-header";
+import { SmsUsageReport } from "./sms-usage-report";
 import { SettingsPageShell } from "@/admin/patterns/settings-page-shell";
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Badge } from "@/components/ui/badge";
@@ -871,6 +872,7 @@ export function IntegrationsSettingsClient({
       }}
     >
       <SettingsPageHeader title={t("title")} description={t("subtitle")} />
+      <SmsUsageReport workspaceId={workspaceId} />
       <p
         className="text-xs text-muted-foreground"
         data-testid={INTEGRATIONS_SETTINGS_TEST_IDS.workspaceScope}

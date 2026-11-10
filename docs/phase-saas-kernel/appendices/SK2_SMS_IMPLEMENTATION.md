@@ -2,17 +2,21 @@
 
 ## Scope
 
-OTP delivery is implemented as a workspace-scoped integration delivery job. The
-Melipayamak adapter uses the standard `SendSMS` API with the account's dedicated
-sender line when no Pattern exists; an approved Pattern via `BaseServiceNumber`
-remains supported. It never stores the OTP in plaintext in the delivery-job
+OTP delivery is implemented as a tenant-attributed integration delivery job. In
+platform mode the Melipayamak account is server-managed and uses an approved
+Pattern via `BaseServiceNumber`. It never stores the OTP in plaintext in the delivery-job
 payload. OTP variables are encrypted
 with `SMS_DELIVERY_ENCRYPTION_KEY` until the worker sends the message.
 
-The integration is opt-in: `SMS_OTP_ENABLED` must be explicitly `true`, a
-workspace-scoped enabled `melipayamak` connection must exist, and its sender
-line must be configured. When the flag is disabled, the existing delivery path
-remains active.
+Set `SMS_PROVIDER_MODE=platform`, `SMS_OTP_ENABLED=true`, `MELIPAYAMAK_USERNAME`,
+`MELIPAYAMAK_API_KEY`, `SMS_OTP_TEMPLATE_ID`, `SMS_OTP_TEMPLATE_SCOPE`, and a valid
+`SMS_DELIVERY_ENCRYPTION_KEY` in the API/worker environment. Missing configuration
+fails closed. The template scope is the approved workspace type, or `*` only for a
+provider-approved common template. Static OTP cannot be enabled in platform mode. Jobs previously queued
+against workspace connections retain their original delivery route during migration.
+Central OTP requests also require Redis. Atomic per-minute limits apply to each
+tenant, shared provider account and keyed-hash mobile; defaults are 30, 120 and 10.
+If Redis is unavailable, a central OTP request is rejected before enqueue.
 
 ## Workspace usage accounting
 
@@ -26,16 +30,22 @@ This gives the platform a stable accounting seam for future per-workspace
 budgets, dashboards, alerts, and billing without coupling those features to the
 provider adapter.
 
+The read-only workspace report covers the latest outcome per delivery job in
+the last 30 days. It exposes counts for provider-accepted, failed and unknown
+outcomes to workspace owners and administrators only. A reserved `attempted`
+row is shown as unknown. Costs remain unavailable until verified provider
+segment and pricing data exist. An attempt is recorded before contacting the
+provider; an existing uncertain attempt must not be sent again automatically.
+
 ## Activation checklist
 
-1. Create an enabled `melipayamak` connection for the target workspace and set
-   the approved sender line (currently `50002710052870` in the account panel).
-2. Store the Melipayamak web-service username and APIKey through the existing
-   secret store. The `password` credential field carries the APIKey shown under
-   the panel's Web service settings; it is not the panel login password.
-3. For the approved Denali Pattern, configure its `bodyId` with one variable:
-   the numeric OTP only. Workspace branding is already fixed text in the
-   approved template. Otherwise, standard SendSMS is used.
+1. Review pending SMS jobs and existing workspace connections before switching mode.
+2. Store the platform web-service username and APIKey in the server environment,
+   outside source control. The provider `password` field carries the APIKey, not
+   the panel login password.
+3. Configure a Pattern approved for its intended audience, with one variable:
+   the numeric OTP only. A Denali-branded Pattern must not be reused for
+   unrelated workspaces without provider approval.
 4. Configure an authorized test recipient before sending a connection test;
    provider messages incur the normal SMS charge.
 5. Set a unique 32-byte `SMS_DELIVERY_ENCRYPTION_KEY` for each environment.
@@ -43,9 +53,9 @@ provider adapter.
 7. Run one staging OTP and inspect the delivery result plus `sms_usage_events`.
 8. Promote the same artifact and configuration shape to production.
 
-The approved static OTP contract may remain enabled: the same code is encrypted
-into the SMS job and delivered by the provider. Provider credentials and the
-encryption key must never be committed or printed in logs.
+Provider credentials and the encryption key must never be committed or printed
+in logs. Platform mode rejects static OTP; a network or server failure with an
+unknown send outcome must not be retried automatically.
 
 ## Real-code rollout contract (2026-11-04)
 

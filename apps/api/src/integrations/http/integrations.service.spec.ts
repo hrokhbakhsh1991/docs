@@ -6,6 +6,7 @@ import {
   assertTelegramActionTopic,
   assertTelegramTopicProvisionRetrySafe,
   isTelegramOperatorStatus,
+  getWorkspaceSmsUsage,
   mergeTelegramPatchConfig,
   probeTelegramTopicMappings,
   reconcileTelegramTopicMappings,
@@ -14,6 +15,17 @@ import {
   resolveIntegrationEnableReadinessError,
   resolveTelegramProvisionConnectionState,
 } from "./integrations.service";
+
+describe("SMS usage report authorization", () => {
+  it("rejects non-admin workspace actors before querying usage", async () => {
+    for (const role of ["member", "viewer", "none"] as const) {
+      await assert.rejects(
+        () => getWorkspaceSmsUsage({ userId: "user", tenantId: "tenant", role, status: "ACTIVE", workspaceId: "denali" }, "denali"),
+        /INTEGRATION_WORKSPACE_FORBIDDEN/
+      );
+    }
+  });
+});
 
 describe("Telegram credential rebinding", () => {
   it("clears a stale error when credentials change on the same forum", () => {

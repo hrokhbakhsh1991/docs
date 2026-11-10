@@ -1,9 +1,11 @@
 import { getIntegrationProvider } from "../platform/integration-provider-registry";
-import { recordSmsUsageAttempt } from "../application/record-sms-usage";
+import { prepareSmsUsageAttempt, recordSmsUsageAttempt } from "../application/record-sms-usage";
+import { readPlatformSmsConfig } from "../application/platform-sms-config";
 import { decryptOtpDeliveryCode } from "../../identity/otp-delivery-secret";
 import type { IntegrationDeliveryJobRecord } from "../platform/integration-delivery.types";
 import type {
   IntegrationDeliveryContext,
+  IntegrationDeliveryResult,
   IntegrationProviderAdapter,
 } from "../platform/integration-provider.types";
 import type { IntegrationConnectionRecord } from "../platform/integration-connection.types";
@@ -33,6 +35,22 @@ import type { TelegramTopicProvisionClaim } from "../infrastructure/integration-
 const MAX_DELIVERY_ATTEMPTS = 8;
 const TELEGRAM_MEDIA_CAPTION_MAX_LENGTH = 1024;
 
+function safeSmsErrorCode(value: string | undefined): string {
+  if (value && (/^MELIPAYAMAK_-?\d{1,6}$/.test(value) || [
+    "MELIPAYAMAK_NETWORK_ERROR", "MELIPAYAMAK_SERVER_ERROR", "MELIPAYAMAK_SEND_FAILED",
+    "MELIPAYAMAK_EMPTY_RESPONSE", "MELIPAYAMAK_CREDENTIALS_MISSING",
+    "MELIPAYAMAK_SENDER_MISSING", "MELIPAYAMAK_SMS_PAYLOAD_INVALID",
+  ].includes(value))) return value;
+  return "MELIPAYAMAK_RESPONSE_INVALID";
+}
+
+function smsOutcomeIsUnknown(code: unknown): boolean {
+  return code === "MELIPAYAMAK_NETWORK_ERROR" || code === "MELIPAYAMAK_SERVER_ERROR" ||
+    code === "MELIPAYAMAK_SEND_FAILED" || code === "MELIPAYAMAK_EMPTY_RESPONSE" ||
+    code === "MELIPAYAMAK_RESPONSE_INVALID" || code === "SMS_USAGE_OUTCOME_UNKNOWN" ||
+    code === "SMS_USAGE_WRITE_FAILED_AFTER_SEND";
+}
+
 function telegramMediaCaption(text: string): string {
   if (text.length <= TELEGRAM_MEDIA_CAPTION_MAX_LENGTH) {
     return text;
@@ -52,6 +70,8 @@ export type TelegramTopicAutoCreateApi = {
 };
 
 export type ExecuteIntegrationDeliveryDeps = {
+  readonly prepareSmsUsage?: typeof prepareSmsUsageAttempt;
+  readonly recordSmsUsage?: typeof recordSmsUsageAttempt;
   readonly resolveConnection?: typeof resolveDeliveryConnection;
   readonly getProvider?: (
     provider: IntegrationDeliveryJobRecord["provider"]
@@ -332,21 +352,6 @@ function logTelegramDeliverySuccess(input: {
   });
 }
 
-async function safelyRecordSmsUsageAttempt(
-  input: Parameters<typeof recordSmsUsageAttempt>[0]
-): Promise<void> {
-  try {
-    await recordSmsUsageAttempt(input);
-  } catch (error: unknown) {
-    logger.error({
-      event: "integration.sms_usage_record_failed",
-      tenantId: input.job.tenantId,
-      deliveryJobId: input.job.id,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-}
-
 export async function executeIntegrationDeliveryJob(
   job: IntegrationDeliveryJobRecord,
   deps: ExecuteIntegrationDeliveryDeps = {}
@@ -358,6 +363,8 @@ export async function executeIntegrationDeliveryJob(
 
   const workspaceType =
     typeof job.payload.workspaceType === "string" ? job.payload.workspaceType : null;
+  const platformSms = job.provider === "melipayamak" && job.capability === "sms.send" &&
+    job.eventType === "auth.otp.requested" && job.payload.smsDeliverySource === "platform";
   const connectionId =
     typeof job.payload.integrationConnectionId === "string"
       ? job.payload.integrationConnectionId
@@ -369,7 +376,7 @@ export async function executeIntegrationDeliveryJob(
         readonly credentials: Record<string, unknown>;
       })
     | null =
-    connectionId !== null
+    !platformSms && connectionId !== null
       ? await resolveConnection({
           tenantId: job.tenantId,
           connectionId,
@@ -377,22 +384,36 @@ export async function executeIntegrationDeliveryJob(
         })
       : null;
 
-  if (connection === null) {
+  if (!platformSms && connection === null) {
     return { ok: false, error: { code: "INTEGRATION_CONNECTION_NOT_FOUND" } };
   }
-  if (connectionId === null) {
+  if (!platformSms && connectionId === null) {
     // Unreachable in practice (connection resolution requires a connectionId),
     // but narrows the type for the auto-create path below.
     return { ok: false, error: { code: "INTEGRATION_CONNECTION_NOT_FOUND" } };
   }
 
+  let platformConfig: ReturnType<typeof readPlatformSmsConfig> | null = null;
+  if (platformSms) {
+    if (process.env.SMS_PROVIDER_MODE?.trim() !== "platform" || process.env.SMS_OTP_ENABLED?.trim() !== "true") {
+      return { ok: false, error: { code: "PLATFORM_SMS_DELIVERY_DISABLED" } };
+    }
+    try {
+      platformConfig = readPlatformSmsConfig();
+      if (platformConfig.workspaceScope !== "*" && platformConfig.workspaceScope !== workspaceType) {
+        return { ok: false, error: { code: "PLATFORM_SMS_TEMPLATE_SCOPE_MISMATCH" } };
+      }
+    } catch {
+      return { ok: false, error: { code: "PLATFORM_SMS_CONFIG_INVALID" } };
+    }
+  }
   const ctx: IntegrationDeliveryContext = {
     tenantId: job.tenantId,
     workspaceType,
     domainEventId: job.domainEventId,
     eventType: job.eventType,
-    config: connection.config,
-    credentials: connection.credentials,
+    config: platformConfig?.config ?? connection!.config,
+    credentials: platformConfig?.credentials ?? connection!.credentials,
   };
 
   if (job.provider === "melipayamak" && job.capability === "sms.send") {
@@ -420,21 +441,39 @@ export async function executeIntegrationDeliveryJob(
         return { ok: false, error: { code: "SMS_DELIVERY_SECRET_INVALID" } };
       }
     }
-    const result = await adapter.sendSms(ctx, { recipient, templateId, variables });
-    await safelyRecordSmsUsageAttempt({
+    let prepared: Awaited<ReturnType<typeof prepareSmsUsageAttempt>>;
+    try {
+      prepared = await (deps.prepareSmsUsage ?? prepareSmsUsageAttempt)(job, recipient);
+    } catch {
+      return { ok: false, error: { code: "SMS_USAGE_PREPARE_FAILED" } };
+    }
+    if (prepared === "already_sent") return { ok: true };
+    if (prepared === "unknown") return { ok: false, error: { code: "SMS_USAGE_OUTCOME_UNKNOWN" } };
+    const result: IntegrationDeliveryResult = await adapter.sendSms(ctx, { recipient, templateId, variables }).catch(() => ({
+      ok: false as const, errorCode: "MELIPAYAMAK_NETWORK_ERROR",
+    }));
+    const errorCode = result.ok ? undefined : safeSmsErrorCode(result.errorCode);
+    try {
+      await (deps.recordSmsUsage ?? recordSmsUsageAttempt)({
       job,
       recipient,
-      status: result.ok ? "sent" : "failed",
+      status: result.ok ? "sent" : smsOutcomeIsUnknown(errorCode) ? "unknown" : "failed",
       ...(result.providerMessageId === undefined
         ? {}
         : { providerMessageId: result.providerMessageId }),
-      ...(result.errorCode === undefined ? {} : { errorCode: result.errorCode }),
-    });
+      ...(errorCode === undefined ? {} : { errorCode }),
+      });
+    } catch {
+      return { ok: false, error: { code: "SMS_USAGE_WRITE_FAILED_AFTER_SEND" } };
+    }
     return result.ok
       ? { ok: true }
-      : { ok: false, error: { code: result.errorCode, message: result.errorMessage } };
+      : { ok: false, error: { code: errorCode } };
   }
 
+  if (connection === null || connectionId === null) {
+    return { ok: false, error: { code: "INTEGRATION_CONNECTION_NOT_FOUND" } };
+  }
   const channelId = resolveIntegrationDeliveryChannelId({
     provider: job.provider,
     config: connection.config,
@@ -741,7 +780,9 @@ export async function processIntegrationDeliveryOnce(
       reason: deliveryFailureReason(outcome.error),
     });
 
-    if (nextAttempt >= MAX_DELIVERY_ATTEMPTS) {
+    const uncertainSms = job.provider === "melipayamak" && job.capability === "sms.send" &&
+      smsOutcomeIsUnknown(lastError.code);
+    if (uncertainSms || nextAttempt >= MAX_DELIVERY_ATTEMPTS) {
       await deps.deliveryRepository.markDead({
         tenantId: job.tenantId,
         jobId: job.id,

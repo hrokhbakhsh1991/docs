@@ -579,6 +579,11 @@
     "title": "Connections",
     "subtitle": "Manage the Telegram connection, destination group, and delivery health for this workspace.",
     "workspaceScope": "Workspace API scope: {workspaceId}",
+    "smsUsage": {
+      "title": "SMS usage", "period": "Last 30 days; provider acceptance does not confirm handset delivery.",
+      "total": "Messages", "accepted": "Accepted", "failed": "Failed", "unknown": "Unknown",
+      "loading": "Loading usage…", "unavailable": "Usage is currently unavailable.", "costUnknown": "Cost: unavailable"
+    },
     "refresh": "Refresh",
     "catalogLoadFailed": "Could not load the field catalog for this workspace.",
     "catalogRetry": "Retry catalog load",
