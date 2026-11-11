@@ -1768,6 +1768,9 @@ export function createRequestListener(deps: AppDeps = {}) {
     const traceId = resolveTraceIdFromHeaders(req.headers);
     await runWithTraceContext(traceId, async () => {
       try {
+        const { assertOperatorImpersonationReadonly } =
+          await import("./identity/assert-operator-impersonation-readonly");
+        await assertOperatorImpersonationReadonly(req);
         await dispatchRequest(req, res, deps);
       } catch (error) {
         handleHttpError(res, error);

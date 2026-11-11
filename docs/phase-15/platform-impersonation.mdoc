@@ -24,7 +24,7 @@ Club admin host
   → redirect /dashboard
 
 Operator shell: data-operator-impersonation-banner
-Write routes (PATCH/POST/DELETE with rateLimit): 403 IMPERSONATION_READ_ONLY
+API ingress: non-read requests carrying a support session return 403 IMPERSONATION_READ_ONLY
 ```
 
 ## API routes
@@ -49,7 +49,7 @@ JWT claims (30m expiry): `sub`, `tenant_id`, `role: "owner"`, `sess_ver`, `platf
 
 ## Readonly guard
 
-`assertOperatorImpersonationReadonly` runs inside `runWithHttpRequestContext` when `options.rateLimit` is set (write-tier routes). GET/HEAD pass through. Mutations with impersonation JWT → `ImpersonationReadOnlyError` → HTTP **403** `{ "error": "forbidden", "code": "IMPERSONATION_READ_ONLY" }`.
+`assertOperatorImpersonationReadonly` runs at API ingress before route dispatch, independent of rate-limit configuration. GET/HEAD pass through. Non-read requests with impersonation JWT → `ImpersonationReadOnlyError` → HTTP **403** `{ "error": "forbidden", "code": "IMPERSONATION_READ_ONLY" }`.
 
 **Non-impersonation bearers:** when `AUTH_JWT_*` is configured, the guard must not `jwtVerify` unsigned
 dev bearers (`dev.<base64url>`) or other non-RS256 tokens. Those are not platform impersonation
@@ -64,6 +64,11 @@ successfully verified JWT with `platform_impersonation_readonly: true` denies mu
 |--------|------|
 | `IMPERSONATE_START` | successful start |
 | `IMPERSONATE_END` | `POST …/impersonate/end` (operator logout END audit deferred v1.1) |
+
+The END endpoint records an audit event; it does not revoke the issued token. Operator logout
+clears the browser cookie but does not invalidate a copied token before its expiry. The exchange
+token is currently passed in a URL query and is not single-use. These limitations must be fixed
+before the support flow is certified as safely terminated.
 
 ## Platform billing vs Denali finance
 
