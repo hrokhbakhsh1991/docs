@@ -33,7 +33,7 @@ API ingress: non-read requests carrying a support session return 403 IMPERSONATI
 |--------|------|------|------|
 | `POST` | `/platform/v1/tenants/{tenantId}/impersonate` | platform ops Bearer + phone | `assertPlatformOpsImpersonateRole` (owner/admin/support) |
 | `POST` | `/platform/v1/tenants/{tenantId}/impersonate/end` | same | optional body `{ reason?: "manual" \| "timeout" \| "replaced" }` |
-| `POST` | `/auth/accept-platform-impersonation` | none (one-time JWT in body) | verifies impersonation JWT |
+| `POST` | `/auth/accept-platform-impersonation` | none (JWT in body) | verifies impersonation JWT |
 
 ### Start response (200)
 
