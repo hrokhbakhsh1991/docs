@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import { fetchPlatformApi } from "../platform-api-client";
+import { buildImpersonationExchangeUrl } from "../impersonation-exchange-url";
 
 export type TabOwnerImpersonateProps = {
   readonly tenantId: string;
@@ -38,8 +39,11 @@ export function TabOwnerImpersonate({ tenantId, adminLoginUrl }: TabOwnerImperso
         return;
       }
 
-      const adminBase = adminLoginUrl.replace(/\/auth\/login\/?$/, "");
-      const url = adminBase + body.exchangePath + "?token=" + encodeURIComponent(body.sessionToken);
+      const url = buildImpersonationExchangeUrl(
+        adminLoginUrl,
+        body.exchangePath,
+        body.sessionToken
+      );
       window.open(url, "_blank", "noopener,noreferrer");
     } catch {
       setError("Failed to start impersonation");

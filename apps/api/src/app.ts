@@ -343,6 +343,12 @@ async function dispatchRequest(
     await handleAcceptPlatformImpersonation(req, res);
     return;
   }
+  if (method === "POST" && url.pathname === "/auth/end-platform-impersonation") {
+    const { handleEndPlatformImpersonation } =
+      await import("./identity/accept-platform-impersonation.ts");
+    await handleEndPlatformImpersonation(req, res);
+    return;
+  }
 
   if (method === "POST" && url.pathname === "/public/auth/phone-preflight") {
     await handlePublicPhonePreflight(req, res);

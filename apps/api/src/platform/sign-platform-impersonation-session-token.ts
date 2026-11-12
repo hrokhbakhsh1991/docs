@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { SignJWT, importPKCS8, type CryptoKey } from "jose";
 
 import { readJwtVerifyConfig } from "../tenant-kernel/jwt-env";
@@ -40,6 +41,7 @@ export async function signPlatformImpersonationSessionToken(
     platform_impersonator: claims.platformImpersonator,
   })
     .setProtectedHeader({ alg: "RS256" })
+    .setJti(randomUUID())
     .setSubject(claims.userId)
     .setIssuer(config.issuer)
     .setAudience(config.audience)

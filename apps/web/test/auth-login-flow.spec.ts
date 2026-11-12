@@ -108,7 +108,7 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
 
   it("BFF-9.1-05 logout BFF clears HttpOnly session cookie", async () => {
     const { POST } = await import("../app/api/auth/logout/route");
-    const res = await POST();
+    const res = await POST(new Request("http://admin.denali.localhost:3000/api/auth/logout"));
     assert.equal(res.status, 200);
     const setCookie = res.headers.get("set-cookie") ?? "";
     assert.match(setCookie, /atour_op_session=/);
@@ -116,5 +116,80 @@ describe("auth-login-flow.spec.ts — Phase 9.1 BFF", () => {
     assert.match(setCookie, /HttpOnly/i);
     assert.match(setCookie, /operator-welcome-armed=/);
     assert.match(setCookie, /Max-Age=0/i);
+  });
+
+  it("logout revokes the support session with the API before clearing its cookie", async () => {
+    const { POST } = await import("../app/api/auth/logout/route");
+    const priorUrl = process.env.TOUR_OPS_API_URL;
+    const priorFetch = globalThis.fetch;
+    let upstreamBody: unknown;
+    try {
+      process.env.TOUR_OPS_API_URL = "http://127.0.0.1:3001";
+      globalThis.fetch = async (_input, init) => {
+        upstreamBody = JSON.parse(String(init?.body));
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      };
+      const request = {
+        headers: new Headers({ cookie: "atour_op_session=signed-test-session" }),
+      } as Request;
+      const { SESSION_TOKEN_COOKIE } = await import("../src/auth/build-session-cookie");
+      const { readSessionTokenFromCookieHeader } = await import("@app-tour/session-client");
+      assert.equal(
+        readSessionTokenFromCookieHeader(request.headers.get("cookie") ?? "", SESSION_TOKEN_COOKIE),
+        "signed-test-session"
+      );
+      const res = await POST(request);
+      assert.equal(res.status, 200);
+      assert.deepEqual(upstreamBody, { sessionToken: "signed-test-session" });
+      assert.match(res.headers.get("set-cookie") ?? "", /Max-Age=0/i);
+    } finally {
+      globalThis.fetch = priorFetch;
+      if (priorUrl === undefined) delete process.env.TOUR_OPS_API_URL;
+      else process.env.TOUR_OPS_API_URL = priorUrl;
+    }
+  });
+
+  it("preserves the session cookie and reports failure when API revocation fails", async () => {
+    const { POST } = await import("../app/api/auth/logout/route");
+    const priorUrl = process.env.TOUR_OPS_API_URL;
+    const priorFetch = globalThis.fetch;
+    try {
+      process.env.TOUR_OPS_API_URL = "http://127.0.0.1:3001";
+      globalThis.fetch = async () => new Response("{}", { status: 503 });
+      const request = {
+        headers: new Headers({ cookie: "atour_op_session=signed-test-session" }),
+      } as Request;
+      const res = await POST(request);
+      assert.equal(res.status, 503);
+      assert.deepEqual(await res.json(), {
+        ok: false,
+        error: { code: "SUPPORT_SESSION_REVOCATION_FAILED" },
+      });
+      assert.doesNotMatch(res.headers.get("set-cookie") ?? "", /atour_op_session=.*Max-Age=0/i);
+    } finally {
+      globalThis.fetch = priorFetch;
+      if (priorUrl === undefined) delete process.env.TOUR_OPS_API_URL;
+      else process.env.TOUR_OPS_API_URL = priorUrl;
+    }
+  });
+
+  it("clears an expired or already-revoked session rejected by the API", async () => {
+    const { POST } = await import("../app/api/auth/logout/route");
+    const priorUrl = process.env.TOUR_OPS_API_URL;
+    const priorFetch = globalThis.fetch;
+    try {
+      process.env.TOUR_OPS_API_URL = "http://127.0.0.1:3001";
+      globalThis.fetch = async () => new Response("{}", { status: 401 });
+      const request = {
+        headers: new Headers({ cookie: "atour_op_session=expired-session" }),
+      } as Request;
+      const res = await POST(request);
+      assert.equal(res.status, 200);
+      assert.match(res.headers.get("set-cookie") ?? "", /atour_op_session=.*Max-Age=0/i);
+    } finally {
+      globalThis.fetch = priorFetch;
+      if (priorUrl === undefined) delete process.env.TOUR_OPS_API_URL;
+      else process.env.TOUR_OPS_API_URL = priorUrl;
+    }
   });
 });

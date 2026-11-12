@@ -9,6 +9,10 @@ import {
   resetPlatformImpersonationSessionTokenKeyCacheForTests,
   signPlatformImpersonationSessionToken,
 } from "../src/platform/sign-platform-impersonation-session-token.ts";
+import {
+  resetPlatformImpersonationSessionStateForTests,
+  setPlatformImpersonationRedisClientForTests,
+} from "../src/platform/platform-impersonation-session-state.ts";
 
 const ENV_SNAPSHOT = {
   AUTH_JWT_PUBLIC_KEY: process.env.AUTH_JWT_PUBLIC_KEY,
@@ -25,6 +29,17 @@ describe("assertOperatorImpersonationReadonly", () => {
     process.env.AUTH_JWT_ISSUER = "tour-ops";
     process.env.AUTH_JWT_AUDIENCE = "tour-ops-api";
     resetPlatformImpersonationSessionTokenKeyCacheForTests();
+    setPlatformImpersonationRedisClientForTests({
+      async get(key) {
+        return key.includes(":exchanged:") ? "1" : null;
+      },
+      async setWithTtl() {
+        return "OK";
+      },
+      async setIfAbsentWithTtl() {
+        return "OK";
+      },
+    });
   });
 
   after(() => {
@@ -33,6 +48,7 @@ describe("assertOperatorImpersonationReadonly", () => {
     process.env.AUTH_JWT_ISSUER = ENV_SNAPSHOT.AUTH_JWT_ISSUER;
     process.env.AUTH_JWT_AUDIENCE = ENV_SNAPSHOT.AUTH_JWT_AUDIENCE;
     resetPlatformImpersonationSessionTokenKeyCacheForTests();
+    resetPlatformImpersonationSessionStateForTests();
   });
 
   it("PATCH with readonly JWT throws ImpersonationReadOnlyError", async () => {
@@ -77,6 +93,29 @@ describe("assertOperatorImpersonationReadonly", () => {
           authorization:
             "Bearer dev.eyJ1c2VySWQiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDA0MDEiLCJ0ZW5hbnRJZCI6IjAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwNCIsInJvbGUiOiJvd25lciIsInN0YXR1cyI6IkFDVElWRSIsIndvcmtzcGFjZUlkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwNDAzIiwiZXhwIjo5OTk5OTk5OTk5fQ",
         },
+      } as never)
+    );
+  });
+
+  it("rejects a revoked read session before allowing a GET", async () => {
+    setPlatformImpersonationRedisClientForTests({
+      async get() {
+        return "revoked";
+      },
+      async set() {
+        return "OK";
+      },
+    });
+    const token = await signPlatformImpersonationSessionToken({
+      userId: "00000000-0000-4000-8000-000000000101",
+      tenantId: "00000000-0000-4000-8000-000000000014",
+      sessionVersion: 1,
+      platformImpersonator: "+989121234567",
+    });
+    await assert.rejects(() =>
+      assertOperatorImpersonationReadonly({
+        method: "GET",
+        headers: { authorization: `Bearer ${token}` },
       } as never)
     );
   });

@@ -1,16 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useAppSearchParams } from "@/navigation/app-navigation-hooks";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { readImpersonationFragment } from "@/platform/impersonation-exchange-url";
 
 export default function PlatformImpersonatePage() {
   const router = useRouter();
-  const searchParams = useAppSearchParams();
+  const started = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = searchParams.get("token")?.trim() ?? "";
+    if (started.current) return;
+    started.current = true;
+    const token = readImpersonationFragment(window.location.hash);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      window.location.pathname + window.location.search
+    );
     if (token.length === 0) {
       setError("Missing impersonation token");
       return;
@@ -29,7 +36,7 @@ export default function PlatformImpersonatePage() {
       }
       router.replace("/dashboard");
     })();
-  }, [router, searchParams]);
+  }, [router]);
 
   if (error) {
     return (

@@ -9,6 +9,10 @@ import {
   resetPlatformImpersonationSessionTokenKeyCacheForTests,
   signPlatformImpersonationSessionToken,
 } from "../src/platform/sign-platform-impersonation-session-token";
+import {
+  resetPlatformImpersonationSessionStateForTests,
+  setPlatformImpersonationRedisClientForTests,
+} from "../src/platform/platform-impersonation-session-state";
 
 installMemoryStorageDriverForDescribe();
 
@@ -19,6 +23,7 @@ const envSnapshot = {
 };
 
 afterEach(() => {
+  resetPlatformImpersonationSessionStateForTests();
   for (const [key, value] of Object.entries(envSnapshot)) {
     if (value !== undefined) {
       env[key] = value;
@@ -96,6 +101,17 @@ describe("platform impersonate integration", () => {
       process.env.AUTH_JWT_ISSUER = "tour-ops";
       process.env.AUTH_JWT_AUDIENCE = "tour-ops-api";
       resetPlatformImpersonationSessionTokenKeyCacheForTests();
+      setPlatformImpersonationRedisClientForTests({
+        async get(key) {
+          return key.includes(":exchanged:") ? "1" : null;
+        },
+        async setWithTtl() {
+          return "OK";
+        },
+        async setIfAbsentWithTtl() {
+          return "OK";
+        },
+      });
       const token = await signPlatformImpersonationSessionToken({
         userId: "00000000-0000-4000-8000-000000000101",
         tenantId: "00000000-0000-4000-8000-000000000014",
@@ -122,6 +138,76 @@ describe("platform impersonate integration", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       assert.equal(read.status, 200);
+    } finally {
+      for (const name of names) {
+        if (old[name] === undefined) delete process.env[name];
+        else process.env[name] = old[name];
+      }
+      resetPlatformImpersonationSessionTokenKeyCacheForTests();
+    }
+  });
+
+  it("consumes the exchange once and revokes the read session on logout", async () => {
+    const names = [
+      "AUTH_JWT_PUBLIC_KEY",
+      "AUTH_JWT_PRIVATE_KEY",
+      "AUTH_JWT_ISSUER",
+      "AUTH_JWT_AUDIENCE",
+    ] as const;
+    const old = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+    const values = new Map<string, string>();
+    try {
+      const pair = await generateKeyPair("RS256", { extractable: true });
+      process.env.AUTH_JWT_PUBLIC_KEY = await exportSPKI(pair.publicKey);
+      process.env.AUTH_JWT_PRIVATE_KEY = await exportPKCS8(pair.privateKey);
+      process.env.AUTH_JWT_ISSUER = "tour-ops";
+      process.env.AUTH_JWT_AUDIENCE = "tour-ops-api";
+      resetPlatformImpersonationSessionTokenKeyCacheForTests();
+      setPlatformImpersonationRedisClientForTests({
+        async get(key) {
+          return values.get(key) ?? null;
+        },
+        async setWithTtl(key, value) {
+          values.set(key, value);
+          return "OK";
+        },
+        async setIfAbsentWithTtl(key, value) {
+          if (values.has(key)) return null;
+          values.set(key, value);
+          return "OK";
+        },
+      });
+      const token = await signPlatformImpersonationSessionToken({
+        userId: "00000000-0000-4000-8000-000000000101",
+        tenantId: "00000000-0000-4000-8000-000000000014",
+        sessionVersion: 1,
+        platformImpersonator: "support",
+      });
+      const exchange = {
+        sessionToken: token,
+      };
+      assert.equal(
+        (await platformHttpJson("POST", "/auth/accept-platform-impersonation", { body: exchange }))
+          .status,
+        200
+      );
+      assert.equal(
+        (await platformHttpJson("POST", "/auth/accept-platform-impersonation", { body: exchange }))
+          .status,
+        401
+      );
+      assert.equal(
+        (
+          await platformHttpJson("POST", "/auth/end-platform-impersonation", {
+            body: exchange,
+          })
+        ).status,
+        200
+      );
+      const revokedRead = await platformHttpJson("GET", "/health", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      assert.equal(revokedRead.status, 401);
     } finally {
       for (const name of names) {
         if (old[name] === undefined) delete process.env[name];

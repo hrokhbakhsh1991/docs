@@ -34,6 +34,10 @@ import {
 } from "../http/http-idempotency";
 import { WorkspaceInvalidError } from "../tenant/workspace-membership";
 import {
+  PlatformImpersonationStateUnavailableError,
+  PlatformImpersonationTokenConsumedError,
+} from "../platform/platform-impersonation-session-state";
+import {
   isWorkspaceTypeUnresolvedError,
   WORKSPACE_TYPE_UNRESOLVED,
 } from "../tenant/resolve-workspace-type";
@@ -686,6 +690,22 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
 
   if (error instanceof ImpersonationReadOnlyError) {
     sendHttpError(res, 403, { error: "forbidden", code: "IMPERSONATION_READ_ONLY" }, correlationId);
+    return;
+  }
+
+  if (
+    error instanceof PlatformImpersonationStateUnavailableError ||
+    error instanceof PlatformImpersonationTokenConsumedError
+  ) {
+    sendHttpError(
+      res,
+      error.statusCode,
+      {
+        error: error.statusCode === 503 ? "service_unavailable" : "unauthorized",
+        code: error.code,
+      },
+      correlationId
+    );
     return;
   }
 
