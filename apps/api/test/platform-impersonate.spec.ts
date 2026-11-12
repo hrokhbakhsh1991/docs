@@ -1,9 +1,18 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import { afterEach, describe, it } from "node:test";
+import { exportPKCS8, exportSPKI, generateKeyPair } from "jose";
 
 import { createRequestListener } from "../src/app.ts";
 import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
+import {
+  resetPlatformImpersonationSessionTokenKeyCacheForTests,
+  signPlatformImpersonationSessionToken,
+} from "../src/platform/sign-platform-impersonation-session-token";
+import {
+  resetPlatformImpersonationSessionStateForTests,
+  setPlatformImpersonationRedisClientForTests,
+} from "../src/platform/platform-impersonation-session-state";
 
 installMemoryStorageDriverForDescribe();
 
@@ -14,6 +23,7 @@ const envSnapshot = {
 };
 
 afterEach(() => {
+  resetPlatformImpersonationSessionStateForTests();
   for (const [key, value] of Object.entries(envSnapshot)) {
     if (value !== undefined) {
       env[key] = value;
@@ -24,7 +34,7 @@ afterEach(() => {
 });
 
 async function platformHttpJson(
-  method: "GET" | "POST" | "PATCH",
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
   path: string,
   opts?: { headers?: Record<string, string>; body?: unknown }
 ) {
@@ -47,7 +57,12 @@ async function platformHttpJson(
           method,
           headers: {
             ...(opts?.headers ?? {}),
-            ...(p ? { "Content-Type": "application/json", "Content-Length": String(Buffer.byteLength(p)) } : {}),
+            ...(p
+              ? {
+                  "Content-Type": "application/json",
+                  "Content-Length": String(Buffer.byteLength(p)),
+                }
+              : {}),
           },
         },
         (res) => {
@@ -71,6 +86,136 @@ async function platformHttpJson(
 }
 
 describe("platform impersonate integration", () => {
+  it("rejects support-session writes at ingress even for routes without a rate limit", async () => {
+    const names = [
+      "AUTH_JWT_PUBLIC_KEY",
+      "AUTH_JWT_PRIVATE_KEY",
+      "AUTH_JWT_ISSUER",
+      "AUTH_JWT_AUDIENCE",
+    ] as const;
+    const old = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+    try {
+      const pair = await generateKeyPair("RS256", { extractable: true });
+      process.env.AUTH_JWT_PUBLIC_KEY = await exportSPKI(pair.publicKey);
+      process.env.AUTH_JWT_PRIVATE_KEY = await exportPKCS8(pair.privateKey);
+      process.env.AUTH_JWT_ISSUER = "tour-ops";
+      process.env.AUTH_JWT_AUDIENCE = "tour-ops-api";
+      resetPlatformImpersonationSessionTokenKeyCacheForTests();
+      setPlatformImpersonationRedisClientForTests({
+        async get(key) {
+          return key.includes(":exchanged:") ? "1" : null;
+        },
+        async setWithTtl() {
+          return "OK";
+        },
+        async setIfAbsentWithTtl() {
+          return "OK";
+        },
+      });
+      const token = await signPlatformImpersonationSessionToken({
+        userId: "00000000-0000-4000-8000-000000000101",
+        tenantId: "00000000-0000-4000-8000-000000000014",
+        sessionVersion: 1,
+        platformImpersonator: "support",
+      });
+      for (const [method, path] of [
+        ["POST", "/not-an-operator-route"],
+        ["POST", "/tours"],
+        ["PATCH", "/users/00000000-0000-4000-8000-000000000101/role"],
+        ["DELETE", "/users/00000000-0000-4000-8000-000000000101"],
+        ["PUT", "/settings"],
+      ] as const) {
+        for (const headers of [
+          { Authorization: `Bearer ${token}` },
+          { Cookie: `session=${token}` },
+        ]) {
+          const res = await platformHttpJson(method, path, { headers });
+          assert.equal(res.status, 403, `${method} ${path}`);
+          assert.equal(res.body.code, "IMPERSONATION_READ_ONLY");
+        }
+      }
+      const read = await platformHttpJson("GET", "/health", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      assert.equal(read.status, 200);
+    } finally {
+      for (const name of names) {
+        if (old[name] === undefined) delete process.env[name];
+        else process.env[name] = old[name];
+      }
+      resetPlatformImpersonationSessionTokenKeyCacheForTests();
+    }
+  });
+
+  it("consumes the exchange once and revokes the read session on logout", async () => {
+    const names = [
+      "AUTH_JWT_PUBLIC_KEY",
+      "AUTH_JWT_PRIVATE_KEY",
+      "AUTH_JWT_ISSUER",
+      "AUTH_JWT_AUDIENCE",
+    ] as const;
+    const old = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+    const values = new Map<string, string>();
+    try {
+      const pair = await generateKeyPair("RS256", { extractable: true });
+      process.env.AUTH_JWT_PUBLIC_KEY = await exportSPKI(pair.publicKey);
+      process.env.AUTH_JWT_PRIVATE_KEY = await exportPKCS8(pair.privateKey);
+      process.env.AUTH_JWT_ISSUER = "tour-ops";
+      process.env.AUTH_JWT_AUDIENCE = "tour-ops-api";
+      resetPlatformImpersonationSessionTokenKeyCacheForTests();
+      setPlatformImpersonationRedisClientForTests({
+        async get(key) {
+          return values.get(key) ?? null;
+        },
+        async setWithTtl(key, value) {
+          values.set(key, value);
+          return "OK";
+        },
+        async setIfAbsentWithTtl(key, value) {
+          if (values.has(key)) return null;
+          values.set(key, value);
+          return "OK";
+        },
+      });
+      const token = await signPlatformImpersonationSessionToken({
+        userId: "00000000-0000-4000-8000-000000000101",
+        tenantId: "00000000-0000-4000-8000-000000000014",
+        sessionVersion: 1,
+        platformImpersonator: "support",
+      });
+      const exchange = {
+        sessionToken: token,
+      };
+      assert.equal(
+        (await platformHttpJson("POST", "/auth/accept-platform-impersonation", { body: exchange }))
+          .status,
+        200
+      );
+      assert.equal(
+        (await platformHttpJson("POST", "/auth/accept-platform-impersonation", { body: exchange }))
+          .status,
+        401
+      );
+      assert.equal(
+        (
+          await platformHttpJson("POST", "/auth/end-platform-impersonation", {
+            body: exchange,
+          })
+        ).status,
+        200
+      );
+      const revokedRead = await platformHttpJson("GET", "/health", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      assert.equal(revokedRead.status, 401);
+    } finally {
+      for (const name of names) {
+        if (old[name] === undefined) delete process.env[name];
+        else process.env[name] = old[name];
+      }
+      resetPlatformImpersonationSessionTokenKeyCacheForTests();
+    }
+  });
   it("PI-01 POST impersonate without auth returns 401", async () => {
     process.env.PLATFORM_OPS_BEARER_TOKEN = "test";
     process.env.PLATFORM_OPS_PHONES = "+989121234567";

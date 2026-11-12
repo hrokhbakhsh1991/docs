@@ -67,6 +67,7 @@ export function OperatorShell({
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const [sidebarPreferenceReady, setSidebarPreferenceReady] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [logoutError, setLogoutError] = useState(false);
   const locale = useLocale();
   const tApp = useTranslations("app");
   const drawerSide = resolveOperatorNavSheetSide(isAppLocale(locale) ? locale : "fa");
@@ -82,15 +83,30 @@ export function OperatorShell({
   }, []);
 
   const handleLogout = useCallback(async () => {
-    clearOperatorWelcomeSession();
-    await fetch("/api/auth/logout", { method: "POST" });
-    navigateAfterLogout(router);
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        setLogoutError(true);
+        return;
+      }
+      clearOperatorWelcomeSession();
+      navigateAfterLogout(router);
+    } catch {
+      setLogoutError(true);
+    }
   }, [router]);
 
   const handleExitImpersonation = useCallback(async () => {
-    // TODO P2-B-v1.1 audit END on logout
-    await fetch("/api/auth/logout", { method: "POST" });
-    navigateAfterLogout(router);
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        setLogoutError(true);
+        return;
+      }
+      navigateAfterLogout(router);
+    } catch {
+      setLogoutError(true);
+    }
   }, [router]);
 
   return (
@@ -135,6 +151,11 @@ export function OperatorShell({
           >
             خروج
           </button>
+        </div>
+      ) : null}
+      {logoutError ? (
+        <div data-operator-logout-error role="alert">
+          خروج امن انجام نشد؛ اتصال را بررسی کنید و دوباره تلاش کنید.
         </div>
       ) : null}
 

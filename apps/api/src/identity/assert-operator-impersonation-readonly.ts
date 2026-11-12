@@ -7,6 +7,7 @@ import { isJwtVerifyConfigured, readJwtVerifyConfig } from "../tenant-kernel/jwt
 import { loadPublicKey } from "../tenant-kernel/jwt-key.util";
 import { ImpersonationReadOnlyError } from "./impersonation-read-only.error";
 import { readSessionCookieToken } from "./parse-session-cookie";
+import { assertPlatformImpersonationSessionActive } from "../platform/platform-impersonation-session-state";
 
 function readBearerToken(req: IncomingMessage): string | null {
   const authorization = req.headers.authorization;
@@ -23,10 +24,6 @@ function resolveSessionToken(req: IncomingMessage): string | null {
 
 export async function assertOperatorImpersonationReadonly(req: IncomingMessage): Promise<void> {
   const method = (req.method ?? "GET").toUpperCase();
-  if (method === "GET" || method === "HEAD") {
-    return;
-  }
-
   const token = resolveSessionToken(req);
   if (token === null) {
     return;
@@ -42,6 +39,7 @@ export async function assertOperatorImpersonationReadonly(req: IncomingMessage):
   }
 
   const config = readJwtVerifyConfig()!;
+  let impersonationJti: string | null = null;
   try {
     const key = await loadPublicKey(config.publicKeyPem);
     const verified = await jwtVerify(token, key, {
@@ -52,12 +50,17 @@ export async function assertOperatorImpersonationReadonly(req: IncomingMessage):
     });
 
     if (verified.payload.platform_impersonation_readonly === true) {
-      throw new ImpersonationReadOnlyError();
+      impersonationJti = typeof verified.payload.jti === "string" ? verified.payload.jti : "";
     }
   } catch (error) {
-    if (error instanceof ImpersonationReadOnlyError) {
-      throw error;
-    }
     // Non-impersonation / malformed bearer — leave write authz to resolveTenantContext.
+  }
+
+  if (impersonationJti === null) {
+    return;
+  }
+  await assertPlatformImpersonationSessionActive(impersonationJti);
+  if (method !== "GET" && method !== "HEAD") {
+    throw new ImpersonationReadOnlyError();
   }
 }

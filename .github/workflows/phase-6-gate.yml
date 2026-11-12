@@ -260,7 +260,7 @@ jobs:
     name: Phase 6.6 Playwright smoke
     needs: classify
     if: ${{ github.event_name != 'pull_request' || needs.classify.outputs.run_browser == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     services:

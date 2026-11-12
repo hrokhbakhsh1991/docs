@@ -17,23 +17,28 @@ Super Admin (admin.{root})
   → { sessionToken, exchangePath: "/auth/platform-impersonate", expiresAt }
 
 Club admin host
-  GET /auth/platform-impersonate?token=…
+  GET /auth/platform-impersonate#token=… (fragment removed from browser history before exchange)
   → POST /api/auth/platform-impersonate (web BFF)
-  → POST /auth/accept-platform-impersonation (API verify JWT)
+  → POST /auth/accept-platform-impersonation (API verify JWT and atomically consume its jti)
   → Set-Cookie session (Max-Age=1800)
   → redirect /dashboard
 
-Operator shell: data-operator-impersonation-banner
-Write routes (PATCH/POST/DELETE with rateLimit): 403 IMPERSONATION_READ_ONLY
+Operator shell: data-operator-impersonation-banner; logout revokes the support session before
+clearing the cookie. If the API is unavailable, the cookie is retained, the UI shows an error, and
+the operator can retry. An API rejection means the token is already unusable and the cookie clears.
+The session expires after 30 minutes. API ingress checks the session jti
+against shared Redis and rejects revoked, missing, or unavailable support-session state; non-read
+requests return 403 IMPERSONATION_READ_ONLY.
 ```
 
 ## API routes
 
-| Method | Path | Auth | Role |
-|--------|------|------|------|
-| `POST` | `/platform/v1/tenants/{tenantId}/impersonate` | platform ops Bearer + phone | `assertPlatformOpsImpersonateRole` (owner/admin/support) |
-| `POST` | `/platform/v1/tenants/{tenantId}/impersonate/end` | same | optional body `{ reason?: "manual" \| "timeout" \| "replaced" }` |
-| `POST` | `/auth/accept-platform-impersonation` | none (one-time JWT in body) | verifies impersonation JWT |
+| Method | Path                                              | Auth                        | Role                                                             |
+| ------ | ------------------------------------------------- | --------------------------- | ---------------------------------------------------------------- |
+| `POST` | `/platform/v1/tenants/{tenantId}/impersonate`     | platform ops Bearer + phone | `assertPlatformOpsImpersonateRole` (owner/admin/support)         |
+| `POST` | `/platform/v1/tenants/{tenantId}/impersonate/end` | same                        | optional body `{ reason?: "manual" \| "timeout" \| "replaced" }` |
+| `POST` | `/auth/accept-platform-impersonation`             | none (JWT in body)          | verifies impersonation JWT                                       |
+| `POST` | `/auth/end-platform-impersonation`                | none (session JWT in body)  | revokes the verified session jti                                 |
 
 ### Start response (200)
 
@@ -45,11 +50,11 @@ Write routes (PATCH/POST/DELETE with rateLimit): 403 IMPERSONATION_READ_ONLY
 }
 ```
 
-JWT claims (30m expiry): `sub`, `tenant_id`, `role: "owner"`, `sess_ver`, `platform_impersonation_readonly: true`, `platform_impersonator` (ops phone).
+JWT claims (30m expiry): `sub`, `tenant_id`, `role: "owner"`, `sess_ver`, `jti`, `platform_impersonation_readonly: true`, `platform_impersonator` (ops phone).
 
 ## Readonly guard
 
-`assertOperatorImpersonationReadonly` runs inside `runWithHttpRequestContext` when `options.rateLimit` is set (write-tier routes). GET/HEAD pass through. Mutations with impersonation JWT → `ImpersonationReadOnlyError` → HTTP **403** `{ "error": "forbidden", "code": "IMPERSONATION_READ_ONLY" }`.
+`assertOperatorImpersonationReadonly` runs at API ingress before route dispatch, independent of rate-limit configuration. Every request carrying a valid support JWT checks the jti against shared Redis; revoked or unavailable state fails closed. GET/HEAD pass after that check. Non-read requests with an active impersonation JWT → `ImpersonationReadOnlyError` → HTTP **403** `{ "error": "forbidden", "code": "IMPERSONATION_READ_ONLY" }`.
 
 **Non-impersonation bearers:** when `AUTH_JWT_*` is configured, the guard must not `jwtVerify` unsigned
 dev bearers (`dev.<base64url>`) or other non-RS256 tokens. Those are not platform impersonation
@@ -60,10 +65,16 @@ successfully verified JWT with `platform_impersonation_readonly: true` denies mu
 
 ## Audit
 
-| Action | When |
-|--------|------|
-| `IMPERSONATE_START` | successful start |
-| `IMPERSONATE_END` | `POST …/impersonate/end` (operator logout END audit deferred v1.1) |
+| Action              | When                                                               |
+| ------------------- | ------------------------------------------------------------------ |
+| `IMPERSONATE_START` | successful start                                                   |
+| `IMPERSONATE_END`   | `POST …/impersonate/end` (operator logout END audit deferred v1.1) |
+
+The exchange token is passed in a URL fragment and removed before the request; Redis atomically
+allows one exchange per jti. API ingress requires the exchange marker, so missing Redis state fails
+closed. Operator logout revokes the session jti so copied tokens stop working. A failed request to
+the API does not clear the session cookie or report success; the UI lets the operator retry. If
+Redis is unavailable, support sessions fail closed.
 
 ## Platform billing vs Denali finance
 
@@ -71,13 +82,13 @@ Impersonation and platform billing (P2-C) do not touch `/finance/*` or `packages
 
 ## Code map
 
-| Layer | Path |
-|-------|------|
-| Start/end service | `apps/api/src/platform/start-platform-impersonation.ts` |
-| JWT sign | `apps/api/src/platform/sign-platform-impersonation-session-token.ts` |
-| Readonly guard | `apps/api/src/identity/assert-operator-impersonation-readonly.ts` |
-| Web Owner tab | `apps/web/src/platform/club-detail/tab-owner-impersonate.tsx` |
-| Exchange page | `apps/web/app/auth/platform-impersonate/page.tsx` |
-| Operator banner | `apps/web/src/admin/shell/operator-shell.tsx` |
+| Layer             | Path                                                                 |
+| ----------------- | -------------------------------------------------------------------- |
+| Start/end service | `apps/api/src/platform/start-platform-impersonation.ts`              |
+| JWT sign          | `apps/api/src/platform/sign-platform-impersonation-session-token.ts` |
+| Readonly guard    | `apps/api/src/identity/assert-operator-impersonation-readonly.ts`    |
+| Web Owner tab     | `apps/web/src/platform/club-detail/tab-owner-impersonate.tsx`        |
+| Exchange page     | `apps/web/app/auth/platform-impersonate/page.tsx`                    |
+| Operator banner   | `apps/web/src/admin/shell/operator-shell.tsx`                        |
 
 Covenant: `TEMP/p2/p2-denali-safety.md`
