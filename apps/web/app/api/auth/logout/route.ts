@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { clearSessionCookieOnResponse, SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
+import { operatorApiFetch } from "@/auth/operator-api-fetch";
 import { clearOperatorWelcomeArmedCookieOnResponse } from "@/auth/operator-welcome-cookie";
 import { resolveTourOpsApiBaseUrl } from "@/platform/tour-ops-api-base";
 import { readSessionTokenFromCookieHeader } from "@app-tour/session-client";
@@ -13,7 +14,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   let sessionRevoked = true;
   if (sessionToken !== undefined) {
     try {
-      const response = await fetch(
+      const response = await operatorApiFetch(
         `${resolveTourOpsApiBaseUrl()}/auth/end-platform-impersonation`,
         {
           method: "POST",
