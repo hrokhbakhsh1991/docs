@@ -2,16 +2,19 @@
 
 ## Scope
 
-OTP delivery is implemented as a tenant-attributed integration delivery job. In
-platform mode the Melipayamak account is server-managed and uses an approved
-Pattern via `BaseServiceNumber`. It never stores the OTP in plaintext in the delivery-job
-payload. OTP variables are encrypted
+Workspace OTP delivery is implemented as a tenant-attributed integration delivery job. Platform
+staff login uses the same server-managed Melipayamak account, but its queue scope and usage ledger
+are platform-owned and have no tenant attribution. Platform staff login requires its own approved,
+platform-branded Pattern via `BaseServiceNumber`. Neither path stores OTP plaintext in the
+delivery-job payload. OTP variables are encrypted
 with `SMS_DELIVERY_ENCRYPTION_KEY` until the worker sends the message.
 
 Set `SMS_PROVIDER_MODE=platform`, `SMS_OTP_ENABLED=true`, `MELIPAYAMAK_USERNAME`,
-`MELIPAYAMAK_API_KEY`, `SMS_OTP_TEMPLATE_ID`, `SMS_OTP_TEMPLATE_SCOPE`, and a valid
-`SMS_DELIVERY_ENCRYPTION_KEY` in the API/worker environment. Missing configuration
-fails closed. The template scope is the approved workspace type, or `*` only for a
+`MELIPAYAMAK_API_KEY`, `SMS_OTP_TEMPLATE_ID`, `SMS_OTP_TEMPLATE_SCOPE`,
+`SMS_PLATFORM_OTP_TEMPLATE_ID`, `SMS_PLATFORM_OTP_TEMPLATE_SCOPE=platform`, and a valid
+`SMS_DELIVERY_ENCRYPTION_KEY` in the API/worker environment. The platform template must be
+approved separately; it never falls back to a workspace template. Missing configuration fails
+closed. A workspace template scope is the approved workspace type, or `*` only for a
 provider-approved common template. Static OTP cannot be enabled in platform mode. Jobs previously queued
 against workspace connections retain their original delivery route during migration.
 Central OTP requests also require Redis. Atomic per-minute limits apply to each
@@ -29,6 +32,10 @@ stored in the usage record.
 This gives the platform a stable accounting seam for future per-workspace
 budgets, dashboards, alerts, and billing without coupling those features to the
 provider adapter.
+
+Platform staff OTP attempts are recorded separately in `platform_sms_usage_events`, which has no
+tenant key and is accessible only to the background delivery role. Workspace usage counts and
+reports are not affected by platform staff authentication.
 
 The read-only workspace report covers the latest outcome per delivery job in
 the last 30 days. It exposes counts for provider-accepted, failed and unknown

@@ -5,7 +5,8 @@ export type IntegrationDeliveryJobStatus = "pending" | "processing" | "done" | "
 
 export type IntegrationDeliveryJobRecord = {
   readonly id: string;
-  readonly tenantId: string;
+  readonly tenantId: string | null;
+  readonly deliveryScope?: "tenant" | "platform";
   readonly provider: IntegrationProviderId;
   readonly capability: IntegrationCapability;
   readonly domainEventId: string;
@@ -17,7 +18,8 @@ export type IntegrationDeliveryJobRecord = {
 };
 
 export type EnqueueIntegrationDeliveryJobInput = {
-  readonly tenantId: string;
+  readonly tenantId: string | null;
+  readonly deliveryScope?: "tenant" | "platform";
   readonly provider: IntegrationProviderId;
   readonly capability: IntegrationCapability;
   readonly domainEventId: string;

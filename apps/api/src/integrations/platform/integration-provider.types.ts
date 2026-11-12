@@ -10,7 +10,7 @@ export type IntegrationProviderId =
   | "melipayamak";
 
 export type IntegrationDeliveryContext = {
-  readonly tenantId: string;
+  readonly tenantId: string | null;
   readonly workspaceType: string | null;
   readonly domainEventId: string;
   readonly eventType: string;

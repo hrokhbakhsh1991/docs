@@ -1183,20 +1183,22 @@ model IntegrationSecret {
 
 /// Async integration delivery queue — decoupled from outbox relay HTTP path.
 model IntegrationDeliveryJob {
-  id            String    @id @default(uuid()) @db.Uuid
-  tenantId      String    @map("tenant_id") @db.Uuid
-  provider      String
-  capability    String
-  domainEventId String    @map("domain_event_id")
-  eventType     String    @map("event_type")
-  payload       Json      @default("{}")
-  status        String    @default("pending")
-  attemptCount  Int       @default(0) @map("attempt_count")
-  nextAttemptAt DateTime? @map("next_attempt_at") @db.Timestamptz
-  lastError     Json?     @map("last_error")
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  processedAt   DateTime? @map("processed_at") @db.Timestamptz
-  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                     String                  @id @default(uuid()) @db.Uuid
+  tenantId               String?                 @map("tenant_id") @db.Uuid
+  deliveryScope          String                  @default("tenant") @map("delivery_scope")
+  provider               String
+  capability             String
+  domainEventId          String                  @map("domain_event_id")
+  eventType              String                  @map("event_type")
+  payload                Json                    @default("{}")
+  status                 String                  @default("pending")
+  attemptCount           Int                     @default(0) @map("attempt_count")
+  nextAttemptAt          DateTime?               @map("next_attempt_at") @db.Timestamptz
+  lastError              Json?                   @map("last_error")
+  createdAt              DateTime                @default(now()) @map("created_at") @db.Timestamptz
+  processedAt            DateTime?               @map("processed_at") @db.Timestamptz
+  tenant                 Tenant?                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  platformSmsUsageEvents PlatformSmsUsageEvent[]
 
   @@unique([tenantId, provider, capability, domainEventId], map: "uq_integration_delivery_jobs_idempotency")
   @@index([status, nextAttemptAt, createdAt], map: "idx_integration_delivery_jobs_claim")
@@ -1228,6 +1230,26 @@ model SmsUsageEvent {
   @@index([tenantId, workspaceType, createdAt(sort: Desc)], map: "idx_sms_usage_tenant_workspace_created")
   @@index([tenantId, purpose, createdAt(sort: Desc)], map: "idx_sms_usage_tenant_purpose_created")
   @@map("sms_usage_events")
+}
+
+/// Platform OTP accounting is separate from workspace usage and has no tenant owner.
+model PlatformSmsUsageEvent {
+  id                String                 @id @default(uuid()) @db.Uuid
+  deliveryJobId     String                 @map("delivery_job_id") @db.Uuid
+  attemptNumber     Int                    @map("attempt_number")
+  provider          String
+  purpose           String
+  templateKey       String?                @map("template_key")
+  recipientHash     String                 @map("recipient_hash")
+  providerMessageId String?                @map("provider_message_id")
+  status            String
+  errorCode         String?                @map("error_code")
+  createdAt         DateTime               @default(now()) @map("created_at") @db.Timestamptz
+  deliveryJob       IntegrationDeliveryJob @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
+
+  @@unique([deliveryJobId, attemptNumber], map: "uq_platform_sms_usage_delivery_attempt")
+  @@index([purpose, createdAt(sort: Desc)], map: "idx_platform_sms_usage_purpose_created")
+  @@map("platform_sms_usage_events")
 }
 
 /// Denali relative-time reminder feed activations — idempotent per tour + offset.

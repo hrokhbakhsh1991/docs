@@ -22,13 +22,18 @@ function isDevStaticOtpEnabled(): boolean {
 }
 
 export type OtpDeliveryContext = {
-  readonly tenantId: string;
+  readonly tenantId: string | null;
   readonly workspaceType: string;
-  readonly purpose: "operator_login" | "member_login" | "mobile_change" | "invite";
+  readonly purpose:
+    | "operator_login"
+    | "member_login"
+    | "mobile_change"
+    | "invite"
+    | "platform_ops_login";
 };
 
 export type OtpDeliveryDependencies = {
-  readonly assertPlatformBudget?: (tenantId: string, mobile: string) => Promise<void>;
+  readonly assertPlatformBudget?: (tenantId: string | null, mobile: string) => Promise<void>;
   readonly resolveConnection?: (input: {
     readonly tenantId: string;
     readonly workspaceType: string;
@@ -55,28 +60,57 @@ async function enqueueRealOtpDelivery(
     return;
   }
   if (platformMode && isDevStaticOtpEnabled()) throw new Error("PLATFORM_SMS_STATIC_OTP_FORBIDDEN");
-  const platformConfig = platformMode ? readPlatformSmsConfig() : null;
-  if (platformConfig && platformConfig.workspaceScope !== "*" && platformConfig.workspaceScope !== context.workspaceType) {
+  const platformScope = context.tenantId === null;
+  if (
+    platformScope &&
+    (context.workspaceType !== "platform" || context.purpose !== "platform_ops_login")
+  ) {
+    throw new Error("PLATFORM_SMS_CONTEXT_INVALID");
+  }
+  const platformConfig = platformMode
+    ? readPlatformSmsConfig(process.env, platformScope ? "platform" : "tenant")
+    : null;
+  if (
+    platformConfig &&
+    !platformScope &&
+    platformConfig.workspaceScope !== "*" &&
+    platformConfig.workspaceScope !== context.workspaceType
+  ) {
     throw new Error("PLATFORM_SMS_TEMPLATE_SCOPE_MISMATCH");
   }
-  const connection = platformMode ? null : await (dependencies.resolveConnection ?? resolveOtpDeliveryConnection)(context);
-  if (!platformMode && connection === null) throw new Error("MELIPAYAMAK_CONNECTION_NOT_CONFIGURED");
+  if (context.tenantId === null && !platformMode) throw new Error("PLATFORM_SMS_MODE_REQUIRED");
+  const connection = platformMode
+    ? null
+    : await (dependencies.resolveConnection ?? resolveOtpDeliveryConnection)({
+        tenantId: context.tenantId!,
+        workspaceType: context.workspaceType,
+      });
+  if (!platformMode && connection === null)
+    throw new Error("MELIPAYAMAK_CONNECTION_NOT_CONFIGURED");
   const encryptedCode = encryptOtpDeliveryCode(code);
   const enqueueJob = dependencies.enqueueJob ?? enqueueOtpDeliveryJob;
-  const workspaceName = platformMode ? null : await (dependencies.resolveWorkspaceName ?? resolveOtpWorkspaceName)(context.tenantId);
+  const workspaceName =
+    platformMode || platformScope
+      ? null
+      : await (dependencies.resolveWorkspaceName ?? resolveOtpWorkspaceName)(context.tenantId!);
   const created = await enqueueJob({
     tenantId: context.tenantId,
+    deliveryScope: platformScope ? "platform" : "tenant",
     provider: "melipayamak",
     capability: "sms.send",
     domainEventId: challengeId,
     eventType: "auth.otp.requested",
     payload: {
       workspaceType: context.workspaceType,
-      ...(platformMode ? { smsDeliverySource: "platform" } : { integrationConnectionId: connection!.id }),
+      ...(platformMode
+        ? { smsDeliverySource: "platform" }
+        : { integrationConnectionId: connection!.id }),
       recipient: mobile,
       smsPurpose: context.purpose,
       smsTemplateKey: "auth.otp",
-      smsTemplateId: platformConfig?.config.bodyId ?? (typeof connection?.config.bodyId === "string" ? connection.config.bodyId : ""),
+      smsTemplateId:
+        platformConfig?.config.bodyId ??
+        (typeof connection?.config.bodyId === "string" ? connection.config.bodyId : ""),
       smsEncryptedVariables: encryptedCode,
       ...(workspaceName === null ? {} : { smsWorkspaceName: workspaceName }),
     },
@@ -90,19 +124,45 @@ export async function createMobileOtpChallenge(
   deliveryContext?: OtpDeliveryContext,
   deliveryDependencies: OtpDeliveryDependencies = {}
 ): Promise<{ challengeId: string; otpLength: number }> {
+  const platformOpsRequest = deliveryContext?.purpose === "platform_ops_login";
+  if (
+    platformOpsRequest !== (deliveryContext?.tenantId === null) ||
+    (platformOpsRequest && deliveryContext?.workspaceType !== "platform")
+  ) {
+    throw new Error("PLATFORM_SMS_CONTEXT_INVALID");
+  }
+  if (platformOpsRequest && process.env.SMS_PROVIDER_MODE?.trim() !== "platform") {
+    throw new Error("PLATFORM_SMS_MODE_REQUIRED");
+  }
   assertOtpRequestRateLimit(mobile);
   if (process.env.SMS_PROVIDER_MODE?.trim() === "platform") {
-    if (deliveryContext === undefined) throw new Error("PLATFORM_SMS_TENANT_CONTEXT_REQUIRED");
+    if (deliveryContext === undefined) throw new Error("PLATFORM_SMS_CONTEXT_REQUIRED");
     if (process.env.NODE_ENV !== "production" && process.env.OTP_FIXTURE_CODE?.trim()) {
       throw new Error("PLATFORM_SMS_FIXTURE_OTP_FORBIDDEN");
     }
-    if (process.env.SMS_OTP_ENABLED?.trim() !== "true") throw new Error("PLATFORM_SMS_DELIVERY_DISABLED");
+    if (process.env.SMS_OTP_ENABLED?.trim() !== "true")
+      throw new Error("PLATFORM_SMS_DELIVERY_DISABLED");
     if (isDevStaticOtpEnabled()) throw new Error("PLATFORM_SMS_STATIC_OTP_FORBIDDEN");
-    const config = readPlatformSmsConfig();
-    if (config.workspaceScope !== "*" && config.workspaceScope !== deliveryContext.workspaceType) {
+    const platformScope = deliveryContext.tenantId === null;
+    if (
+      platformScope &&
+      (deliveryContext.workspaceType !== "platform" ||
+        deliveryContext.purpose !== "platform_ops_login")
+    ) {
+      throw new Error("PLATFORM_SMS_CONTEXT_INVALID");
+    }
+    const config = readPlatformSmsConfig(process.env, platformScope ? "platform" : "tenant");
+    if (
+      !platformScope &&
+      config.workspaceScope !== "*" &&
+      config.workspaceScope !== deliveryContext.workspaceType
+    ) {
       throw new Error("PLATFORM_SMS_TEMPLATE_SCOPE_MISMATCH");
     }
-    await (deliveryDependencies.assertPlatformBudget ?? assertPlatformOtpRateLimit)(deliveryContext.tenantId, mobile);
+    await (deliveryDependencies.assertPlatformBudget ?? assertPlatformOtpRateLimit)(
+      deliveryContext.tenantId,
+      mobile
+    );
   }
   // DL-44: when static DEV OTP is enabled, issue the same code the UI hints (1234)
   // so otp-dev logs match PUBLIC_REGISTRATION_DEV_OTP / otp.devHint.

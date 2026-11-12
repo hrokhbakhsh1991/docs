@@ -1,6 +1,9 @@
 import { Prisma } from "@prisma/client";
 
-import { getBackgroundAdminClient, BACKGROUND_ADMIN_REASON } from "../../db/background-admin-client";
+import {
+  getBackgroundAdminClient,
+  BACKGROUND_ADMIN_REASON,
+} from "../../db/background-admin-client";
 import { withTenantRls } from "../../db/with-tenant-rls";
 import type {
   EnqueueIntegrationDeliveryJobInput,
@@ -16,16 +19,16 @@ function isUniqueViolation(error: unknown): boolean {
 export type IntegrationDeliveryRepository = {
   enqueueJob(input: EnqueueIntegrationDeliveryJobInput): Promise<boolean>;
   claimPendingBatch(batchSize: number): Promise<readonly IntegrationDeliveryJobRecord[]>;
-  markDone(tenantId: string, jobId: string): Promise<void>;
+  markDone(tenantId: string | null, jobId: string): Promise<void>;
   markFailedForRetry(input: {
-    readonly tenantId: string;
+    readonly tenantId: string | null;
     readonly jobId: string;
     readonly attemptCount: number;
     readonly nextAttemptAt: Date;
     readonly lastError: Record<string, unknown>;
   }): Promise<void>;
   markDead(input: {
-    readonly tenantId: string;
+    readonly tenantId: string | null;
     readonly jobId: string;
     readonly lastError: Record<string, unknown>;
   }): Promise<void>;
@@ -33,6 +36,37 @@ export type IntegrationDeliveryRepository = {
 
 export class PrismaIntegrationDeliveryRepository implements IntegrationDeliveryRepository {
   async enqueueJob(input: EnqueueIntegrationDeliveryJobInput): Promise<boolean> {
+    if (input.deliveryScope === "platform") {
+      if (
+        input.tenantId !== null ||
+        input.provider !== "melipayamak" ||
+        input.capability !== "sms.send" ||
+        input.eventType !== "auth.otp.requested" ||
+        input.payload.smsDeliverySource !== "platform" ||
+        input.payload.smsPurpose !== "platform_ops_login"
+      )
+        throw new Error("PLATFORM_SMS_JOB_INVALID");
+      const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_DELIVERY);
+      try {
+        await admin.integrationDeliveryJob.create({
+          data: {
+            tenantId: null,
+            deliveryScope: "platform",
+            provider: input.provider,
+            capability: input.capability,
+            domainEventId: input.domainEventId,
+            eventType: input.eventType,
+            payload: input.payload as Prisma.InputJsonValue,
+            status: "pending",
+          },
+        });
+        return true;
+      } catch (error: unknown) {
+        if (isUniqueViolation(error)) return false;
+        throw error;
+      }
+    }
+    if (input.tenantId === null) throw new Error("INTEGRATION_DELIVERY_TENANT_REQUIRED");
     return withTenantRls(input.tenantId, async (tx) => {
       try {
         await tx.integrationDeliveryJob.create({
@@ -65,7 +99,15 @@ export class PrismaIntegrationDeliveryRepository implements IntegrationDeliveryR
     return claimPendingGlobal(normalizedBatch);
   }
 
-  async markDone(tenantId: string, jobId: string): Promise<void> {
+  async markDone(tenantId: string | null, jobId: string): Promise<void> {
+    if (tenantId === null) {
+      const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_DELIVERY);
+      await admin.integrationDeliveryJob.updateMany({
+        where: { id: jobId, tenantId: null, deliveryScope: "platform" },
+        data: { status: "done", processedAt: new Date(), lastError: Prisma.DbNull },
+      });
+      return;
+    }
     await withTenantRls(tenantId, async (tx) => {
       await tx.integrationDeliveryJob.update({
         where: { id: jobId },
@@ -81,6 +123,20 @@ export class PrismaIntegrationDeliveryRepository implements IntegrationDeliveryR
     readonly nextAttemptAt: Date;
     readonly lastError: Record<string, unknown>;
   }): Promise<void> {
+    if (input.tenantId === null) {
+      const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_DELIVERY);
+      await admin.integrationDeliveryJob.updateMany({
+        where: { id: input.jobId, tenantId: null, deliveryScope: "platform" },
+        data: {
+          status: "pending",
+          attemptCount: input.attemptCount,
+          nextAttemptAt: input.nextAttemptAt,
+          lastError: input.lastError as Prisma.InputJsonValue,
+          processedAt: null,
+        },
+      });
+      return;
+    }
     await withTenantRls(input.tenantId, async (tx) => {
       await tx.integrationDeliveryJob.update({
         where: { id: input.jobId },
@@ -100,6 +156,18 @@ export class PrismaIntegrationDeliveryRepository implements IntegrationDeliveryR
     readonly jobId: string;
     readonly lastError: Record<string, unknown>;
   }): Promise<void> {
+    if (input.tenantId === null) {
+      const admin = getBackgroundAdminClient(BACKGROUND_ADMIN_REASON.BG_INTEGRATION_DELIVERY);
+      await admin.integrationDeliveryJob.updateMany({
+        where: { id: input.jobId, tenantId: null, deliveryScope: "platform" },
+        data: {
+          status: "dead",
+          processedAt: new Date(),
+          lastError: input.lastError as Prisma.InputJsonValue,
+        },
+      });
+      return;
+    }
     await withTenantRls(input.tenantId, async (tx) => {
       await tx.integrationDeliveryJob.update({
         where: { id: input.jobId },
@@ -126,7 +194,8 @@ async function claimPendingGlobal(
     const rows = await tx.$queryRaw<
       {
         id: string;
-        tenantId: string;
+        tenantId: string | null;
+        deliveryScope: string;
         provider: string;
         capability: string;
         domainEventId: string;
@@ -140,6 +209,7 @@ async function claimPendingGlobal(
       SELECT
         id::text AS id,
         tenant_id::text AS "tenantId",
+        delivery_scope AS "deliveryScope",
         provider,
         capability,
         domain_event_id AS "domainEventId",
@@ -150,6 +220,7 @@ async function claimPendingGlobal(
         next_attempt_at AS "nextAttemptAt"
       FROM integration_delivery_jobs
       WHERE status = 'pending'
+        AND delivery_scope IN ('tenant', 'platform')
         AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
       ORDER BY created_at ASC
       LIMIT ${batchSize}
@@ -162,7 +233,11 @@ async function claimPendingGlobal(
 
     await tx.integrationDeliveryJob.updateMany({
       where: {
-        OR: rows.map((row) => ({ id: row.id, tenantId: row.tenantId })),
+        OR: rows.map((row) => ({
+          id: row.id,
+          tenantId: row.tenantId,
+          deliveryScope: row.deliveryScope,
+        })),
       },
       data: { status: "processing", processedAt: new Date() },
     });
@@ -181,6 +256,7 @@ async function claimPendingForTenant(
       {
         id: string;
         tenantId: string;
+        deliveryScope: string;
         provider: string;
         capability: string;
         domainEventId: string;
@@ -194,6 +270,7 @@ async function claimPendingForTenant(
       SELECT
         id::text AS id,
         tenant_id::text AS "tenantId",
+        delivery_scope AS "deliveryScope",
         provider,
         capability,
         domain_event_id AS "domainEventId",
@@ -204,7 +281,7 @@ async function claimPendingForTenant(
         next_attempt_at AS "nextAttemptAt"
       FROM integration_delivery_jobs
       WHERE status = 'pending'
-        AND tenant_id = ${tenantId}::uuid
+        AND tenant_id = ${tenantId}::uuid AND delivery_scope = 'tenant'
         AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
       ORDER BY created_at ASC
       LIMIT ${batchSize}
@@ -229,7 +306,8 @@ async function claimPendingForTenant(
 
 function mapDeliveryRow(row: {
   id: string;
-  tenantId: string;
+  tenantId: string | null;
+  deliveryScope?: string;
   provider: string;
   capability: string;
   domainEventId: string;
@@ -246,6 +324,7 @@ function mapDeliveryRow(row: {
   return {
     id: row.id,
     tenantId: row.tenantId,
+    deliveryScope: row.deliveryScope === "platform" ? "platform" : "tenant",
     provider: row.provider as IntegrationProviderId,
     capability: row.capability as IntegrationCapability,
     domainEventId: row.domainEventId,

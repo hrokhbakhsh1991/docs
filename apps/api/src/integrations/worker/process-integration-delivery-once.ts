@@ -36,19 +36,33 @@ const MAX_DELIVERY_ATTEMPTS = 8;
 const TELEGRAM_MEDIA_CAPTION_MAX_LENGTH = 1024;
 
 function safeSmsErrorCode(value: string | undefined): string {
-  if (value && (/^MELIPAYAMAK_-?\d{1,6}$/.test(value) || [
-    "MELIPAYAMAK_NETWORK_ERROR", "MELIPAYAMAK_SERVER_ERROR", "MELIPAYAMAK_SEND_FAILED",
-    "MELIPAYAMAK_EMPTY_RESPONSE", "MELIPAYAMAK_CREDENTIALS_MISSING",
-    "MELIPAYAMAK_SENDER_MISSING", "MELIPAYAMAK_SMS_PAYLOAD_INVALID",
-  ].includes(value))) return value;
+  if (
+    value &&
+    (/^MELIPAYAMAK_-?\d{1,6}$/.test(value) ||
+      [
+        "MELIPAYAMAK_NETWORK_ERROR",
+        "MELIPAYAMAK_SERVER_ERROR",
+        "MELIPAYAMAK_SEND_FAILED",
+        "MELIPAYAMAK_EMPTY_RESPONSE",
+        "MELIPAYAMAK_CREDENTIALS_MISSING",
+        "MELIPAYAMAK_SENDER_MISSING",
+        "MELIPAYAMAK_SMS_PAYLOAD_INVALID",
+      ].includes(value))
+  )
+    return value;
   return "MELIPAYAMAK_RESPONSE_INVALID";
 }
 
 function smsOutcomeIsUnknown(code: unknown): boolean {
-  return code === "MELIPAYAMAK_NETWORK_ERROR" || code === "MELIPAYAMAK_SERVER_ERROR" ||
-    code === "MELIPAYAMAK_SEND_FAILED" || code === "MELIPAYAMAK_EMPTY_RESPONSE" ||
-    code === "MELIPAYAMAK_RESPONSE_INVALID" || code === "SMS_USAGE_OUTCOME_UNKNOWN" ||
-    code === "SMS_USAGE_WRITE_FAILED_AFTER_SEND";
+  return (
+    code === "MELIPAYAMAK_NETWORK_ERROR" ||
+    code === "MELIPAYAMAK_SERVER_ERROR" ||
+    code === "MELIPAYAMAK_SEND_FAILED" ||
+    code === "MELIPAYAMAK_EMPTY_RESPONSE" ||
+    code === "MELIPAYAMAK_RESPONSE_INVALID" ||
+    code === "SMS_USAGE_OUTCOME_UNKNOWN" ||
+    code === "SMS_USAGE_WRITE_FAILED_AFTER_SEND"
+  );
 }
 
 function telegramMediaCaption(text: string): string {
@@ -279,7 +293,7 @@ async function autoCreateTelegramTopic(input: {
   const claim = await (
     input.deps.claimTelegramTopicProvision ?? defaultClaimTelegramTopicProvision
   )({
-    tenantId: input.job.tenantId,
+    tenantId: input.job.tenantId!,
     connectionId: input.connectionId,
     topicKey: input.topicKey,
     leaseToken,
@@ -297,7 +311,7 @@ async function autoCreateTelegramTopic(input: {
     const completion = await (
       input.deps.completeTelegramTopicProvision ?? defaultCompleteTelegramTopicProvision
     )({
-      tenantId: input.job.tenantId,
+      tenantId: input.job.tenantId!,
       connectionId: input.connectionId,
       topicKey: input.topicKey,
       topicName,
@@ -313,7 +327,7 @@ async function autoCreateTelegramTopic(input: {
     await (
       input.deps.finishTelegramTopicProvisionFailure ?? defaultFinishTelegramTopicProvisionFailure
     )({
-      tenantId: input.job.tenantId,
+      tenantId: input.job.tenantId!,
       connectionId: input.connectionId,
       topicKey: input.topicKey,
       leaseToken,
@@ -363,8 +377,29 @@ export async function executeIntegrationDeliveryJob(
 
   const workspaceType =
     typeof job.payload.workspaceType === "string" ? job.payload.workspaceType : null;
-  const platformSms = job.provider === "melipayamak" && job.capability === "sms.send" &&
-    job.eventType === "auth.otp.requested" && job.payload.smsDeliverySource === "platform";
+  const isOtpSms =
+    job.provider === "melipayamak" &&
+    job.capability === "sms.send" &&
+    job.eventType === "auth.otp.requested";
+  const platformSms =
+    isOtpSms &&
+    job.deliveryScope === "platform" &&
+    job.tenantId === null &&
+    job.payload.smsDeliverySource === "platform" &&
+    job.payload.smsPurpose === "platform_ops_login" &&
+    workspaceType === "platform";
+  const centralWorkspaceSms =
+    isOtpSms &&
+    job.deliveryScope !== "platform" &&
+    job.tenantId !== null &&
+    job.payload.smsDeliverySource === "platform" &&
+    workspaceType !== null &&
+    workspaceType !== "platform";
+  const centralSms = platformSms || centralWorkspaceSms;
+  if (job.deliveryScope === "platform" && !platformSms)
+    return { ok: false, error: { code: "PLATFORM_SMS_JOB_INVALID" } };
+  if (job.tenantId === null && !platformSms)
+    return { ok: false, error: { code: "INTEGRATION_DELIVERY_TENANT_REQUIRED" } };
   const connectionId =
     typeof job.payload.integrationConnectionId === "string"
       ? job.payload.integrationConnectionId
@@ -376,31 +411,38 @@ export async function executeIntegrationDeliveryJob(
         readonly credentials: Record<string, unknown>;
       })
     | null =
-    !platformSms && connectionId !== null
+    !centralSms && connectionId !== null
       ? await resolveConnection({
-          tenantId: job.tenantId,
+          tenantId: job.tenantId!,
           connectionId,
           workspaceType,
         })
       : null;
 
-  if (!platformSms && connection === null) {
+  if (!centralSms && connection === null) {
     return { ok: false, error: { code: "INTEGRATION_CONNECTION_NOT_FOUND" } };
   }
-  if (!platformSms && connectionId === null) {
+  if (!centralSms && connectionId === null) {
     // Unreachable in practice (connection resolution requires a connectionId),
     // but narrows the type for the auto-create path below.
     return { ok: false, error: { code: "INTEGRATION_CONNECTION_NOT_FOUND" } };
   }
 
   let platformConfig: ReturnType<typeof readPlatformSmsConfig> | null = null;
-  if (platformSms) {
-    if (process.env.SMS_PROVIDER_MODE?.trim() !== "platform" || process.env.SMS_OTP_ENABLED?.trim() !== "true") {
+  if (centralSms) {
+    if (
+      process.env.SMS_PROVIDER_MODE?.trim() !== "platform" ||
+      process.env.SMS_OTP_ENABLED?.trim() !== "true"
+    ) {
       return { ok: false, error: { code: "PLATFORM_SMS_DELIVERY_DISABLED" } };
     }
     try {
-      platformConfig = readPlatformSmsConfig();
-      if (platformConfig.workspaceScope !== "*" && platformConfig.workspaceScope !== workspaceType) {
+      platformConfig = readPlatformSmsConfig(process.env, platformSms ? "platform" : "tenant");
+      if (
+        centralWorkspaceSms &&
+        platformConfig.workspaceScope !== "*" &&
+        platformConfig.workspaceScope !== workspaceType
+      ) {
         return { ok: false, error: { code: "PLATFORM_SMS_TEMPLATE_SCOPE_MISMATCH" } };
       }
     } catch {
@@ -449,26 +491,27 @@ export async function executeIntegrationDeliveryJob(
     }
     if (prepared === "already_sent") return { ok: true };
     if (prepared === "unknown") return { ok: false, error: { code: "SMS_USAGE_OUTCOME_UNKNOWN" } };
-    const result: IntegrationDeliveryResult = await adapter.sendSms(ctx, { recipient, templateId, variables }).catch(() => ({
-      ok: false as const, errorCode: "MELIPAYAMAK_NETWORK_ERROR",
-    }));
+    const result: IntegrationDeliveryResult = await adapter
+      .sendSms(ctx, { recipient, templateId, variables })
+      .catch(() => ({
+        ok: false as const,
+        errorCode: "MELIPAYAMAK_NETWORK_ERROR",
+      }));
     const errorCode = result.ok ? undefined : safeSmsErrorCode(result.errorCode);
     try {
       await (deps.recordSmsUsage ?? recordSmsUsageAttempt)({
-      job,
-      recipient,
-      status: result.ok ? "sent" : smsOutcomeIsUnknown(errorCode) ? "unknown" : "failed",
-      ...(result.providerMessageId === undefined
-        ? {}
-        : { providerMessageId: result.providerMessageId }),
-      ...(errorCode === undefined ? {} : { errorCode }),
+        job,
+        recipient,
+        status: result.ok ? "sent" : smsOutcomeIsUnknown(errorCode) ? "unknown" : "failed",
+        ...(result.providerMessageId === undefined
+          ? {}
+          : { providerMessageId: result.providerMessageId }),
+        ...(errorCode === undefined ? {} : { errorCode }),
       });
     } catch {
       return { ok: false, error: { code: "SMS_USAGE_WRITE_FAILED_AFTER_SEND" } };
     }
-    return result.ok
-      ? { ok: true }
-      : { ok: false, error: { code: errorCode } };
+    return result.ok ? { ok: true } : { ok: false, error: { code: errorCode } };
   }
 
   if (connection === null || connectionId === null) {
@@ -516,7 +559,7 @@ export async function executeIntegrationDeliveryJob(
     const tourPdpUrl =
       job.provider === "telegram" && isTourAnnouncementEvent
         ? await (deps.resolveTourPublishedPdpUrl ?? resolveTourPublishedPdpUrl)({
-            tenantId: job.tenantId,
+            tenantId: job.tenantId!,
             tourId:
               typeof job.payload.tourId === "string"
                 ? job.payload.tourId
@@ -565,7 +608,7 @@ export async function executeIntegrationDeliveryJob(
             ? job.payload.telegramMediaKind
             : resolveIntegrationMediaKindFromStorageKey(job.payload.fileKey);
         const proof = await readMemberReceiptProof({
-          tenantId: job.tenantId,
+          tenantId: job.tenantId!,
           storageKey: job.payload.fileKey,
         });
         media = {
@@ -762,25 +805,29 @@ export async function processIntegrationDeliveryOnce(
     }
     if (outcome.ok) {
       await deps.deliveryRepository.markDone(job.tenantId, job.id);
-      recordIntegrationDeliverySuccess({
-        tenantId: job.tenantId,
-        provider: job.provider,
-        capability: job.capability,
-      });
+      if (job.tenantId !== null)
+        recordIntegrationDeliverySuccess({
+          tenantId: job.tenantId,
+          provider: job.provider,
+          capability: job.capability,
+        });
       done += 1;
       continue;
     }
 
     const nextAttempt = job.attemptCount + 1;
     const lastError = outcome.error ?? { code: "INTEGRATION_DELIVERY_FAILED" };
-    recordIntegrationDeliveryFailed({
-      tenantId: job.tenantId,
-      provider: job.provider,
-      capability: job.capability,
-      reason: deliveryFailureReason(outcome.error),
-    });
+    if (job.tenantId !== null)
+      recordIntegrationDeliveryFailed({
+        tenantId: job.tenantId,
+        provider: job.provider,
+        capability: job.capability,
+        reason: deliveryFailureReason(outcome.error),
+      });
 
-    const uncertainSms = job.provider === "melipayamak" && job.capability === "sms.send" &&
+    const uncertainSms =
+      job.provider === "melipayamak" &&
+      job.capability === "sms.send" &&
       smsOutcomeIsUnknown(lastError.code);
     if (uncertainSms || nextAttempt >= MAX_DELIVERY_ATTEMPTS) {
       await deps.deliveryRepository.markDead({
