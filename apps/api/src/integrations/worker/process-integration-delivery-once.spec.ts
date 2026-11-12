@@ -794,15 +794,50 @@ describe("Telegram worker delivery", () => {
 describe("MeliPayamak OTP template delivery", () => {
   it("treats an unrecognized provider response as unknown without persisting provider text", async () => {
     let recorded: { status: string; errorCode?: string } | undefined;
-    const result = await executeIntegrationDeliveryJob(deliveryJob({
-      provider: "melipayamak", capability: "sms.send", eventType: "auth.otp.requested",
-      payload: { workspaceType: "denali", integrationConnectionId: "sms-connection", recipient: "+989121234567", smsTemplateId: "578050", smsVariables: ["4826"] },
-    }), {
-      resolveConnection: async () => ({ id: "sms-connection", tenantId: "tenant-denali", workspaceType: "denali", provider: "melipayamak", status: "enabled", enabled: true, capabilities: ["sms.send"], config: {}, secretRef: null, credentials: {}, createdAt: new Date(0), updatedAt: new Date(0) }),
-      prepareSmsUsage: async () => "ready",
-      recordSmsUsage: async (input) => { recorded = input; },
-      getProvider: () => ({ id: "melipayamak", supportedCapabilities: ["sms.send"], async sendMessage() { return { ok: false }; }, async sendSms() { return { ok: false, errorCode: "unexpected secret", errorMessage: "secret" }; } }),
-    });
+    const result = await executeIntegrationDeliveryJob(
+      deliveryJob({
+        provider: "melipayamak",
+        capability: "sms.send",
+        eventType: "auth.otp.requested",
+        payload: {
+          workspaceType: "denali",
+          integrationConnectionId: "sms-connection",
+          recipient: "+989121234567",
+          smsTemplateId: "578050",
+          smsVariables: ["4826"],
+        },
+      }),
+      {
+        resolveConnection: async () => ({
+          id: "sms-connection",
+          tenantId: "tenant-denali",
+          workspaceType: "denali",
+          provider: "melipayamak",
+          status: "enabled",
+          enabled: true,
+          capabilities: ["sms.send"],
+          config: {},
+          secretRef: null,
+          credentials: {},
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }),
+        prepareSmsUsage: async () => "ready",
+        recordSmsUsage: async (input) => {
+          recorded = input;
+        },
+        getProvider: () => ({
+          id: "melipayamak",
+          supportedCapabilities: ["sms.send"],
+          async sendMessage() {
+            return { ok: false };
+          },
+          async sendSms() {
+            return { ok: false, errorCode: "unexpected secret", errorMessage: "secret" };
+          },
+        }),
+      }
+    );
     assert.deepEqual(result, { ok: false, error: { code: "MELIPAYAMAK_RESPONSE_INVALID" } });
     assert.equal(recorded?.status, "unknown");
     assert.equal(recorded?.errorCode, "MELIPAYAMAK_RESPONSE_INVALID");
@@ -810,34 +845,184 @@ describe("MeliPayamak OTP template delivery", () => {
   });
   it("does not resend a previously accepted message after a job reclaim", async () => {
     let calls = 0;
-    const result = await executeIntegrationDeliveryJob(deliveryJob({
-      provider: "melipayamak", capability: "sms.send", eventType: "auth.otp.requested",
-      payload: { workspaceType: "denali", integrationConnectionId: "sms-connection", recipient: "+989121234567", smsTemplateId: "578050", smsVariables: ["4826"] },
-    }), {
-      resolveConnection: async () => ({ id: "sms-connection", tenantId: "tenant-denali", workspaceType: "denali", provider: "melipayamak", status: "enabled", enabled: true, capabilities: ["sms.send"], config: {}, secretRef: null, credentials: {}, createdAt: new Date(0), updatedAt: new Date(0) }),
-      prepareSmsUsage: async () => "already_sent",
-      getProvider: () => ({ id: "melipayamak", supportedCapabilities: ["sms.send"], async sendMessage() { return { ok: false }; }, async sendSms() { calls++; return { ok: true }; } }),
-    });
+    const result = await executeIntegrationDeliveryJob(
+      deliveryJob({
+        provider: "melipayamak",
+        capability: "sms.send",
+        eventType: "auth.otp.requested",
+        payload: {
+          workspaceType: "denali",
+          integrationConnectionId: "sms-connection",
+          recipient: "+989121234567",
+          smsTemplateId: "578050",
+          smsVariables: ["4826"],
+        },
+      }),
+      {
+        resolveConnection: async () => ({
+          id: "sms-connection",
+          tenantId: "tenant-denali",
+          workspaceType: "denali",
+          provider: "melipayamak",
+          status: "enabled",
+          enabled: true,
+          capabilities: ["sms.send"],
+          config: {},
+          secretRef: null,
+          credentials: {},
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }),
+        prepareSmsUsage: async () => "already_sent",
+        getProvider: () => ({
+          id: "melipayamak",
+          supportedCapabilities: ["sms.send"],
+          async sendMessage() {
+            return { ok: false };
+          },
+          async sendSms() {
+            calls++;
+            return { ok: true };
+          },
+        }),
+      }
+    );
     assert.deepEqual(result, { ok: true });
     assert.equal(calls, 0);
   });
   it("does not contact the provider when accounting is unavailable or an earlier outcome is uncertain", async () => {
     for (const unavailable of [true, false]) {
       let calls = 0;
-      const result = await executeIntegrationDeliveryJob(deliveryJob({
-        provider: "melipayamak", capability: "sms.send", eventType: "auth.otp.requested",
-        payload: { workspaceType: "denali", integrationConnectionId: "sms-connection", recipient: "+989121234567", smsTemplateId: "578050", smsVariables: ["4826"] },
-      }), {
-        resolveConnection: async () => ({ id: "sms-connection", tenantId: "tenant-denali", workspaceType: "denali", provider: "melipayamak", status: "enabled", enabled: true, capabilities: ["sms.send"], config: {}, secretRef: null, credentials: {}, createdAt: new Date(0), updatedAt: new Date(0) }),
-        prepareSmsUsage: async () => { if (unavailable) throw new Error("db unavailable"); return "unknown"; },
-        getProvider: () => ({ id: "melipayamak", supportedCapabilities: ["sms.send"], async sendMessage() { return { ok: false }; }, async sendSms() { calls++; return { ok: true }; } }),
-      });
+      const result = await executeIntegrationDeliveryJob(
+        deliveryJob({
+          provider: "melipayamak",
+          capability: "sms.send",
+          eventType: "auth.otp.requested",
+          payload: {
+            workspaceType: "denali",
+            integrationConnectionId: "sms-connection",
+            recipient: "+989121234567",
+            smsTemplateId: "578050",
+            smsVariables: ["4826"],
+          },
+        }),
+        {
+          resolveConnection: async () => ({
+            id: "sms-connection",
+            tenantId: "tenant-denali",
+            workspaceType: "denali",
+            provider: "melipayamak",
+            status: "enabled",
+            enabled: true,
+            capabilities: ["sms.send"],
+            config: {},
+            secretRef: null,
+            credentials: {},
+            createdAt: new Date(0),
+            updatedAt: new Date(0),
+          }),
+          prepareSmsUsage: async () => {
+            if (unavailable) throw new Error("db unavailable");
+            return "unknown";
+          },
+          getProvider: () => ({
+            id: "melipayamak",
+            supportedCapabilities: ["sms.send"],
+            async sendMessage() {
+              return { ok: false };
+            },
+            async sendSms() {
+              calls++;
+              return { ok: true };
+            },
+          }),
+        }
+      );
       assert.equal(calls, 0);
-      assert.equal(result.error?.code, unavailable ? "SMS_USAGE_PREPARE_FAILED" : "SMS_USAGE_OUTCOME_UNKNOWN");
+      assert.equal(
+        result.error?.code,
+        unavailable ? "SMS_USAGE_PREPARE_FAILED" : "SMS_USAGE_OUTCOME_UNKNOWN"
+      );
     }
   });
   it("delivers a central OTP with server credentials without resolving a tenant connection", async () => {
-    const names = ["SMS_PROVIDER_MODE", "SMS_OTP_ENABLED", "SMS_DELIVERY_ENCRYPTION_KEY", "MELIPAYAMAK_USERNAME", "MELIPAYAMAK_API_KEY", "SMS_OTP_TEMPLATE_ID", "SMS_OTP_TEMPLATE_SCOPE"] as const;
+    const names = [
+      "SMS_PROVIDER_MODE",
+      "SMS_OTP_ENABLED",
+      "SMS_DELIVERY_ENCRYPTION_KEY",
+      "MELIPAYAMAK_USERNAME",
+      "MELIPAYAMAK_API_KEY",
+      "SMS_PLATFORM_OTP_TEMPLATE_ID",
+      "SMS_PLATFORM_OTP_TEMPLATE_SCOPE",
+    ] as const;
+    const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+    process.env.SMS_PROVIDER_MODE = "platform";
+    process.env.SMS_OTP_ENABLED = "true";
+    process.env.SMS_DELIVERY_ENCRYPTION_KEY = "44".repeat(32);
+    process.env.MELIPAYAMAK_USERNAME = "platform-user";
+    process.env.MELIPAYAMAK_API_KEY = "platform-key";
+    process.env.SMS_PLATFORM_OTP_TEMPLATE_ID = "578050";
+    process.env.SMS_PLATFORM_OTP_TEMPLATE_SCOPE = "platform";
+    try {
+      {
+        let seenTenant: string | null | undefined;
+        const result = await executeIntegrationDeliveryJob(
+          deliveryJob({
+            tenantId: null,
+            deliveryScope: "platform",
+            provider: "melipayamak",
+            capability: "sms.send",
+            eventType: "auth.otp.requested",
+            payload: {
+              workspaceType: "platform",
+              smsDeliverySource: "platform",
+              smsPurpose: "platform_ops_login",
+              recipient: "+989121234567",
+              smsTemplateId: "578050",
+              smsEncryptedVariables: encryptOtpDeliveryCode("4826"),
+            },
+          }),
+          {
+            prepareSmsUsage: async () => "ready",
+            recordSmsUsage: async () => {},
+            resolveConnection: async () => {
+              throw new Error("unexpected tenant connection");
+            },
+            getProvider: () => ({
+              id: "melipayamak",
+              supportedCapabilities: ["sms.send"],
+              async sendMessage() {
+                return { ok: false };
+              },
+              async sendSms(ctx, input) {
+                seenTenant = ctx.tenantId;
+                assert.equal(ctx.credentials.password, "platform-key");
+                assert.deepEqual(input.variables, ["4826"]);
+                return { ok: true, providerMessageId: "1234567890123456" };
+              },
+            }),
+          }
+        );
+        assert.equal(result.ok, true);
+        assert.equal(seenTenant, null);
+      }
+    } finally {
+      for (const name of names) {
+        if (previous[name] === undefined) delete process.env[name];
+        else process.env[name] = previous[name];
+      }
+    }
+  });
+  it("preserves tenant attribution for central-account workspace OTP jobs", async () => {
+    const names = [
+      "SMS_PROVIDER_MODE",
+      "SMS_OTP_ENABLED",
+      "SMS_DELIVERY_ENCRYPTION_KEY",
+      "MELIPAYAMAK_USERNAME",
+      "MELIPAYAMAK_API_KEY",
+      "SMS_OTP_TEMPLATE_ID",
+      "SMS_OTP_TEMPLATE_SCOPE",
+    ] as const;
     const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
     process.env.SMS_PROVIDER_MODE = "platform";
     process.env.SMS_OTP_ENABLED = "true";
@@ -847,35 +1032,105 @@ describe("MeliPayamak OTP template delivery", () => {
     process.env.SMS_OTP_TEMPLATE_ID = "578050";
     process.env.SMS_OTP_TEMPLATE_SCOPE = "denali";
     try {
-      for (const tenantId of ["tenant-a", "tenant-b"]) {
-        let seenTenant = "";
-        const result = await executeIntegrationDeliveryJob(deliveryJob({
-          tenantId, provider: "melipayamak", capability: "sms.send", eventType: "auth.otp.requested",
-          payload: { workspaceType: "denali", smsDeliverySource: "platform", recipient: "+989121234567", smsTemplateId: "578050", smsEncryptedVariables: encryptOtpDeliveryCode("4826") },
-        }), {
-          prepareSmsUsage: async () => "ready",
+      let usageTenant: string | null = null;
+      let providerTenant: string | null | undefined;
+      const result = await executeIntegrationDeliveryJob(
+        deliveryJob({
+          tenantId: "tenant-denali",
+          deliveryScope: "tenant",
+          provider: "melipayamak",
+          capability: "sms.send",
+          eventType: "auth.otp.requested",
+          payload: {
+            workspaceType: "denali",
+            smsDeliverySource: "platform",
+            smsPurpose: "member_login",
+            recipient: "09224180093",
+            smsTemplateId: "578050",
+            smsEncryptedVariables: encryptOtpDeliveryCode("4826"),
+          },
+        }),
+        {
+          prepareSmsUsage: async (job) => {
+            usageTenant = job.tenantId;
+            return "ready";
+          },
           recordSmsUsage: async () => {},
-          resolveConnection: async () => { throw new Error("unexpected tenant connection"); },
+          resolveConnection: async () => {
+            throw new Error("central account must not resolve a workspace connection");
+          },
           getProvider: () => ({
-            id: "melipayamak", supportedCapabilities: ["sms.send"],
-            async sendMessage() { return { ok: false }; },
+            id: "melipayamak",
+            supportedCapabilities: ["sms.send"],
+            async sendMessage() {
+              return { ok: false };
+            },
             async sendSms(ctx, input) {
-              seenTenant = ctx.tenantId;
-              assert.equal(ctx.credentials.password, "platform-key");
+              providerTenant = ctx.tenantId;
               assert.deepEqual(input.variables, ["4826"]);
-              return { ok: true, providerMessageId: "1234567890123456" };
+              return { ok: true };
             },
           }),
-        });
-        assert.equal(result.ok, true);
-        assert.equal(seenTenant, tenantId);
-      }
+        }
+      );
+      assert.equal(result.ok, true);
+      assert.equal(usageTenant, "tenant-denali");
+      assert.equal(providerTenant, "tenant-denali");
     } finally {
       for (const name of names) {
         if (previous[name] === undefined) delete process.env[name];
         else process.env[name] = previous[name];
       }
     }
+  });
+  it("fails closed when a platform OTP job is tenant-attributed or has another purpose", async () => {
+    let sends = 0;
+    for (const overrides of [
+      { tenantId: "tenant-denali", deliveryScope: "platform" as const },
+      {
+        tenantId: null,
+        deliveryScope: "platform" as const,
+        payload: {
+          workspaceType: "platform",
+          smsDeliverySource: "platform",
+          smsPurpose: "member_login",
+          recipient: "09224180093",
+        },
+      },
+    ]) {
+      const result = await executeIntegrationDeliveryJob(
+        deliveryJob({
+          provider: "melipayamak",
+          capability: "sms.send",
+          eventType: "auth.otp.requested",
+          payload: {
+            workspaceType: "platform",
+            smsDeliverySource: "platform",
+            smsPurpose: "platform_ops_login",
+            recipient: "09224180093",
+            ...overrides.payload,
+          },
+          tenantId: overrides.tenantId,
+          deliveryScope: overrides.deliveryScope,
+        }),
+        {
+          getProvider: () => ({
+            id: "melipayamak",
+            supportedCapabilities: ["sms.send"],
+            async sendMessage() {
+              return { ok: false };
+            },
+            async sendSms() {
+              sends += 1;
+              return { ok: true };
+            },
+          }),
+        }
+      );
+      assert.equal(result.ok, false);
+      assert.equal(result.error?.code, "PLATFORM_SMS_JOB_INVALID");
+    }
+    assert.equal(sends, 0);
   });
   it("sends only the numeric OTP as the approved single template variable", async () => {
     const previousKey = process.env.SMS_DELIVERY_ENCRYPTION_KEY;
@@ -1003,11 +1258,17 @@ describe("integration delivery retry lifecycle", () => {
   it("does not retry an SMS with an unknown provider outcome", async () => {
     for (const code of ["MELIPAYAMAK_NETWORK_ERROR", "MELIPAYAMAK_SERVER_ERROR"]) {
       const events: string[] = [];
-      const result = await processIntegrationDeliveryOnce({
-        deliveryRepository: repositoryFor(deliveryJob({ provider: "melipayamak", capability: "sms.send" }), events),
-        reclaimStaleProcessingJobs: async () => 0,
-        executeJob: async () => ({ ok: false, error: { code } }),
-      }, 1);
+      const result = await processIntegrationDeliveryOnce(
+        {
+          deliveryRepository: repositoryFor(
+            deliveryJob({ provider: "melipayamak", capability: "sms.send" }),
+            events
+          ),
+          reclaimStaleProcessingJobs: async () => 0,
+          executeJob: async () => ({ ok: false, error: { code } }),
+        },
+        1
+      );
       assert.equal(result.retried, 0);
       assert.deepEqual(events, ["claim", `dead:${code}`]);
     }
@@ -1047,5 +1308,37 @@ describe("integration delivery retry lifecycle", () => {
 
     assert.deepEqual(result, { claimed: 1, done: 0, retried: 0, dead: 1, reclaimed: 0 });
     assert.deepEqual(events, ["claim", "dead:TELEGRAM_5XX"]);
+  });
+
+  it("completes a platform job without attributing metrics to a tenant", async () => {
+    const events: string[] = [];
+    const platformJob = deliveryJob({
+      tenantId: null,
+      deliveryScope: "platform",
+      provider: "melipayamak",
+      capability: "sms.send",
+      eventType: "auth.otp.requested",
+      payload: {
+        workspaceType: "platform",
+        smsDeliverySource: "platform",
+        smsPurpose: "platform_ops_login",
+      },
+    });
+    const repository: IntegrationDeliveryRepository = {
+      ...repositoryFor(platformJob, events),
+      async markDone(tenantId) {
+        events.push(`done:${String(tenantId)}`);
+      },
+    };
+    const result = await processIntegrationDeliveryOnce(
+      {
+        deliveryRepository: repository,
+        reclaimStaleProcessingJobs: async () => 0,
+        executeJob: async () => ({ ok: true }),
+      },
+      1
+    );
+    assert.equal(result.done, 1);
+    assert.deepEqual(events, ["claim", "done:null"]);
   });
 });
