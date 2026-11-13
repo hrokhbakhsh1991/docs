@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { buildAuthLoginPageMetadata } from "@/i18n/app-page-metadata";
 import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
 import { fetchPublicTenantBrandingForHost } from "@/tenant/fetch-public-tenant-branding.server";
+import { resolveRequestIngressHost } from "@/tenant/platform-host-env";
 import { resolveBootstrapAppSessionForHostAsync } from "@/tenant/tenant-kernel";
 
 import { LoginForm } from "./login-form";
@@ -39,7 +40,7 @@ export default async function AuthLoginPage({ searchParams }: AuthLoginPageProps
     redirect(query.length > 0 ? `/auth/login?${query}` : "/auth/login");
   }
 
-  const host = (await headers()).get("host") ?? "localhost:3000";
+  const host = resolveRequestIngressHost(await headers(), "localhost:3000");
   const searchQuery = serializeLoginSearchParams(params);
 
   if (isPlatformAdminHost(host)) {

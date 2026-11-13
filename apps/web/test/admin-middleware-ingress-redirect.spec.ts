@@ -43,13 +43,17 @@ describe("admin ingress redirects", () => {
     assert.equal(response.headers.get("location"), "https://denali.admin.shenski.com/dashboard");
   });
 
-  it("keeps the public platform-admin host for root and legacy-path redirects", async () => {
+  it("keeps the public platform-admin host for root, legacy, and login redirects", async () => {
     env.NODE_ENV = "production";
     env.PLATFORM_ROOT_DOMAIN = "shenski.com";
     env.PLATFORM_ADMIN_HOST = "staging-platform-admin.shenski.com";
     delete env.ALLOW_DEV_WEB_SESSION;
 
-    for (const pathname of ["/", "/dashboard"]) {
+    for (const [pathname, expectedLocation] of [
+      ["/", "https://staging-platform-admin.shenski.com/platform"],
+      ["/dashboard", "https://staging-platform-admin.shenski.com/platform"],
+      ["/platform", "https://staging-platform-admin.shenski.com/auth/login?returnUrl=%2Fplatform"],
+    ]) {
       const request = new NextRequest(`http://127.0.0.1:23000${pathname}`, {
         headers: {
           host: "staging-platform-admin.shenski.com",
@@ -63,7 +67,7 @@ describe("admin ingress redirects", () => {
       assert.equal(response.status, 307);
       assert.equal(
         response.headers.get("location"),
-        "https://staging-platform-admin.shenski.com/platform",
+        expectedLocation,
         `expected ${pathname} redirect to preserve the public host`
       );
     }
