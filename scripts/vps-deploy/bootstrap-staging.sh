@@ -113,6 +113,7 @@ done
 ensure_env_value "$ENV_DIR/api.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
 ensure_env_value "$ENV_DIR/api.env" TENANT_ROOT_DOMAIN staging.invalid
 ensure_env_value "$ENV_DIR/web.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
+ensure_env_value "$ENV_DIR/web.env" PLATFORM_ADMIN_HOST "staging-platform-admin.${PUBLIC_ROOT_DOMAIN}"
 ensure_env_value "$ENV_DIR/web.env" MARKETING_PUBLIC_BASE_URL "$PUBLIC_MARKETING_BASE_URL"
 ensure_env_value "$ENV_DIR/web.env" MARKETING_PUBLIC_BASE_URL_ALLOWLIST "$PUBLIC_MARKETING_BASE_URL"
 ensure_env_value "$ENV_DIR/marketing.env" PLATFORM_ROOT_DOMAIN "$PUBLIC_ROOT_DOMAIN"
