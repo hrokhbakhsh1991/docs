@@ -24,6 +24,17 @@ read_env_var() {
   if [[ -z "$val" ]]; then
     return 1
   fi
+  # VPS env files may use shell-style wrapping quotes. Remove only a matching
+  # outer pair; never evaluate the value as shell code.
+  if (( ${#val} >= 2 )); then
+    local first="${val:0:1}" last="${val: -1}"
+    if [[ ( "$first" == '"' && "$last" == '"' ) || ( "$first" == "'" && "$last" == "'" ) ]]; then
+      val="${val:1:${#val}-2}"
+    fi
+  fi
+  if [[ -z "$val" ]]; then
+    return 1
+  fi
   printf '%s' "$val"
 }
 
