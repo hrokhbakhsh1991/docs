@@ -208,8 +208,8 @@ describe("denali-admin-theme.spec.ts", () => {
 
   it("WEB-DENALI-THEME-13 root layout exposes data-app-surface admin body contract", () => {
     const layout = readFileSync(join(import.meta.dirname, "../app/layout.tsx"), "utf8");
-    assert.match(layout, /data-app-surface="admin"/);
-    assert.match(layout, /data-workspace-plugin=\{bootstrap\.pluginId\}/);
+    assert.match(layout, /data-app-surface=\{platformAdminHost \? "platform-admin" : "admin"\}/);
+    assert.match(layout, /data-workspace-plugin=\{bootstrap\?\.pluginId\}/);
   });
 
   it("WEB-DENALI-THEME-14 dark primary is Denali teal not platform blue (F9-2)", () => {
