@@ -149,7 +149,7 @@ describe("staging-env-contract", () => {
     mkdirSync(stagingDir);
     try {
       for (const [dir, values] of [
-        [prodDir, { api: "PORT=13001\nPLATFORM_ROOT_DOMAIN=shenski.com\n", web: "PORT=13000\nPUBLIC_TENANT_FALLBACK_LABEL=denali\n", marketing: "PORT=13002\n", portal: "PORT=13003\nPORTAL_PUBLIC_BASE_URL=https://portal.denali.shenski.com\n" }],
+        [prodDir, { api: "PORT=13001\nPLATFORM_ROOT_DOMAIN=shenski.com\n", web: "PORT=13000\nPLATFORM_ROOT_DOMAIN=\"shenski.com\"\nPUBLIC_TENANT_FALLBACK_LABEL=denali\n", marketing: "PORT=13002\n", portal: "PORT=13003\nPORTAL_PUBLIC_BASE_URL=https://portal.denali.shenski.com\n" }],
         [stagingDir, { api: "PORT=23001\n", web: "PORT=23000\n", marketing: "PORT=23002\n", portal: "PORT=23003\n" }],
       ]) {
         for (const [app, contents] of Object.entries(values)) {
