@@ -76,6 +76,8 @@ sudo systemctl restart caddy
 
 **Port mapping:** `render-caddy-env.sh` reads both env directories and writes explicit `PROD_*_PORT` and `STAGING_*_PORT` values. Production domains route to `3000–3003`; staging domains route to `23000–23003`. It reads the production `PORTAL_PUBLIC_BASE_URL` (falling back to `marketing.env`) so custom production portal hosts route to the Portal upstream instead of the marketing wildcard. The site addresses are explicitly HTTP because Arvan terminates public HTTPS before the origin; `X-Forwarded-Proto` and `X-Forwarded-Host` remain set for the applications. Provisioning another workspace must update the public URL/env and reload Caddy; it does not broaden the session cookie to the platform root.
 
+The staging platform-admin hostname is controlled only by the GitHub `staging` environment variable `STAGING_PLATFORM_ADMIN_ENABLED`. It defaults to `false` when unset and accepts only `true` or `false`; enabling it routes that one hostname to the staging web upstream. Do not set it in production.
+
 The staging Profile C keeps exact public A hosts for the current staging tenant. Legacy public QA2 names always return HTTP 503 and never proxy, so they cannot fall through to production wildcard routes. The private QA2 hosts described below proxy to staging ports only after `STAGING_SECOND_TENANT_ENABLED=true` is explicitly set in the renderer environment or staging `web.env`. Rendering fails if any staging app env file is missing, a staging port is invalid or duplicated, a staging port collides with production, or the enable flag is not exactly `true` or `false`.
 
 ### Private two-tenant staging ingress

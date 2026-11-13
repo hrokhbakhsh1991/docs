@@ -16,6 +16,15 @@ VPS_USER="${VPS_USER:-root}"
 ARTIFACT="${ARTIFACT:?ARTIFACT path to .tar.zst required}"
 DEPLOY_ROOT="${DEPLOY_ROOT:-/opt/app-tour-staging}"
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
+STAGING_PLATFORM_ADMIN_ENABLED="${STAGING_PLATFORM_ADMIN_ENABLED:-false}"
+
+case "$STAGING_PLATFORM_ADMIN_ENABLED" in
+  true|false) ;;
+  *)
+    echo "deploy-staging-artifact-remote: STAGING_PLATFORM_ADMIN_ENABLED must be true or false" >&2
+    exit 2
+    ;;
+esac
 
 cleanup_staging_ssh() {
   staging_ssh_close_master
@@ -251,7 +260,8 @@ scp_with_retry "${SCRIPT_DIR}/install-caddy-profile-c.sh" \
 ssh_cmd "mkdir -p ${DEPLOY_ROOT}/tooling/deploy/vps/caddy"
 scp_with_retry "${REPO_ROOT}/deploy/vps/caddy/Caddyfile" \
   "${REMOTE}:${DEPLOY_ROOT}/tooling/deploy/vps/caddy/Caddyfile"
-ssh_cmd "DEPLOY_PATH=${DEPLOY_ROOT}/tooling ENV_DIR=${ENV_DIR} \
+ssh_cmd "STAGING_PLATFORM_ADMIN_ENABLED=${STAGING_PLATFORM_ADMIN_ENABLED} \
+  DEPLOY_PATH=${DEPLOY_ROOT}/tooling ENV_DIR=${ENV_DIR} \
   CADDY_SOURCE_CONFIG=${DEPLOY_ROOT}/tooling/deploy/vps/caddy/Caddyfile \
   bash ${DEPLOY_ROOT}/tooling/scripts/vps-deploy/install-caddy-profile-c.sh"
 

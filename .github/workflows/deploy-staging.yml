@@ -288,6 +288,7 @@ jobs:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           DEPLOY_ROOT: ${{ env.STAGING_DEPLOY_ROOT }}
           ENV_DIR: ${{ env.STAGING_ENV_DIR }}
+          STAGING_PLATFORM_ADMIN_ENABLED: ${{ vars.STAGING_PLATFORM_ADMIN_ENABLED }}
           STAGING_ARTIFACT_CHUNK_SIZE: 4m
           STAGING_SSH_RETRY_MAX: 8
           STAGING_SSH_CONTROL_DIR: /tmp/app-tour-staging-ssh
