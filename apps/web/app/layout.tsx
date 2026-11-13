@@ -11,6 +11,8 @@ import { intlFormatsForLocale } from "@/i18n/intl-formats";
 import { isAppLocale, resolveTextDirection, routing } from "@/i18n/routing";
 import { AppProviders } from "@/providers/app-providers";
 import { fetchTenantThemeForContext } from "@/tenant/fetch-tenant-theme.server";
+import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
+import { resolveRequestIngressHost } from "@/tenant/platform-host-env";
 import { SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 import { validateSessionToken } from "@app-tour/session-client";
 import {
@@ -32,41 +34,49 @@ export const dynamic = "force-dynamic";
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const [headerList, localeRaw, messages] = await Promise.all([headers(), getLocale(), getMessages()]);
   const locale = isAppLocale(localeRaw) ? localeRaw : routing.defaultLocale;
-  const host = headerList.get("host") ?? "localhost:3000";
-  let resolved;
-  try {
-    resolved = await resolveBootstrapAppSessionForHostAsync(host);
-  } catch (error: unknown) {
-    // An unknown ingress cannot safely render the Admin shell. Convert only the explicit
-    // tenant-resolution miss to a real 404; preserve all other failures for observability.
-    if (error instanceof Error && error.message === "ADMIN_TENANT_UNRESOLVED") {
-      notFound();
+  const host = resolveRequestIngressHost(headerList, "localhost:3000");
+  const platformAdminHost = isPlatformAdminHost(host);
+  let bootstrap: ReturnType<typeof toSerializableBootstrap> | undefined;
+  let tenantId: string | undefined;
+
+  if (!platformAdminHost) {
+    let resolved;
+    try {
+      resolved = await resolveBootstrapAppSessionForHostAsync(host);
+    } catch (error: unknown) {
+      // An unknown ingress cannot safely render the Admin shell. Convert only the explicit
+      // tenant-resolution miss to a real 404; preserve all other failures for observability.
+      if (error instanceof Error && error.message === "ADMIN_TENANT_UNRESOLVED") {
+        notFound();
+      }
+      throw error;
     }
-    throw error;
+
+    const cookieStore = await cookies();
+    const sessionValidation = validateSessionToken(cookieStore.get(SESSION_TOKEN_COOKIE)?.value);
+    if (sessionValidation.status === "valid") {
+      resolved = await resolveBootstrapAppSession(
+        {
+          userId: sessionValidation.userId,
+          tenantId: sessionValidation.tenantId,
+          workspaceId:
+            sessionValidation.workspaceId ??
+            resolved.context.workspaceId ??
+            "default",
+          role: (sessionValidation.role ?? resolved.context.role) as typeof resolved.context.role,
+          status: "ACTIVE",
+        },
+        host,
+        { pluginId: resolved.session.pluginId }
+      );
+    }
+
+    await importAdminThemeForPlugin(resolved.session.pluginId);
+    const tenantTheme = await fetchTenantThemeForContext(resolved.context, host);
+    bootstrap = toSerializableBootstrap(resolved, tenantTheme ?? undefined);
+    tenantId = resolved.context.tenantId;
   }
 
-  const cookieStore = await cookies();
-  const sessionValidation = validateSessionToken(cookieStore.get(SESSION_TOKEN_COOKIE)?.value);
-  if (sessionValidation.status === "valid") {
-    resolved = await resolveBootstrapAppSession(
-      {
-        userId: sessionValidation.userId,
-        tenantId: sessionValidation.tenantId,
-        workspaceId:
-          sessionValidation.workspaceId ??
-          resolved.context.workspaceId ??
-          "default",
-        role: (sessionValidation.role ?? resolved.context.role) as typeof resolved.context.role,
-        status: "ACTIVE",
-      },
-      host,
-      { pluginId: resolved.session.pluginId }
-    );
-  }
-
-  await importAdminThemeForPlugin(resolved.session.pluginId);
-  const tenantTheme = await fetchTenantThemeForContext(resolved.context, host);
-  const bootstrap = toSerializableBootstrap(resolved, tenantTheme ?? undefined);
   const dir = resolveTextDirection(locale);
 
   const fontClassName = resolveAppFontClassName(locale);
@@ -80,14 +90,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       style={{ ["--font-family-base" as string]: fontFamilyBase }}
     >
       <body
-        data-app-surface="admin"
-        data-tenant-id={resolved.context.tenantId}
-        data-workspace-plugin={bootstrap.pluginId}
+        data-app-surface={platformAdminHost ? "platform-admin" : "admin"}
+        data-tenant-id={tenantId}
+        data-workspace-plugin={bootstrap?.pluginId}
         data-locale={locale}
         data-dir={dir}
       >
         <NextIntlClientProvider locale={locale} messages={messages} formats={intlFormatsForLocale(locale)}>
-          <AppProviders bootstrap={bootstrap}>{children}</AppProviders>
+          {bootstrap ? <AppProviders bootstrap={bootstrap}>{children}</AppProviders> : children}
         </NextIntlClientProvider>
       </body>
     </html>
