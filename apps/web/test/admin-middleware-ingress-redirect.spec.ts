@@ -9,6 +9,7 @@ const env = process.env as Record<string, string | undefined>;
 const envSnapshot = {
   NODE_ENV: env.NODE_ENV,
   PLATFORM_ROOT_DOMAIN: env.PLATFORM_ROOT_DOMAIN,
+  PLATFORM_ADMIN_HOST: env.PLATFORM_ADMIN_HOST,
   ALLOW_DEV_WEB_SESSION: env.ALLOW_DEV_WEB_SESSION,
 };
 
@@ -40,5 +41,31 @@ describe("admin ingress redirects", () => {
 
     assert.equal(response.status, 307);
     assert.equal(response.headers.get("location"), "https://denali.admin.shenski.com/dashboard");
+  });
+
+  it("keeps the public platform-admin host for root and legacy-path redirects", async () => {
+    env.NODE_ENV = "production";
+    env.PLATFORM_ROOT_DOMAIN = "shenski.com";
+    env.PLATFORM_ADMIN_HOST = "staging-platform-admin.shenski.com";
+    delete env.ALLOW_DEV_WEB_SESSION;
+
+    for (const pathname of ["/", "/dashboard"]) {
+      const request = new NextRequest(`http://127.0.0.1:23000${pathname}`, {
+        headers: {
+          host: "staging-platform-admin.shenski.com",
+          "x-forwarded-host": "staging-platform-admin.shenski.com",
+          "x-forwarded-proto": "https",
+        },
+      });
+
+      const response = await middleware(request);
+
+      assert.equal(response.status, 307);
+      assert.equal(
+        response.headers.get("location"),
+        "https://staging-platform-admin.shenski.com/platform",
+        `expected ${pathname} redirect to preserve the public host`
+      );
+    }
   });
 });

@@ -201,11 +201,15 @@ async function handlePlatformAdminHost(
 
   const { pathname } = request.nextUrl;
   if (pathname === "/") {
-    return NextResponse.redirect(new URL("/platform", request.url));
+    return NextResponse.redirect(
+      bindUrlToRequestIngress(new URL("/platform", request.url), request)
+    );
   }
 
   if (isProtectedAdminPath(pathname)) {
-    return NextResponse.redirect(new URL("/platform", request.url));
+    return NextResponse.redirect(
+      bindUrlToRequestIngress(new URL("/platform", request.url), request)
+    );
   }
 
   const isPublic =
