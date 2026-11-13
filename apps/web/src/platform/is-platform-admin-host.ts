@@ -9,7 +9,7 @@ import {
   readPlatformRootDomainWeb,
 } from "@/tenant/platform-host-env";
 
-/** Platform Control Center host — `admin.{root}` only (not `{club}.admin.{root}`). */
+/** Platform Control Center host — `admin.{root}` or an explicit isolated host. */
 export function readPlatformRootDomainFromEnv(): string {
   return readPlatformRootDomainWeb();
 }
@@ -18,6 +18,10 @@ export { normalizeHostHeader };
 
 export function isPlatformAdminHost(host: string): boolean {
   const hostname = normalizeHostHeader(host);
+  const configuredPlatformAdminHost = process.env.PLATFORM_ADMIN_HOST?.trim().toLowerCase();
+  if (configuredPlatformAdminHost && hostname === configuredPlatformAdminHost) {
+    return true;
+  }
   return isPlatformAdminHostKernel(hostname, readPlatformRootDomainFromEnv());
 }
 

@@ -69,6 +69,14 @@ web_env="${ENV_DIR}/web.env"
 if [[ -f "$web_env" ]]; then
   ensure_line ALLOW_DEV_WEB_SESSION true "$web_env"
   ensure_line ALLOW_DENALI_WEB_PLUGIN true "$web_env"
+  platform_root="$(read_api_env_line PLATFORM_ROOT_DOMAIN)"
+  platform_root="${platform_root#*=}"
+  if [[ "$platform_root" =~ ^[A-Za-z0-9.-]+$ ]]; then
+    upsert_env_line "$web_env" "PLATFORM_ADMIN_HOST=staging-platform-admin.${platform_root}"
+  else
+    echo "sync-staging-surface-auth-env: invalid PLATFORM_ROOT_DOMAIN in api.env" >&2
+    exit 1
+  fi
 fi
 
 for app in portal marketing; do

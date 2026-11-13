@@ -21,12 +21,15 @@ Apps (loopback 127.0.0.1)
 | Surface        | Pattern                             | Backend         |
 | -------------- | ----------------------------------- | --------------- |
 | Admin          | `https://admin.{club}.{root}`       | 127.0.0.1:3000  |
+| Staging platform console | `https://staging-platform-admin.{root}` | 127.0.0.1:23000 |
 | Portal         | `https://portal.{club}.{root}`      | 127.0.0.1:3003  |
 | Marketing      | `https://{club}.{root}`             | 127.0.0.1:3002  |
 | Production API | `https://api.{root}`                | 127.0.0.1:3001  |
 | Staging API    | `https://staging-api-{club}.{root}` | 127.0.0.1:23001 |
 
 **Example:** `https://operator.admin.staging.example.com` → `127.0.0.1:3000`
+
+The staging platform console host is fail-closed: Caddy returns HTTP 503 unless `STAGING_PLATFORM_ADMIN_ENABLED=true` is explicitly set in the staging web environment before the edge config is rendered. Keep it disabled until the staging DNS record and the approved test window are ready.
 
 ## Environment Variables
 
@@ -97,6 +100,7 @@ For wildcard TLS, you need DNS records:
 <club>.admin.staging.example.com  A    <VPS_IP>  # legacy compatibility
 <club>.portal.staging.example.com A    <VPS_IP>  # legacy compatibility
 staging-api-<club>.staging.example.com A <VPS_IP>
+staging-platform-admin.<root> A <VPS_IP>  # Platform Control Center on staging only
 admin.<club>.staging.example.com  A    <VPS_IP>
 portal.<club>.staging.example.com A    <VPS_IP>
 ```

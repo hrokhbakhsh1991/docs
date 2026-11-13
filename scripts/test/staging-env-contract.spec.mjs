@@ -3,7 +3,7 @@
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { describe, it } from "node:test";
@@ -83,6 +83,108 @@ describe("staging-env-contract", () => {
     assert.match(caddy, /http:\/\/\{\$MINIO_PUBLIC_HOST\}/);
     assert.match(caddy, /reverse_proxy 127\.0\.0\.1:\{\$MINIO_PORT\}/);
     assert.match(caddy, /header_up X-Forwarded-Host \{host\}/);
+  });
+
+  it("REG-STG-ENV-16 routes the isolated staging platform host only to staging web", () => {
+    const render = read("scripts/vps-deploy/render-caddy-env.sh");
+    const bootstrap = read("scripts/vps-deploy/bootstrap-staging.sh");
+    const syncAuthEnv = read("scripts/vps-deploy/sync-staging-surface-auth-env.sh");
+    const caddy = read("deploy/vps/caddy/Caddyfile");
+    assert.match(render, /STAGING_PLATFORM_ADMIN_HOST="staging-platform-admin\.\$\{PLATFORM_ROOT_DOMAIN\}"/);
+    assert.match(render, /STAGING_PLATFORM_ADMIN_HOST=\$\{STAGING_PLATFORM_ADMIN_HOST\}/);
+    assert.match(render, /STAGING_PLATFORM_ADMIN_ENABLED:-false/);
+    assert.match(render, /STAGING_PLATFORM_ADMIN_ENABLED must be true or false/);
+    assert.match(render, /STAGING_PLATFORM_ADMIN_ENABLED=\$\{STAGING_PLATFORM_ADMIN_ENABLED\}/);
+    assert.match(bootstrap, /PLATFORM_ADMIN_HOST "staging-platform-admin\.\$\{PUBLIC_ROOT_DOMAIN\}"/);
+    assert.match(syncAuthEnv, /PLATFORM_ADMIN_HOST=staging-platform-admin\.\$\{platform_root\}/);
+    assert.match(syncAuthEnv, /invalid PLATFORM_ROOT_DOMAIN in api\.env/);
+
+    const host = "http://{$STAGING_PLATFORM_ADMIN_HOST}";
+    const start = caddy.indexOf(host);
+    const end = caddy.indexOf("\n\n", start + host.length);
+    const block = caddy.slice(start, end < 0 ? undefined : end);
+    const productionWildcard = caddy.indexOf("http://*.admin.{$PLATFORM_ROOT_DOMAIN}");
+    assert.ok(start >= 0, "staging platform host is explicit");
+    assert.ok(start < productionWildcard, "staging platform host is declared before production wildcard");
+    assert.match(block, /\{\$STAGING_WEB_PORT\}/);
+    assert.doesNotMatch(block, /PROD_WEB_PORT/);
+    assert.match(block, /@stagingPlatformAdminDisabled expression `\{env\.STAGING_PLATFORM_ADMIN_ENABLED\} != "true"`/);
+    assert.match(block, /respond "staging platform admin ingress is disabled" 503/);
+    assert.ok(
+      block.indexOf('respond "staging platform admin ingress is disabled" 503') <
+        block.indexOf("handle {")
+    );
+    assert.match(block, /header_up Host \{host\}/);
+    assert.match(block, /header_up X-Forwarded-Proto https/);
+  });
+
+  it("REG-STG-ENV-17 syncs the isolated platform host from the staging API root", () => {
+    const envDir = mkdtempSync(resolve(tmpdir(), "staging-platform-admin-host-"));
+    try {
+      writeFileSync(
+        resolve(envDir, "api.env"),
+        "AUTH_JWT_PUBLIC_KEY=test-public-key\nAUTH_JWT_ISSUER=test-issuer\nAUTH_JWT_AUDIENCE=test-audience\nPLATFORM_ROOT_DOMAIN=shenski.com\n"
+      );
+      writeFileSync(resolve(envDir, "web.env"), "PORT=23000\nPLATFORM_ROOT_DOMAIN=shenski.com\n");
+      const result = spawnSync(
+        "bash",
+        [resolve(ROOT, "scripts/vps-deploy/sync-staging-surface-auth-env.sh")],
+        { env: { ...process.env, ENV_DIR: envDir }, encoding: "utf8" }
+      );
+      assert.equal(result.status, 0, result.stderr || result.stdout);
+      const webEnv = readFileSync(resolve(envDir, "web.env"), "utf8");
+      assert.match(webEnv, /^PLATFORM_ADMIN_HOST=staging-platform-admin\.shenski\.com$/m);
+      assert.match(webEnv, /^ALLOW_DENALI_WEB_PLUGIN=true$/m);
+    } finally {
+      rmSync(envDir, { recursive: true, force: true });
+    }
+  });
+
+  it("REG-STG-ENV-18 renders the platform ingress disabled by default", () => {
+    const temp = mkdtempSync(resolve(tmpdir(), "staging-platform-admin-caddy-"));
+    const prodDir = resolve(temp, "prod");
+    const stagingDir = resolve(temp, "staging");
+    const caddyEnv = resolve(temp, "caddy.env");
+    mkdirSync(prodDir);
+    mkdirSync(stagingDir);
+    try {
+      for (const [dir, values] of [
+        [prodDir, { api: "PORT=13001\nPLATFORM_ROOT_DOMAIN=shenski.com\n", web: "PORT=13000\nPUBLIC_TENANT_FALLBACK_LABEL=denali\n", marketing: "PORT=13002\n", portal: "PORT=13003\nPORTAL_PUBLIC_BASE_URL=https://portal.denali.shenski.com\n" }],
+        [stagingDir, { api: "PORT=23001\n", web: "PORT=23000\n", marketing: "PORT=23002\n", portal: "PORT=23003\n" }],
+      ]) {
+        for (const [app, contents] of Object.entries(values)) {
+          writeFileSync(resolve(dir, `${app}.env`), contents);
+        }
+      }
+
+      const render = (enabled) =>
+        spawnSync("bash", [resolve(ROOT, "scripts/vps-deploy/render-caddy-env.sh")], {
+          env: {
+            ...process.env,
+            PROD_ENV_DIR: prodDir,
+            STAGING_ENV_DIR: stagingDir,
+            CADDY_ENV_FILE: caddyEnv,
+            ...(enabled === undefined ? {} : { STAGING_PLATFORM_ADMIN_ENABLED: enabled }),
+          },
+          encoding: "utf8",
+        });
+
+      const disabled = render(undefined);
+      assert.equal(disabled.status, 0, disabled.stderr || disabled.stdout);
+      const disabledEnv = readFileSync(caddyEnv, "utf8");
+      assert.match(disabledEnv, /^STAGING_PLATFORM_ADMIN_HOST=staging-platform-admin\.shenski\.com$/m);
+      assert.match(disabledEnv, /^STAGING_PLATFORM_ADMIN_ENABLED=false$/m);
+
+      const enabled = render("true");
+      assert.equal(enabled.status, 0, enabled.stderr || enabled.stdout);
+      assert.match(readFileSync(caddyEnv, "utf8"), /^STAGING_PLATFORM_ADMIN_ENABLED=true$/m);
+
+      const invalid = render("yes");
+      assert.equal(invalid.status, 1);
+      assert.match(invalid.stderr, /STAGING_PLATFORM_ADMIN_ENABLED must be true or false/);
+    } finally {
+      rmSync(temp, { recursive: true, force: true });
+    }
   });
 
   it("REG-STG-ENV-07 routes exact second-tenant hosts only to staging upstreams", () => {

@@ -32,6 +32,21 @@ describe("platform-host-isolation", () => {
     assert.equal(isPlatformAdminHost("club.admin.localhost"), false);
   });
 
+  it("supports only the explicitly configured staging platform host", () => {
+    const previous = process.env.PLATFORM_ADMIN_HOST;
+    process.env.PLATFORM_ADMIN_HOST = "staging-platform-admin.shenski.com";
+    try {
+      assert.equal(isPlatformAdminHost("admin.localhost"), true);
+      assert.equal(isPlatformAdminHost("staging-platform-admin.shenski.com"), true);
+      assert.equal(isPlatformAdminHost("STAGING-PLATFORM-ADMIN.SHENSKI.COM:443"), true);
+      assert.equal(isPlatformAdminHost("staging-admin-denali.shenski.com"), false);
+      assert.equal(isPlatformAdminHost("other.shenski.com"), false);
+    } finally {
+      if (previous === undefined) delete process.env.PLATFORM_ADMIN_HOST;
+      else process.env.PLATFORM_ADMIN_HOST = previous;
+    }
+  });
+
   it("club admin /platform blocked", () => {
     const middleware = readFileSync(new URL("../middleware.ts", import.meta.url), "utf8");
     assert.match(middleware, /blockPlatformOnClubAdminHost/);

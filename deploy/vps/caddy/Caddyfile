@@ -10,6 +10,28 @@
 	admin off
 }
 
+# The platform control center gets an explicit staging-only host. Never route
+# it through the production admin wildcard.
+http://{$STAGING_PLATFORM_ADMIN_HOST} {
+	@stagingPlatformAdminDisabled expression `{env.STAGING_PLATFORM_ADMIN_ENABLED} != "true"`
+	handle @stagingPlatformAdminDisabled {
+		respond "staging platform admin ingress is disabled" 503
+	}
+	handle {
+		reverse_proxy 127.0.0.1:{$STAGING_WEB_PORT} {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	log {
+		output file /var/log/caddy/admin-access.log
+		format json
+	}
+}
+
 http://*.admin.{$PLATFORM_ROOT_DOMAIN} {
 	reverse_proxy 127.0.0.1:{$PROD_WEB_PORT} {
 		header_up Host {host}
