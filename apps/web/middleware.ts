@@ -24,6 +24,7 @@ import {
   normalizeHostHeader,
   readPlatformRootDomainWeb,
   readWebReservedHostLabels,
+  resolveRequestIngressHost,
 } from "@/tenant/platform-host-env";
 import { isPlatformPublicPath } from "@/platform/require-platform-ops-session";
 import { shouldBypassMiddlewareForDevE2eHost } from "@/tenant/resolve-dev-e2e-host-bypass";
@@ -152,14 +153,6 @@ function bindUrlToRequestIngress(url: URL, request: NextRequest): URL {
   return url;
 }
 
-function readRequestIngressHost(request: NextRequest): string {
-  return (
-    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
-    request.headers.get("host")?.trim() ||
-    request.nextUrl.host
-  );
-}
-
 function jsonAuthError(status: number, code: string, message: string): NextResponse {
   return NextResponse.json({ ok: false, error: { code, message } }, { status });
 }
@@ -183,7 +176,7 @@ function isPlatformProtectedPath(pathname: string): boolean {
 }
 
 function redirectToPlatformLogin(request: NextRequest): NextResponse {
-  const loginUrl = request.nextUrl.clone();
+  const loginUrl = bindUrlToRequestIngress(request.nextUrl.clone(), request);
   loginUrl.pathname = "/auth/login";
   loginUrl.search = new URLSearchParams({
     returnUrl: `${request.nextUrl.pathname}${request.nextUrl.search}`,
@@ -201,11 +194,15 @@ async function handlePlatformAdminHost(
 
   const { pathname } = request.nextUrl;
   if (pathname === "/") {
-    return NextResponse.redirect(new URL("/platform", request.url));
+    return NextResponse.redirect(
+      bindUrlToRequestIngress(new URL("/platform", request.url), request)
+    );
   }
 
   if (isProtectedAdminPath(pathname)) {
-    return NextResponse.redirect(new URL("/platform", request.url));
+    return NextResponse.redirect(
+      bindUrlToRequestIngress(new URL("/platform", request.url), request)
+    );
   }
 
   const isPublic =
@@ -294,7 +291,7 @@ function preservesTeamPanelSession(role: string | undefined): boolean {
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
-  const host = readRequestIngressHost(request);
+  const host = resolveRequestIngressHost(request.headers, request.nextUrl.host);
 
   const platformResponse = await handlePlatformAdminHost(request, host);
   if (platformResponse !== null) {
