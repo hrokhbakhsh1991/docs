@@ -187,6 +187,30 @@ describe("staging-env-contract", () => {
     }
   });
 
+  it("REG-STG-ENV-19 forwards the staging-only platform ingress flag through deployment to Caddy", () => {
+    const deploy = read("scripts/vps-deploy/deploy-staging-artifact-remote.sh");
+    const caddyInstall = read("scripts/vps-deploy/install-caddy-profile-c.sh");
+    const workflow = read(".github/workflows/deploy-staging.yml");
+
+    assert.match(
+      deploy,
+      /STAGING_PLATFORM_ADMIN_ENABLED="\$\{STAGING_PLATFORM_ADMIN_ENABLED:-false\}"/
+    );
+    assert.match(deploy, /true\|false/);
+    assert.match(
+      deploy,
+      /STAGING_PLATFORM_ADMIN_ENABLED=\$\{STAGING_PLATFORM_ADMIN_ENABLED\}/
+    );
+    assert.match(
+      caddyInstall,
+      /STAGING_PLATFORM_ADMIN_ENABLED="\$\{STAGING_PLATFORM_ADMIN_ENABLED:-\}"/
+    );
+    assert.match(
+      workflow,
+      /STAGING_PLATFORM_ADMIN_ENABLED:\s*\$\{\{\s*vars\.STAGING_PLATFORM_ADMIN_ENABLED\s*\}\}/
+    );
+  });
+
   it("REG-STG-ENV-07 routes exact second-tenant hosts only to staging upstreams", () => {
     const render = read("scripts/vps-deploy/render-caddy-env.sh");
     const caddy = read("deploy/vps/caddy/Caddyfile");

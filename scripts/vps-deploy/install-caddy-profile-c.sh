@@ -27,7 +27,9 @@ if ! command -v caddy >/dev/null 2>&1; then
 fi
 
 log "render caddy.env from production=$PROD_ENV_DIR staging=$STAGING_ENV_DIR"
-PROD_ENV_DIR="$PROD_ENV_DIR" STAGING_ENV_DIR="$STAGING_ENV_DIR" PLATFORM_ROOT_DOMAIN="${PLATFORM_ROOT_DOMAIN:-}" \
+PROD_ENV_DIR="$PROD_ENV_DIR" STAGING_ENV_DIR="$STAGING_ENV_DIR" \
+  PLATFORM_ROOT_DOMAIN="${PLATFORM_ROOT_DOMAIN:-}" \
+  STAGING_PLATFORM_ADMIN_ENABLED="${STAGING_PLATFORM_ADMIN_ENABLED:-}" \
   bash "$DEPLOY_PATH/scripts/vps-deploy/render-caddy-env.sh"
 
 log "deploy Caddyfile"
