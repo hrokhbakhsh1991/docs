@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
 
 /** Must match latest prisma/migrations folder name (DEC-097 / MR-P0-003). */
-export const EXPECTED_PRISMA_MIGRATION_HEAD = "20261113110000_platform_sms_usage_scope";
+export const EXPECTED_PRISMA_MIGRATION_HEAD = "20261114120000_user_password_credentials";
 
 /** Required intermediate migrations that must exist even if tip row is present. */
 export const REQUIRED_PRISMA_MIGRATION_NAMES = [
