@@ -33,7 +33,10 @@ test("operator phone controls are disabled in server markup and enabled after hy
   const html = renderToString(view());
   assert.match(html, /<input[^>]*id="phone"[^>]*disabled/);
   assert.doesNotMatch(html, /data-testid="operator-login-hydrated"/);
-  const screen = render(view());
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  document.body.appendChild(container);
+  const screen = render(view(), { container, hydrate: true });
   assert.equal((screen.getByLabelText("شماره موبایل") as HTMLInputElement).disabled, false);
   assert.ok(screen.getByTestId("operator-login-hydrated"));
   assert.equal(

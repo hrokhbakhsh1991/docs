@@ -27,10 +27,11 @@ test("workspace owner creates a password and logs in with it", async ({ page }) 
 
   await page.goto(`${adminOrigin}/settings/me`, { waitUntil: "domcontentloaded" });
   const settings = page.locator("[data-account-password-settings]");
-  await expect(settings.getByRole("button", { name: "ایجاد رمز عبور" })).toBeVisible({
+  const changePassword = settings.getByRole("button", { name: /ایجاد رمز عبور|تغییر رمز عبور/ });
+  await expect(changePassword).toBeVisible({
     timeout: 90_000,
   });
-  await settings.getByRole("button", { name: "ایجاد رمز عبور" }).click();
+  await changePassword.click();
   await settings.getByLabel("کد پیامکی").fill("1234");
   await settings.getByLabel("رمز عبور جدید").fill(password);
   await settings.getByLabel("تکرار رمز عبور").fill(password);
@@ -44,7 +45,9 @@ test("workspace owner creates a password and logs in with it", async ({ page }) 
   await page.getByRole("button", { name: "ورود با رمز عبور" }).click();
   await page.locator("#operator-password").fill("wrong-test-password");
   await page.getByRole("button", { name: "ورود", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("رمز عبور درست نیست", { timeout: 90_000 });
+  await expect(page.locator('form p[role="alert"]')).toContainText("رمز عبور درست نیست", {
+    timeout: 90_000,
+  });
   await page.locator("#operator-password").fill(password);
   await page.getByRole("button", { name: "ورود", exact: true }).click();
   await expect(page).not.toHaveURL(/\/auth\/login/, { timeout: 90_000 });
