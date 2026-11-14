@@ -38,6 +38,7 @@ pnpm --dir packages/catalog-registration-flow-ui run build
 pnpm --dir packages/catalog-intake-ui run build
 pnpm --dir packages/tenant-kernel run build
 pnpm --dir packages/session-client run build
+pnpm --dir packages/account-security-ui run build
 pnpm --dir packages/platform-events run build
 
 # All product workspaces with a build script (registry + generated bindings).

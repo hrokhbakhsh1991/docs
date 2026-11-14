@@ -67,6 +67,7 @@ build_pkg @app-tour/theme-react
 build_pkg @app-tour/tenant-kernel
 build_pkg @app-tour/guest-surface-host
 build_pkg @app-tour/session-client
+build_pkg @app-tour/account-security-ui
 build_pkg @app-tour/platform-events
 pnpm --filter @app-tour/wizard-navigation run build 2>/dev/null || true
 pnpm --filter @app-tour/draft-engine run build 2>/dev/null || true
