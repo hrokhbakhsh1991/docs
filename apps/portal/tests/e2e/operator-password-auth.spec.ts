@@ -7,6 +7,7 @@ const password = "Test-only velvet canyon 4589";
 
 test("workspace owner creates a password and logs in with it", async ({ page }) => {
   await page.goto(`${adminOrigin}/auth/login`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("operator-login-hydrated")).toBeAttached({ timeout: 90_000 });
   await page.locator("#phone").fill(ownerPhone);
   const [otpResponse] = await Promise.all([
     page.waitForResponse(
@@ -38,6 +39,7 @@ test("workspace owner creates a password and logs in with it", async ({ page }) 
 
   await page.context().clearCookies();
   await page.goto(`${adminOrigin}/auth/login`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("operator-login-hydrated")).toBeAttached({ timeout: 90_000 });
   await page.locator("#phone").fill(ownerPhone);
   await page.getByRole("button", { name: "ورود با رمز عبور" }).click();
   await page.locator("#operator-password").fill("wrong-test-password");

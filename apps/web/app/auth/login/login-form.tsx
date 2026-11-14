@@ -110,10 +110,15 @@ export function LoginForm({
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const loginInFlightRef = useRef(false);
   const devOtpBootstrappedRef = useRef(false);
   const devLoginAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development" && DEV_LOGIN_AUTOMATION_ENABLED) {
@@ -344,7 +349,9 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent className={step === "otp" ? "space-y-3" : "space-y-4"}>
-          <span data-testid={OPERATOR_LOGIN_TEST_IDS.hydrated} hidden aria-hidden="true" />
+          {hydrated ? (
+            <span data-testid={OPERATOR_LOGIN_TEST_IDS.hydrated} hidden aria-hidden="true" />
+          ) : null}
           {showTenantMismatchBanner ? (
             <p
               role="alert"
@@ -401,6 +408,7 @@ export function LoginForm({
                 <Label htmlFor="phone">{t("phoneLabel")}</Label>
                 <LocalizedNumericInput
                   id="phone"
+                  disabled={!hydrated}
                   autoComplete="tel"
                   mode="phone"
                   placeholder={t("phonePlaceholder")}
@@ -428,7 +436,7 @@ export function LoginForm({
               <Button
                 type="button"
                 className="w-full"
-                disabled={loading}
+                disabled={!hydrated || loading}
                 onClick={() => {
                   void requestOtp();
                 }}
@@ -440,7 +448,7 @@ export function LoginForm({
                   type="button"
                   variant="ghost"
                   className="w-full"
-                  disabled={loading}
+                  disabled={!hydrated || loading}
                   onClick={() => {
                     const value = readPhoneForSubmit(phone);
                     if (!/^\+?[0-9]{8,16}$/.test(value)) {
