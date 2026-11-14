@@ -13,6 +13,10 @@
     "./host-only": {
       "types": "./dist/host-only.d.ts",
       "default": "./dist/host-only.js"
+    },
+    "./password-ingress-server": {
+      "types": "./dist/password-ingress-server.d.ts",
+      "default": "./dist/password-ingress-server.js"
     }
   },
   "scripts": {

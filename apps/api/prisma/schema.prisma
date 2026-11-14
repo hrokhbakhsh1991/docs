@@ -630,12 +630,24 @@ model WalletLedgerEntry {
 
 /// Phase 9.1 — global operator identity (mobile login).
 model User {
-  id          String       @id @default(uuid()) @db.Uuid
-  mobile      String       @unique
-  createdAt   DateTime     @default(now()) @map("created_at")
-  memberships UserTenant[]
+  id                 String                  @id @default(uuid()) @db.Uuid
+  mobile             String                  @unique
+  createdAt          DateTime                @default(now()) @map("created_at")
+  memberships        UserTenant[]
+  passwordCredential UserPasswordCredential?
 
   @@map("users")
+}
+
+/// Global, optional user credential. Access is restricted to the identity admin client.
+model UserPasswordCredential {
+  userId       String   @id @map("user_id") @db.Uuid
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_password_credentials")
 }
 
 /// Phase 9.1 — tenant membership + JWT sessionVersion invalidation (DEC-P9-012).
@@ -664,6 +676,8 @@ model MobileOtpChallenge {
   id           String   @id @default(uuid()) @db.Uuid
   mobile       String
   purpose      String   @default("login")
+  tenantId     String?  @map("tenant_id") @db.Uuid
+  userId       String?  @map("user_id") @db.Uuid
   codeHash     String   @default("") @map("code_hash")
   expiresAt    DateTime @map("expires_at")
   attemptCount Int      @default(0) @map("attempt_count")

@@ -35,9 +35,11 @@
     "start": "next start --port 3003"
   },
   "dependencies": {
+    "@app-tour/account-security-ui": "workspace:^",
     "@app-tour/catalog-registration-auth": "workspace:*",
     "@app-tour/catalog-registration-flow-ui": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",
+    "@app-tour/engagement-http-contracts": "workspace:*",
     "@app-tour/finance-http-contracts": "workspace:*",
     "@app-tour/guest-surface-host": "workspace:*",
     "@app-tour/guest-workspace-runtime": "workspace:*",
@@ -45,9 +47,8 @@
     "@app-tour/session-client": "workspace:*",
     "@app-tour/tenant-kernel": "workspace:*",
     "@app-tour/theme-react": "workspace:*",
-    "@app-tour/ui-primitives": "workspace:*",
     "@app-tour/ticketing-http-contracts": "workspace:*",
-    "@app-tour/engagement-http-contracts": "workspace:*",
+    "@app-tour/ui-primitives": "workspace:*",
     "@app-tour/wallet-http-contracts": "workspace:*",
     "@app-tour/workspace-alpine": "workspace:*",
     "@app-tour/workspace-harbor": "workspace:*",

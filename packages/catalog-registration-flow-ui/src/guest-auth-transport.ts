@@ -15,6 +15,7 @@ export type GuestAuthVerifyOutcome =
  * Portal same-origin and Marketing Portal-origin are separate factories.
  */
 export type GuestAuthTransport = {
+  readonly isPasswordLoginAvailable: () => Promise<boolean>;
   readonly preflightPhone: (input: {
     readonly phone: string;
   }) => Promise<{ readonly exists: boolean }>;
@@ -26,6 +27,10 @@ export type GuestAuthTransport = {
     readonly otp: string;
     readonly challengeId: string;
   }) => Promise<GuestAuthVerifyOutcome>;
+  readonly loginWithPassword: (input: {
+    readonly phone: string;
+    readonly password: string;
+  }) => Promise<{ readonly outcome: "session_ready" }>;
   readonly completeProfile: (input: {
     readonly onboardingToken: string;
     readonly displayName: string;
@@ -83,6 +88,19 @@ function createGuestAuthTransportFromPublicAuthBase(
   probeSession: GuestAuthTransport["probeSession"]
 ): GuestAuthTransport {
   return {
+    async isPasswordLoginAvailable() {
+      try {
+        const res = await fetch(urlForPath("/api/public-auth/login-password"), {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        const data = (await res.json()) as { enabled?: unknown };
+        return res.ok && data.enabled === true;
+      } catch {
+        return false;
+      }
+    },
     async preflightPhone(input) {
       const { ok, data } = await postPublicAuthJson(
         urlForPath("/api/public-auth/phone-preflight"),
@@ -125,6 +143,16 @@ function createGuestAuthTransportFromPublicAuthBase(
           throw new GuestAuthTransportError("network");
         }
         return { outcome: "needs_profile", onboardingToken };
+      }
+      return { outcome: "session_ready" };
+    },
+    async loginWithPassword(input) {
+      const { ok, data } = await postPublicAuthJson(urlForPath("/api/public-auth/login-password"), {
+        phone: input.phone,
+        password: input.password,
+      });
+      if (!ok || data.ok !== true) {
+        throw new GuestAuthTransportError(readPublicRegistrationErrorCode(data));
       }
       return { outcome: "session_ready" };
     },

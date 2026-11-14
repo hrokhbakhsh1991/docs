@@ -336,6 +336,9 @@ importers:
 
   apps/portal:
     dependencies:
+      '@app-tour/account-security-ui':
+        specifier: workspace:^
+        version: link:../../packages/account-security-ui
       '@app-tour/catalog-registration-auth':
         specifier: workspace:*
         version: link:../../packages/catalog-registration-auth
@@ -457,6 +460,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@app-tour/account-security-ui':
+        specifier: workspace:^
+        version: link:../../packages/account-security-ui
       '@app-tour/catalog-registration-auth':
         specifier: workspace:*
         version: link:../../packages/catalog-registration-auth
@@ -650,6 +656,28 @@ importers:
       happy-dom:
         specifier: ^17.4.4
         version: 17.6.3
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/account-security-ui:
+    dependencies:
+      '@app-tour/session-client':
+        specifier: workspace:*
+        version: link:../session-client
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.16
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
       tsx:
         specifier: ^4.20.6
         version: 4.22.4

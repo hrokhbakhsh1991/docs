@@ -44,6 +44,7 @@ const IDENTITY_ME_ALLOWLIST = new Set([
   MOBILE_VERIFY_BFF_ROUTE_REL,
   RESUME_PROFILE_LOADER_REL,
   ENTITLEMENTS_UPSTREAM_LOADER_REL,
+  "apps/portal/src/auth/password-bff.server.ts",
 ]);
 
 /** @typedef {{ file: string, line?: number, type: string, severity: "LOW" | "MEDIUM" | "HIGH", message: string }} ArchitectureTruthFinding */
@@ -271,6 +272,9 @@ export function collectCodeTruthFindings(repoRoot) {
     for (const absPath of listPortalSources(path.join(portalRoot, segment))) {
       const relPath = path.relative(repoRoot, absPath).split(path.sep).join("/");
       const source = fs.readFileSync(absPath, "utf8");
+      if (relPath === "apps/portal/src/auth/password-bff.server.ts" && /identity\/me(?!\/password(?:[/$`]|$))/.test(source)) {
+        findings.push({ file: relPath, type: "code_password_bff_scope", severity: "HIGH", message: "Password BFF may call only identity/me/password" });
+      }
       if (/session-profile/.test(source)) {
         findings.push({
           file: relPath,

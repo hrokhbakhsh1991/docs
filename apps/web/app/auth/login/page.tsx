@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  readPasswordClientIpConfig,
+  readPasswordIngressSecret,
+} from "@app-tour/tenant-kernel/password-ingress-server";
 
 import { buildAuthLoginPageMetadata } from "@/i18n/app-page-metadata";
 import { isPlatformAdminHost } from "@/platform/is-platform-admin-host";
@@ -69,6 +73,11 @@ export default async function AuthLoginPage({ searchParams }: AuthLoginPageProps
       pluginId={bootstrap.session.pluginId}
       initialBranding={branding}
       searchQuery={searchQuery}
+      passwordEnabled={
+        process.env.PASSWORD_AUTH_ENABLED?.trim() === "true" &&
+        readPasswordIngressSecret() !== null &&
+        readPasswordClientIpConfig() !== null
+      }
     />
   );
 }
