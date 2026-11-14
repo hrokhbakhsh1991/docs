@@ -3,6 +3,6 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   ...base,
-  testMatch: ["portal-password-auth.spec.ts"],
+  testMatch: ["portal-password-auth.spec.ts", "operator-password-auth.spec.ts"],
   timeout: 360_000,
 });
