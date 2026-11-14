@@ -257,7 +257,7 @@ const apiEnv = {
   STORAGE_DRIVER: "memory",
   DATABASE_URL: "",
   DATABASE_URL_ADMIN: "",
-  REDIS_URL: "",
+  REDIS_URL: process.env.SMOKE_PASSWORD_REDIS_URL ?? "",
   OPERATOR_SMOKE_E2E_SEED: "1",
   PORT: "3001",
   TENANT_RATE_LIMIT_ENABLED: "false",
