@@ -53,6 +53,7 @@
     "start": "next start --port 3000"
   },
   "dependencies": {
+    "@app-tour/account-security-ui": "workspace:^",
     "@app-tour/catalog-registration-auth": "workspace:*",
     "@app-tour/design-tokens": "workspace:*",
     "@app-tour/draft-engine": "workspace:*",

@@ -10,6 +10,7 @@ import { readPortalIngressHost } from "@/tenant/read-portal-ingress-host.server"
 import { resolvePortalBootstrapForHost } from "@/tenant/resolve-portal-bootstrap";
 
 import { MemberProfileForm } from "./member-profile-form";
+import { MemberPasswordSettings } from "./password-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("portalMember.profile");
@@ -34,6 +35,7 @@ export default async function MeProfilePage() {
             profile={profileResult.payload.profile}
             logoutTarget={resolveMarketingPublicBaseUrl(host)}
           />
+          <MemberPasswordSettings />
         </main>
       </MemberModuleEntitlementGate>
     );

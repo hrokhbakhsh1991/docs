@@ -71,6 +71,23 @@ describe("createPortalSameOriginGuestAuthTransport", () => {
     assert.equal(calls[1]?.init.method, "POST");
   });
 
+  it("logs in with a password through the portal BFF and returns no token", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    globalThis.fetch = (async (input, init) => {
+      calls.push({ url: String(input), init: init ?? {} });
+      return new Response(JSON.stringify({ ok: true, session_token: "must-not-be-returned" }), {
+        status: 200,
+      });
+    }) as typeof fetch;
+    const result = await createPortalSameOriginGuestAuthTransport().loginWithPassword({
+      phone: "09120000000",
+      password: "example passphrase for tests",
+    });
+    assert.deepEqual(result, { outcome: "session_ready" });
+    assert.equal(calls[0]?.url, "/api/public-auth/login-password");
+    assert.equal(calls[0]?.init.credentials, "include");
+  });
+
   it("verifyOtp returns needs_profile when registration is required", async () => {
     globalThis.fetch = (async () =>
       new Response(

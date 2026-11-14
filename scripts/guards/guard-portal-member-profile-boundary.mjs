@@ -20,6 +20,7 @@ const IDENTITY_ME_ALLOWLIST = new Set([
   "apps/portal/app/api/me/mobile/verify/route.ts",
   "apps/portal/src/me/fetch-member-profile-from-session.server.ts",
   "apps/portal/src/me/member-entitlements-bff.server.ts",
+  "apps/portal/src/auth/password-bff.server.ts",
 ]);
 
 const PROFILE_DOMAIN_PREFIXES = [
@@ -33,6 +34,7 @@ const PROFILE_DOMAIN_PREFIXES = [
 const SCAN_ROOTS = ["app", "src"].map((segment) => path.join(PORTAL_ROOT, segment));
 
 const IDENTITY_ME_PATTERN = /identity\/me/;
+const PASSWORD_BFF_REL = "apps/portal/src/auth/password-bff.server.ts";
 const IDENTITY_ME_URL_PATTERN =
   /(?:resolveTourOpsApiBaseUrl\(\)[^;\n]*identity\/me|fetch\([^)]*identity\/me)/;
 const SESSION_PROFILE_PATTERN = /session-profile/;
@@ -153,6 +155,10 @@ for (const scanRoot of SCAN_ROOTS) {
   for (const absPath of listSourceFiles(scanRoot)) {
     const relPath = toRepoRelative(absPath);
     const source = fs.readFileSync(absPath, "utf8");
+
+    if (relPath === PASSWORD_BFF_REL && /identity\/me(?!\/password(?:[/$`]|$))/.test(source)) {
+      fail("mp_guard_password_bff_scope", `${relPath} may call only identity/me/password`);
+    }
 
     if (SESSION_PROFILE_PATTERN.test(source)) {
       fail("mp_guard_no_session_profile", `${relPath} must not reference session-profile`);

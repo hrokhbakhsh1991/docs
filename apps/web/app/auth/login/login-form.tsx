@@ -11,6 +11,7 @@ import { LocalizedNumericInput } from "@/components/i18n/localized-numeric-input
 import { canonicalizeOperatorLoginPhone } from "@/features/auth/canonicalize-operator-login-phone";
 import { normalizeNumericInputValue } from "@/i18n/format-localized-digits";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { LoginTenantBrand } from "@/features/auth/login-tenant-brand";
 import {
   normalizeOtpDigits,
@@ -31,7 +32,7 @@ import {
 } from "@/features/users/invite-accept-logic";
 import { navigateAfterLogin } from "@/auth/navigate-after-auth-session-change";
 
-type Step = "phone" | "otp";
+type Step = "phone" | "otp" | "password";
 
 const RESEND_COOLDOWN_SEC = 45;
 /** Dev owner login — ASCII in state/API; LocalizedNumericInput shows Persian digits when locale is fa.
@@ -53,6 +54,7 @@ type LoginFormProps = {
   readonly initialBranding?: PublicTenantBrandingSnapshot;
   /** Server-serialized query (excludes `phone`) — avoids client `useSearchParams` hydration stall. */
   readonly searchQuery?: string;
+  readonly passwordEnabled?: boolean;
 };
 
 type ApiErrorPayload = {
@@ -81,7 +83,12 @@ function readPhoneForSubmit(statePhone: string): string {
   return canonicalizeOperatorLoginPhone(element.value);
 }
 
-export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: LoginFormProps) {
+export function LoginForm({
+  pluginId,
+  initialBranding,
+  searchQuery = "",
+  passwordEnabled = false,
+}: LoginFormProps) {
   const t = useTranslations("auth");
   const router = useRouter();
   const phoneErrorId = useId();
@@ -99,6 +106,9 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
   const [otpLength, setOtpLength] = useState<4 | 6>(OTP_SEGMENT_LENGTH);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [otpError, setOtpError] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const loginInFlightRef = useRef(false);
@@ -272,6 +282,42 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
     setChallengeId("");
     setOtpError(null);
     setResendCooldown(0);
+    setPassword("");
+    setPasswordError(null);
+  }
+
+  async function loginWithPassword(): Promise<void> {
+    if (!password || loading || loginInFlightRef.current) return;
+    loginInFlightRef.current = true;
+    setLoading(true);
+    setPasswordError(null);
+    try {
+      const response = await fetch("/api/auth/login-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ phone: readPhoneForSubmit(phone), password }),
+      });
+      const data = (await response.json()) as ApiErrorPayload;
+      if (!response.ok || !data.ok) {
+        setPasswordError(resolveLoginErrorMessage(t, readErrorCode(data)));
+        return;
+      }
+      setPassword("");
+      const abilityRes = await fetch("/api/auth/membership-ability-context", {
+        credentials: "same-origin",
+      });
+      if (!abilityRes.ok) {
+        setPasswordError(resolveLoginErrorMessage(t, "abilitiesFailed"));
+        return;
+      }
+      navigateAfterLogin(router, searchQuery);
+    } catch {
+      setPasswordError(resolveLoginErrorMessage(t, "network"));
+    } finally {
+      loginInFlightRef.current = false;
+      setLoading(false);
+    }
   }
 
   const showDevOtpHint = process.env.NODE_ENV === "development" && DEV_LOGIN_AUTOMATION_ENABLED;
@@ -290,7 +336,11 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
           </div>
           <CardTitle className="text-xl">{t("title")}</CardTitle>
           <CardDescription>
-            {step === "phone" ? t("phoneStepDescription") : t("otpStepDescription")}
+            {step === "phone"
+              ? t("phoneStepDescription")
+              : step === "password"
+                ? t("passwordStepDescription")
+                : t("otpStepDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className={step === "otp" ? "space-y-3" : "space-y-4"}>
@@ -384,6 +434,74 @@ export function LoginForm({ pluginId, initialBranding, searchQuery = "" }: Login
                 }}
               >
                 {loading ? t("sendingOtp") : t("sendOtp")}
+              </Button>
+              {passwordEnabled && pluginId !== "platform" && inviteToken === null ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  disabled={loading}
+                  onClick={() => {
+                    const value = readPhoneForSubmit(phone);
+                    if (!/^\+?[0-9]{8,16}$/.test(value)) {
+                      setPhoneError(resolveLoginErrorMessage(t, "MOBILE_INVALID"));
+                      return;
+                    }
+                    setPhone(value);
+                    setPhoneError(null);
+                    setStep("password");
+                  }}
+                >
+                  {t("passwordChoose")}
+                </Button>
+              ) : null}
+            </form>
+          ) : step === "password" ? (
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void loginWithPassword();
+              }}
+            >
+              <Label htmlFor="operator-password">{t("passwordLabel")}</Label>
+              <Input
+                id="operator-password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                maxLength={256}
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setPasswordError(null);
+                }}
+                aria-invalid={passwordError !== null}
+                aria-describedby={passwordError !== null ? otpErrorId : undefined}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((value) => !value)}
+              >
+                {showPassword ? t("passwordHide") : t("passwordShow")}
+              </Button>
+              {passwordError ? (
+                <p id={otpErrorId} role="alert" className="text-sm text-destructive">
+                  {passwordError}
+                </p>
+              ) : null}
+              <Button type="submit" className="w-full" disabled={loading || !password}>
+                {loading ? t("signingIn") : t("signIn")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                disabled={loading}
+                onClick={handleChangePhone}
+              >
+                {t("passwordUseOtp")}
               </Button>
             </form>
           ) : (
