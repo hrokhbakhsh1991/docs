@@ -8,7 +8,15 @@ const password = "Test-only velvet canyon 4589";
 test("workspace owner creates a password and logs in with it", async ({ page }) => {
   await page.goto(`${adminOrigin}/auth/login`, { waitUntil: "domcontentloaded" });
   await page.locator("#phone").fill(ownerPhone);
-  await page.getByRole("button", { name: "ارسال رمز" }).click();
+  const [otpResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" && response.url().includes("/api/auth/request-otp"),
+      { timeout: 90_000 }
+    ),
+    page.getByRole("button", { name: "ارسال رمز" }).click(),
+  ]);
+  expect(otpResponse.ok(), `operator OTP request failed (${otpResponse.status()})`).toBeTruthy();
   const digits = page.locator("[data-otp-segment-input] [data-otp-cell]");
   await expect(digits).toHaveCount(4, { timeout: 90_000 });
   for (const [index, digit] of Array.from("1234").entries()) {
