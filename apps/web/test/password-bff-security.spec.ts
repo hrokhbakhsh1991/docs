@@ -3,10 +3,27 @@ import { test } from "node:test";
 import { forwardOperatorPassword } from "../src/auth/password-bff.server";
 import { POST as loginWithPassword } from "../app/api/auth/login-password/route";
 
+// happy-dom removes browser-forbidden headers, but these tests model incoming
+// server requests, for which Origin and proxy headers are available.
+function serverRequest(
+  url: string,
+  init: RequestInit & { headers?: Record<string, string> }
+): Request {
+  const request = new Request(url, init);
+  const values = new Map(
+    Object.entries(init.headers ?? {}).map(([key, value]) => [key.toLowerCase(), value])
+  );
+  const originalGet = request.headers.get.bind(request.headers);
+  Object.defineProperty(request.headers, "get", {
+    value: (name: string) => values.get(name.toLowerCase()) ?? originalGet(name),
+  });
+  return request;
+}
+
 test("operator password writes require same origin and an authenticated session", async () => {
   for (const origin of [undefined, "https://other.example"]) {
     const response = await forwardOperatorPassword(
-      new Request("http://admin.denali.localhost:3000/api/identity/me/password", {
+      serverRequest("http://admin.denali.localhost:3000/api/identity/me/password", {
         method: "POST",
         ...(origin ? { headers: { origin } } : {}),
       }),
@@ -16,7 +33,7 @@ test("operator password writes require same origin and an authenticated session"
     assert.equal((await response.json()).error.code, "ORIGIN_INVALID");
   }
   const response = await forwardOperatorPassword(
-    new Request("http://admin.denali.localhost:3000/api/identity/me/password", {
+    serverRequest("http://admin.denali.localhost:3000/api/identity/me/password", {
       method: "POST",
       headers: { origin: "http://admin.denali.localhost:3000" },
     }),
@@ -28,7 +45,7 @@ test("operator password writes require same origin and an authenticated session"
 
 test("operator password login rejects a cross-site request before upstream authentication", async () => {
   const response = await loginWithPassword(
-    new Request("http://admin.denali.localhost:3000/api/auth/login-password", {
+    serverRequest("http://admin.denali.localhost:3000/api/auth/login-password", {
       method: "POST",
       headers: { origin: "https://other.example", "content-type": "application/json" },
       body: JSON.stringify({ phone: "09120000000", password: "a synthetic test passphrase" }),
@@ -49,7 +66,7 @@ test("operator password login rejects a spoofed client IP from an untrusted edge
   process.env.PASSWORD_AUTH_INGRESS_SECRET = "b".repeat(64);
   try {
     const response = await loginWithPassword(
-      new Request("https://admin.example.com/api/auth/login-password", {
+      serverRequest("https://admin.example.com/api/auth/login-password", {
         method: "POST",
         headers: {
           origin: "https://admin.example.com",
@@ -92,7 +109,7 @@ test("operator password login preserves owner-only access and keeps the token in
     return Response.json({ sessionToken: `header.${payload}.signature` });
   };
   const request = () =>
-    new Request("http://admin.denali.localhost:3000/api/auth/login-password", {
+    serverRequest("http://admin.denali.localhost:3000/api/auth/login-password", {
       method: "POST",
       headers: { origin: "http://admin.denali.localhost:3000", "content-type": "application/json" },
       body: JSON.stringify({ phone: "09120000000", password: "a synthetic test passphrase" }),
