@@ -337,6 +337,12 @@ async function dispatchRequest(
     return;
   }
 
+  if (method === "POST" && (url.pathname === "/auth/login-password" || url.pathname === "/public/auth/login-password")) {
+    const { handlePasswordLogin } = await import("./identity/password-login.routes");
+    await handlePasswordLogin(req, res);
+    return;
+  }
+
   if (method === "POST" && url.pathname === "/auth/accept-platform-impersonation") {
     const { handleAcceptPlatformImpersonation } =
       await import("./identity/accept-platform-impersonation.ts");
@@ -420,6 +426,24 @@ async function dispatchRequest(
   if (method === "GET" && url.pathname === "/identity/me/avatar/url") {
     const { handleGetIdentityMeAvatarUrl } = await import("./identity/me.avatar.routes");
     await handleGetIdentityMeAvatarUrl(req, res);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/identity/me/password") {
+    const { handleGetOwnPasswordStatus } = await import("./identity/me.password.routes");
+    await handleGetOwnPasswordStatus(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/identity/me/password/request-otp") {
+    const { handleRequestOwnPasswordOtp } = await import("./identity/me.password.routes");
+    await handleRequestOwnPasswordOtp(req, res);
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/identity/me/password") {
+    const { handleSetOwnPassword } = await import("./identity/me.password.routes");
+    await handleSetOwnPassword(req, res);
     return;
   }
 

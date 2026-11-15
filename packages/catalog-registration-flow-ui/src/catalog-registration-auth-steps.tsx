@@ -58,17 +58,37 @@ export function CatalogRegistrationPhoneStep({
   resolveError,
 }: RegistrationFlowStepProps) {
   const t = useTranslations("catalogRegistration");
-  const { transport } = useGuestAuthHost();
+  const host = useGuestAuthHost();
+  const { transport } = host;
   const data = readCatalogRegistrationFlowData(state);
   const errorId = useId();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [phoneHint, setPhoneHint] = useState<"existing" | "new" | null>(null);
   const [clientReady, setClientReady] = useState(false);
+  const [passwordAvailable, setPasswordAvailable] = useState(false);
+  const [passwordMode, setPasswordMode] = useState(false);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     setClientReady(true);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void transport
+      .isPasswordLoginAvailable()
+      .then((available) => {
+        if (!cancelled) setPasswordAvailable(available);
+      })
+      .catch(() => {
+        if (!cancelled) setPasswordAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [transport]);
 
   useEffect(() => {
     const nextPhone = guestLoginPhoneFieldValue(data.phone);
@@ -128,6 +148,37 @@ export function CatalogRegistrationPhoneStep({
     }
   }
 
+  function choosePassword(): void {
+    const visiblePhone = guestLoginPhoneFieldValue(data.phone);
+    const mobileCode = classifyPublicRegistrationMobileInput(visiblePhone);
+    if (mobileCode !== null) {
+      setError(resolveError(mobileCode));
+      return;
+    }
+    mergeFlowState(state, dispatch, { phone: normalizePublicRegistrationMobile(visiblePhone) });
+    setError(null);
+    setPasswordMode(true);
+  }
+
+  async function loginWithPassword(event: FormEvent): Promise<void> {
+    event.preventDefault();
+    if (loading || password.length === 0) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await transport.loginWithPassword({
+        phone: normalizePublicRegistrationMobile(data.phone),
+        password,
+      });
+      setPassword("");
+      await finishHostAuthenticated(host, setError, resolveError);
+    } catch (failure) {
+      setError(resolveError(readGuestAuthFailureCode(failure)));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const policiesBlock =
     !readMemberLoginEgress(context) &&
     context.tourPoliciesText != null &&
@@ -149,50 +200,109 @@ export function CatalogRegistrationPhoneStep({
       {...(phoneHint !== null ? { "data-phone-hint": phoneHint } : {})}
     >
       {policiesBlock}
-      {loginEgress ? null : phoneHint === "existing" ? (
-        <>
-          <h2>{t("phone.existingMemberTitle")}</h2>
-          <p>{t("phone.existingMemberDescription")}</p>
-        </>
+      {passwordMode ? (
+        <form onSubmit={(event) => void loginWithPassword(event)} data-public-registration-password>
+          <h2>{t("password.title")}</h2>
+          <label htmlFor="guest-password">{t("password.label")}</label>
+          <Input
+            id="guest-password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            maxLength={256}
+            value={password}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              setError(null);
+            }}
+            aria-invalid={error !== null}
+            aria-describedby={error !== null ? errorId : undefined}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((value) => !value)}
+            aria-pressed={showPassword}
+          >
+            {showPassword ? t("password.hide") : t("password.show")}
+          </button>
+          {error !== null ? (
+            <p id={errorId} role="alert">
+              {error}
+            </p>
+          ) : null}
+          <button type="submit" disabled={loading || password.length === 0}>
+            {loading ? t("password.signingIn") : t("password.signIn")}
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => {
+              setPassword("");
+              setError(null);
+              setPasswordMode(false);
+            }}
+          >
+            {t("password.useOtp")}
+          </button>
+        </form>
       ) : (
         <>
-          <h2>{t("phone.title")}</h2>
-          <p>{t("phone.description")}</p>
+          {loginEgress ? null : phoneHint === "existing" ? (
+            <>
+              <h2>{t("phone.existingMemberTitle")}</h2>
+              <p>{t("phone.existingMemberDescription")}</p>
+            </>
+          ) : (
+            <>
+              <h2>{t("phone.title")}</h2>
+              <p>{t("phone.description")}</p>
+            </>
+          )}
+          {phoneHint === "new" ? <p>{t("phone.newHint")}</p> : null}
+          <label htmlFor="phone">{t("phone.label")}</label>
+          <Input
+            id="phone"
+            name="guest-mobile"
+            value={guestLoginPhoneFieldValue(data.phone)}
+            autoComplete="off"
+            inputMode="tel"
+            autoCorrect="off"
+            spellCheck={false}
+            onChange={(event) => {
+              setError(null);
+              mergeFlowState(state, dispatch, {
+                phone: guestLoginPhoneFieldValue(event.target.value),
+              });
+            }}
+            onBlur={() => void refreshPhoneHint()}
+            aria-invalid={error !== null}
+            aria-describedby={error !== null ? errorId : undefined}
+          />
+          {error !== null ? (
+            <p id={errorId} role="alert">
+              {error}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void requestOtp()}
+            disabled={loading}
+            data-action="send-code"
+          >
+            {loading ? t("phone.sending") : t("phone.sendCode")}
+          </button>
+          {passwordAvailable ? (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={choosePassword}
+              data-action="password-login"
+            >
+              {t("password.choose")}
+            </button>
+          ) : null}
         </>
       )}
-      {phoneHint === "new" ? <p>{t("phone.newHint")}</p> : null}
-      <label htmlFor="phone">{t("phone.label")}</label>
-      <Input
-        id="phone"
-        name="guest-mobile"
-        value={guestLoginPhoneFieldValue(data.phone)}
-        autoComplete="off"
-        inputMode="tel"
-        autoCorrect="off"
-        spellCheck={false}
-        onChange={(event) => {
-          setError(null);
-          mergeFlowState(state, dispatch, {
-            phone: guestLoginPhoneFieldValue(event.target.value),
-          });
-        }}
-        onBlur={() => void refreshPhoneHint()}
-        aria-invalid={error !== null}
-        aria-describedby={error !== null ? errorId : undefined}
-      />
-      {error !== null ? (
-        <p id={errorId} role="alert">
-          {error}
-        </p>
-      ) : null}
-      <button
-        type="button"
-        onClick={() => void requestOtp()}
-        disabled={loading}
-        data-action="send-code"
-      >
-        {loading ? t("phone.sending") : t("phone.sendCode")}
-      </button>
     </div>
   );
 }

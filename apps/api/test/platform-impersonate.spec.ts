@@ -121,6 +121,8 @@ describe("platform impersonate integration", () => {
       for (const [method, path] of [
         ["POST", "/not-an-operator-route"],
         ["POST", "/tours"],
+        ["POST", "/identity/me/password/request-otp"],
+        ["POST", "/identity/me/password"],
         ["PATCH", "/users/00000000-0000-4000-8000-000000000101/role"],
         ["DELETE", "/users/00000000-0000-4000-8000-000000000101"],
         ["PUT", "/settings"],

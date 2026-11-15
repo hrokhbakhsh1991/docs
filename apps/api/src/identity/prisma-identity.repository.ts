@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { OTP_MAX_VERIFY_ATTEMPTS } from "./otp-constants";
 
 import type {
   ActorRole,
@@ -18,6 +19,8 @@ import type {
   MembershipRewardsRecord,
   MembershipWithUserRecord,
   OtpChallengeRecord,
+  PasswordCredentialCommitInput,
+  PasswordOtpScope,
   PendingInviteRecord,
   RegisterPublicGuestInput,
   RegisterPublicGuestResult,
@@ -68,6 +71,8 @@ import {
 } from "./users-directory-list-projection";
 import type { UsersListQuery } from "./users.types";
 import { allocateMembershipCode } from "./membership-code";
+
+class PasswordCredentialCommitRejected extends Error {}
 
 function normalizeMobile(mobile: string): string {
   return canonicalizeLoginMobile(mobile);
@@ -375,14 +380,19 @@ export class PrismaIdentityRepository implements IdentityRepository {
     }));
   }
 
-  async createOtpChallenge(mobile: string, codeHash: string): Promise<{ challengeId: string }> {
+  async createOtpChallenge(
+    mobile: string,
+    codeHash: string,
+    scope?: PasswordOtpScope
+  ): Promise<{ challengeId: string }> {
     const id = randomUUID();
     // OTP table: FORCE RLS with no app_cloud policies — identity admin client (TODO-002).
     await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_OTP).mobileOtpChallenge.create({
       data: {
         id,
         mobile: normalizeMobile(mobile),
-        purpose: "login",
+        purpose: scope?.purpose ?? "login",
+        ...(scope !== undefined ? { tenantId: scope.tenantId, userId: scope.userId } : {}),
         codeHash,
         expiresAt: new Date(Date.now() + 5 * 60 * 1000),
         attemptCount: 0,
@@ -404,7 +414,9 @@ export class PrismaIdentityRepository implements IdentityRepository {
     return {
       id: row.id,
       mobile: row.mobile,
-      purpose: "login",
+      purpose: row.purpose,
+      ...(row.tenantId !== null ? { tenantId: row.tenantId } : {}),
+      ...(row.userId !== null ? { userId: row.userId } : {}),
       codeHash: row.codeHash,
       expiresAt: row.expiresAt,
       attemptCount: row.attemptCount,
@@ -439,6 +451,69 @@ export class PrismaIdentityRepository implements IdentityRepository {
       data: { used: true },
     });
     return result.count === 1;
+  }
+
+  async findPasswordHash(userId: string): Promise<string | null> {
+    const row = await getIdentityAdminClient(
+      IDENTITY_ADMIN_REASON.ID_PASSWORD_CREDENTIAL
+    ).userPasswordCredential.findUnique({ where: { userId }, select: { passwordHash: true } });
+    return row?.passwordHash ?? null;
+  }
+
+  async commitPasswordCredential(input: PasswordCredentialCommitInput): Promise<number | null> {
+    const mobile = normalizeMobile(input.mobile);
+    try {
+      return await getIdentityAdminClient(IDENTITY_ADMIN_REASON.ID_PASSWORD_CREDENTIAL).$transaction(
+        async (tx) => {
+          // Lock the identity row and ensure a simultaneous mobile change cannot
+          // make a challenge for an old number authorize this credential change.
+          const lockedUser = await tx.$queryRaw<Array<{ id: string }>>`
+            SELECT id FROM users
+            WHERE id = ${input.userId}::uuid AND mobile = ${mobile}
+            FOR UPDATE
+          `;
+          if (lockedUser.length !== 1) throw new PasswordCredentialCommitRejected();
+          const membership = await tx.userTenant.updateMany({
+            where: {
+              userId: input.userId,
+              tenantId: input.tenantId,
+              status: "ACTIVE",
+              sessionVersion: input.expectedSessionVersion,
+            },
+            data: { sessionVersion: { increment: 1 } },
+          });
+          if (membership.count !== 1) throw new PasswordCredentialCommitRejected();
+          const challenge = await tx.mobileOtpChallenge.updateMany({
+            where: {
+              id: input.challengeId,
+              purpose: "password_change",
+              tenantId: input.tenantId,
+              userId: input.userId,
+              mobile,
+              codeHash: input.codeHash,
+              used: false,
+              attemptCount: { lt: OTP_MAX_VERIFY_ATTEMPTS },
+              expiresAt: { gt: new Date() },
+            },
+            data: { used: true },
+          });
+          if (challenge.count !== 1) throw new PasswordCredentialCommitRejected();
+          await tx.userPasswordCredential.upsert({
+            where: { userId: input.userId },
+            create: { userId: input.userId, passwordHash: input.passwordHash },
+            update: { passwordHash: input.passwordHash },
+          });
+          await tx.userTenant.updateMany({
+            where: { userId: input.userId, tenantId: { not: input.tenantId } },
+            data: { sessionVersion: { increment: 1 } },
+          });
+          return input.expectedSessionVersion + 1;
+        }
+      );
+    } catch (error) {
+      if (error instanceof PasswordCredentialCommitRejected) return null;
+      throw error;
+    }
   }
 
   async createPendingInvite(input: CreatePendingInviteInput): Promise<PendingInviteRecord> {

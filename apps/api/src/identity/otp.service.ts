@@ -14,6 +14,8 @@ import type { EnqueueIntegrationDeliveryJobInput } from "../integrations/platfor
 import { resolveOtpWorkspaceName } from "./resolve-otp-workspace-name";
 import { readPlatformSmsConfig } from "../integrations/application/platform-sms-config";
 import { assertPlatformOtpRateLimit } from "./platform-otp-rate-limit";
+import { canonicalizeLoginMobile } from "./canonicalize-login-mobile";
+import { OTP_MAX_VERIFY_ATTEMPTS } from "./otp-constants";
 
 const DEV_STATIC_OTP = STAGING_STATIC_OTP_CODE;
 
@@ -21,16 +23,23 @@ function isDevStaticOtpEnabled(): boolean {
   return isStaticOtpEnabled();
 }
 
-export type OtpDeliveryContext = {
+type OtpDeliveryBase = {
   readonly tenantId: string | null;
   readonly workspaceType: string;
-  readonly purpose:
-    | "operator_login"
-    | "member_login"
-    | "mobile_change"
-    | "invite"
-    | "platform_ops_login";
 };
+
+export type OtpDeliveryContext = OtpDeliveryBase &
+  (
+    | { readonly purpose: "password_change"; readonly tenantId: string; readonly userId: string }
+    | {
+        readonly purpose:
+          | "operator_login"
+          | "member_login"
+          | "mobile_change"
+          | "invite"
+          | "platform_ops_login";
+      }
+  );
 
 export type OtpDeliveryDependencies = {
   readonly assertPlatformBudget?: (tenantId: string | null, mobile: string) => Promise<void>;
@@ -41,8 +50,6 @@ export type OtpDeliveryDependencies = {
   readonly enqueueJob?: (input: EnqueueIntegrationDeliveryJobInput) => Promise<boolean>;
   readonly resolveWorkspaceName?: (tenantId: string) => Promise<string | null>;
 };
-
-const OTP_MAX_VERIFY_ATTEMPTS = 5;
 
 async function enqueueRealOtpDelivery(
   mobile: string,
@@ -126,6 +133,15 @@ export async function createMobileOtpChallenge(
 ): Promise<{ challengeId: string; otpLength: number }> {
   const platformOpsRequest = deliveryContext?.purpose === "platform_ops_login";
   if (
+    deliveryContext?.purpose === "password_change" &&
+    (typeof deliveryContext.tenantId !== "string" ||
+      deliveryContext.tenantId.trim().length === 0 ||
+      typeof deliveryContext.userId !== "string" ||
+      deliveryContext.userId.trim().length === 0)
+  ) {
+    throw new Error("PASSWORD_OTP_SCOPE_INVALID");
+  }
+  if (
     platformOpsRequest !== (deliveryContext?.tenantId === null) ||
     (platformOpsRequest && deliveryContext?.workspaceType !== "platform")
   ) {
@@ -168,7 +184,15 @@ export async function createMobileOtpChallenge(
   // so otp-dev logs match PUBLIC_REGISTRATION_DEV_OTP / otp.devHint.
   const code = isDevStaticOtpEnabled() ? DEV_STATIC_OTP : resolveOtpCodeForChallenge();
   const codeHash = await hashOtpCode(code);
-  const { challengeId } = await repo.createOtpChallenge(mobile, codeHash);
+  const scope =
+    deliveryContext?.purpose === "password_change"
+      ? {
+          purpose: "password_change" as const,
+          tenantId: deliveryContext.tenantId,
+          userId: deliveryContext.userId,
+        }
+      : undefined;
+  const { challengeId } = await repo.createOtpChallenge(mobile, codeHash, scope);
   if (deliveryContext === undefined) deliverOtpCode(mobile, code);
   else
     await enqueueRealOtpDelivery(mobile, code, challengeId, deliveryContext, deliveryDependencies);
@@ -186,7 +210,9 @@ export async function verifyMobileOtp(
   }
 
   const row = await repo.findOtpChallenge(challengeId);
-  if (row === null) {
+  // A login OTP must never consume a challenge issued for another operation.
+  // Credential-change challenges are handled by their own bound transaction.
+  if (row === null || row.purpose !== "login") {
     throw new OtpChallengeInvalidError();
   }
   if (
@@ -206,4 +232,42 @@ export async function verifyMobileOtp(
 
   if (!(await repo.markOtpChallengeUsed(challengeId))) throw new OtpExpiredError();
   return { mobile: row.mobile };
+}
+
+/**
+ * Verify without consuming: the caller must consume this exact challenge and
+ * update the credential in one transaction, checking its scope and code hash
+ * again. This proof is internal and must never be returned to a browser.
+ */
+export async function verifyPasswordChangeOtp(
+  challengeId: string,
+  code: string,
+  scope: { readonly tenantId: string; readonly userId: string; readonly mobile: string },
+  repo: IdentityRepository = getIdentityRepository()
+): Promise<{ readonly challengeId: string; readonly codeHash: string }> {
+  const row = await repo.findOtpChallenge(challengeId);
+  if (
+    row === null ||
+    row.purpose !== "password_change" ||
+    row.tenantId !== scope.tenantId ||
+    row.userId !== scope.userId ||
+    row.mobile !== canonicalizeLoginMobile(scope.mobile)
+  ) {
+    throw new OtpChallengeInvalidError();
+  }
+  if (
+    row.used ||
+    row.attemptCount >= OTP_MAX_VERIFY_ATTEMPTS ||
+    row.expiresAt.getTime() <= Date.now()
+  ) {
+    throw new OtpExpiredError();
+  }
+  const trimmedCode = typeof code === "string" ? code.trim() : "";
+  const hashValid = await verifyOtpCodeHash(trimmedCode, row.codeHash);
+  const devBypass = isDevStaticOtpEnabled() && trimmedCode === DEV_STATIC_OTP;
+  if (!devBypass && !hashValid) {
+    await repo.recordOtpChallengeFailure(challengeId, OTP_MAX_VERIFY_ATTEMPTS);
+    throw new OtpInvalidError();
+  }
+  return { challengeId: row.id, codeHash: row.codeHash };
 }

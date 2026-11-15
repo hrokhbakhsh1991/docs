@@ -36,6 +36,7 @@
     "sendCode": "Send code",
     "sending": "Sending…"
   },
+  "password": { "choose": "Sign in with password", "title": "Sign in with password", "label": "Password", "show": "Show password", "hide": "Hide password", "signIn": "Sign in", "signingIn": "Signing in…", "useOtp": "Use a text message or change phone" },
   "otp": {
     "title": "Enter verification code",
     "loginTitle": "Verify to sign in",
@@ -137,6 +138,9 @@
     "viewRegistrations": "View my registrations"
   },
   "errors": {
+    "PASSWORD_LOGIN_FAILED": "The phone number or password is incorrect. You can sign in by text message.",
+    "PASSWORD_RATE_LIMITED": "Too many attempts. Please try again later.",
+    "PASSWORD_RATE_LIMIT_UNAVAILABLE": "Password sign-in is temporarily unavailable. Use a text message instead.",
     "MOBILE_REQUIRED": "Enter a mobile number.",
     "MOBILE_INVALID": "Enter a valid mobile number.",
     "OTP_INVALID": "Invalid or expired code. Try again.",

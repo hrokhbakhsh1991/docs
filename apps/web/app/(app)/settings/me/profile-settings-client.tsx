@@ -31,16 +31,19 @@ import {
 } from "@/features/operator-profile/gender";
 import { SETTINGS_HUB_TEST_IDS } from "@/features/settings/settings-module-types";
 import { validateOperatorAvatarFile } from "@/features/settings/validate-operator-avatar-file";
+import { OperatorPasswordSettings } from "./password-settings";
 import { resolveCodedErrorMessage } from "@/i18n/resolve-coded-error-message";
 
 type ProfileSettingsClientProps = {
   readonly session: OperatorSessionContext;
   readonly initialProfile?: OperatorProfile | null;
+  readonly impersonationReadonly?: boolean;
 };
 
 export function ProfileSettingsClient({
   session,
   initialProfile = null,
+  impersonationReadonly = false,
 }: ProfileSettingsClientProps) {
   const t = useTranslations("settings.profile");
   const tErrors = useTranslations("settings.errors");
@@ -344,6 +347,7 @@ export function ProfileSettingsClient({
           </CardContent>
         </Card>
       )}
+      {impersonationReadonly ? null : <OperatorPasswordSettings />}
     </SettingsPageShell>
   );
 }

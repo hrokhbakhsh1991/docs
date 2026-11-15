@@ -12,7 +12,7 @@ import {
 
 describe("migration-head-preflight (DEC-097 / MR-P0-003)", () => {
   it("expected head matches the current tip migration folder", () => {
-    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20261113110000_platform_sms_usage_scope");
+    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20261114120000_user_password_credentials");
   });
 
   it("throws on mismatch with structured message", () => {

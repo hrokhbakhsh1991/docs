@@ -45,3 +45,4 @@ export {
   buildIdentityBffHeadersForTenant,
   type IdentityBffHeaderOptions,
 } from "./identity-bff-headers";
+export { createPasswordManagementClient, PasswordManagementClientError } from "./password-management-client";

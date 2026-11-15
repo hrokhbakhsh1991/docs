@@ -7,6 +7,7 @@ import type {
 } from "@app-tour/workspace-sdk";
 
 import { canonicalizeLoginMobile, resolveLoginMobileLookupKeys } from "./canonicalize-login-mobile";
+import { OTP_MAX_VERIFY_ATTEMPTS } from "./otp-constants";
 import {
   computeInviteExpiresAt,
   isOperatorInviteActive,
@@ -50,11 +51,29 @@ export type {
 export type OtpChallengeRecord = {
   readonly id: string;
   readonly mobile: string;
-  readonly purpose: "login";
+  readonly purpose: string;
+  readonly tenantId?: string;
+  readonly userId?: string;
   readonly codeHash: string;
   readonly expiresAt: Date;
   attemptCount: number;
   used: boolean;
+};
+
+export type PasswordOtpScope = {
+  readonly purpose: "password_change";
+  readonly tenantId: string;
+  readonly userId: string;
+};
+
+export type PasswordCredentialCommitInput = {
+  readonly userId: string;
+  readonly tenantId: string;
+  readonly mobile: string;
+  readonly challengeId: string;
+  readonly codeHash: string;
+  readonly passwordHash: string;
+  readonly expectedSessionVersion: number;
 };
 
 export type PendingInviteRecord = {
@@ -132,10 +151,16 @@ export type IdentityRepository = {
     skip: number,
     limit: number
   ): Promise<readonly MembershipWithUserRecord[]>;
-  createOtpChallenge(mobile: string, codeHash: string): Promise<{ challengeId: string }>;
+  createOtpChallenge(
+    mobile: string,
+    codeHash: string,
+    scope?: PasswordOtpScope
+  ): Promise<{ challengeId: string }>;
   findOtpChallenge(challengeId: string): Promise<OtpChallengeRecord | null>;
   recordOtpChallengeFailure(challengeId: string, maximumAttempts: number): Promise<void>;
   markOtpChallengeUsed(challengeId: string): Promise<boolean>;
+  findPasswordHash(userId: string): Promise<string | null>;
+  commitPasswordCredential(input: PasswordCredentialCommitInput): Promise<number | null>;
   createPendingInvite(input: CreatePendingInviteInput): Promise<PendingInviteRecord>;
   listPendingInvitesByTenant(tenantId: string): Promise<readonly PendingInviteRecord[]>;
   findPendingInviteByPhone(tenantId: string, phone: string): Promise<PendingInviteRecord | null>;
@@ -223,6 +248,7 @@ export class InMemoryIdentityRepository implements IdentityRepository {
   private readonly usersById = new Map<string, IdentityUserRecord>();
   private readonly memberships = new Map<string, IdentityMembershipRecord>();
   private readonly challenges = new Map<string, OtpChallengeRecord>();
+  private readonly passwordHashes = new Map<string, string>();
   private readonly invites = new Map<string, PendingInviteRecord>();
   private readonly invitesByToken = new Map<string, string>();
   private readonly invitesByTenantPhone = new Map<string, string>();
@@ -324,12 +350,17 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     return sorted.slice(skip, skip + limit);
   }
 
-  async createOtpChallenge(mobile: string, codeHash: string): Promise<{ challengeId: string }> {
+  async createOtpChallenge(
+    mobile: string,
+    codeHash: string,
+    scope?: PasswordOtpScope
+  ): Promise<{ challengeId: string }> {
     const id = randomUUID();
     const record: OtpChallengeRecord = {
       id,
       mobile: normalizeMobile(mobile),
-      purpose: "login",
+      purpose: scope?.purpose ?? "login",
+      ...(scope !== undefined ? { tenantId: scope.tenantId, userId: scope.userId } : {}),
       codeHash,
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       attemptCount: 0,
@@ -355,6 +386,42 @@ export class InMemoryIdentityRepository implements IdentityRepository {
     if (row === undefined || row.used || row.expiresAt.getTime() <= Date.now()) return false;
     row.used = true;
     return true;
+  }
+
+  async findPasswordHash(userId: string): Promise<string | null> {
+    return this.passwordHashes.get(userId) ?? null;
+  }
+
+  async commitPasswordCredential(input: PasswordCredentialCommitInput): Promise<number | null> {
+    const mobile = normalizeMobile(input.mobile);
+    const user = this.usersById.get(input.userId);
+    const currentMembership = this.memberships.get(membershipKey(input.userId, input.tenantId));
+    const challenge = this.challenges.get(input.challengeId);
+    if (
+      user?.mobile !== mobile ||
+      currentMembership?.status !== "ACTIVE" ||
+      currentMembership.sessionVersion !== input.expectedSessionVersion ||
+      challenge === undefined ||
+      challenge.purpose !== "password_change" ||
+      challenge.userId !== input.userId ||
+      challenge.tenantId !== input.tenantId ||
+      challenge.mobile !== mobile ||
+      challenge.codeHash !== input.codeHash ||
+      challenge.used ||
+      challenge.attemptCount >= OTP_MAX_VERIFY_ATTEMPTS ||
+      challenge.expiresAt.getTime() <= Date.now()
+    ) {
+      return null;
+    }
+
+    challenge.used = true;
+    this.passwordHashes.set(input.userId, input.passwordHash);
+    for (const [key, membership] of this.memberships) {
+      if (membership.userId === input.userId) {
+        this.memberships.set(key, { ...membership, sessionVersion: membership.sessionVersion + 1 });
+      }
+    }
+    return currentMembership.sessionVersion + 1;
   }
 
   async registerPublicGuest(input: RegisterPublicGuestInput): Promise<RegisterPublicGuestResult> {

@@ -68,6 +68,10 @@
     "finalizationPaymentRequired": "Payment required to finalize",
     "finalizationSettledWithoutPayment": "Registration finalized; no payment required"
   },
+  "passwordSettings": {
+    "title": "Password", "create": "Create password", "change": "Change password", "requestOtp": "Get code", "retry": "Try again", "resend": "Resend code", "otp": "Text message code", "otpHint": "A verification code will be sent to your account phone number.", "password": "New password", "confirm": "Confirm password", "hint": "Use at least 15 characters; a passphrase is welcome.", "save": "Save password", "loading": "Working…", "saved": "Password saved. Other sessions were signed out.", "mismatch": "The passwords do not match.", "show": "Show password", "hide": "Hide password", "cancel": "Cancel",
+    "errors": { "PASSWORD_TOO_SHORT": "Use at least 15 characters.", "PASSWORD_TOO_LONG": "The password is too long.", "PASSWORD_TOO_COMMON": "This password is too common; choose another.", "OTP_INVALID": "The code is incorrect.", "OTP_EXPIRED": "The code expired; request another.", "OTP_CHALLENGE_INVALID": "The code request is invalid; request another.", "OTP_RATE_LIMITED": "Too many requests; try again later.", "PASSWORD_CHALLENGE_INVALID": "The verification request expired; request another code.", "PASSWORD_SESSION_INVALID": "Your session expired; sign in again.", "AUTH_UNAUTHENTICATED": "Sign in again first.", "BACKEND_UNREACHABLE": "Could not connect to the server.", "default": "Could not complete the request. Try again." }
+  },
   "profile": {
     "title": "My profile",
     "description": "These fields pre-fill future tour registrations.",

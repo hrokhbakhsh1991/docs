@@ -74,7 +74,10 @@ const PUBLIC_BFF_API_PATHS = [
 ] as const;
 
 function isPublicBffApiPath(pathname: string): boolean {
-  return PUBLIC_BFF_API_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  return (
+    pathname === "/api/auth/login-password" ||
+    PUBLIC_BFF_API_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
+  );
 }
 
 function isProtectedBffApiPath(pathname: string): boolean {
