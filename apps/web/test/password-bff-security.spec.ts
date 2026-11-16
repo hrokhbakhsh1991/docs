@@ -91,7 +91,7 @@ test("operator password login rejects a spoofed client IP from an untrusted edge
   }
 });
 
-test("operator password login preserves owner-only access and keeps the token in an HTTP-only cookie", async () => {
+test("operator password login accepts owner and admin but rejects member", async () => {
   const previousFetch = globalThis.fetch;
   const oldSecret = process.env.PASSWORD_AUTH_INGRESS_SECRET;
   const oldDev = process.env.ALLOW_DEV_WEB_SESSION;
@@ -101,7 +101,7 @@ test("operator password login preserves owner-only access and keeps the token in
   process.env.ALLOW_DEV_WEB_SESSION = "true";
   process.env.API_INTERNAL_URL = "http://127.0.0.1:3001";
   process.env.NODE_ENV = "development";
-  let role = "admin";
+  let role = "member";
   let fetchCount = 0;
   globalThis.fetch = async () => {
     fetchCount += 1;
@@ -123,6 +123,10 @@ test("operator password login preserves owner-only access and keeps the token in
     );
     assert.equal((await denied.json()).error.code, "AUTH_OWNER_PANEL_ONLY");
     assert.equal(denied.headers.get("set-cookie"), null);
+    role = "admin";
+    const admin = await loginWithPassword(request());
+    assert.equal(admin.status, 200);
+    assert.match(admin.headers.get("set-cookie") ?? "", /HttpOnly/i);
     role = "owner";
     const accepted = await loginWithPassword(request());
     assert.equal(accepted.status, 200);

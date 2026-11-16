@@ -19,9 +19,7 @@ import {
   parseDashboardBookingsSummary,
   type DashboardServerPrefetch,
 } from "@/admin/dashboard/dashboard-widgets-logic";
-import { shouldShowFinanceDashboardWidget } from "@/finance/finance-dashboard-widget-logic";
 import { ensureFinanceNavSupported } from "@/finance/finance-nav-enablement";
-import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import { FinanceDashboardWidget } from "@/finance/finance-dashboard-widget";
 import { useTenantBrandTitle } from "@/tenant/tenant-branding-context";
 import { cn } from "@/lib/utils";
@@ -44,7 +42,7 @@ export function DashboardPageClient({
   const t = useTranslations("dashboard");
   const brandName = useTenantBrandTitle();
   const [showFinanceWidget, setShowFinanceWidget] = useState(
-    initialFinanceNavSupported && isAdminOrOwnerRole(role)
+    initialFinanceNavSupported && role === "owner"
   );
   const attentionItems = buildDashboardAttentionItems({
     summary: initialPrefetch?.bookingsSummary ?? parseDashboardBookingsSummary(null),
@@ -56,10 +54,7 @@ export function DashboardPageClient({
     let cancelled = false;
     void ensureFinanceNavSupported(pluginId).then((supported) => {
       if (!cancelled) {
-        setShowFinanceWidget(
-          (initialFinanceNavSupported || supported) &&
-            (shouldShowFinanceDashboardWidget(pluginId, role) || isAdminOrOwnerRole(role))
-        );
+        setShowFinanceWidget(role === "owner" && (initialFinanceNavSupported || supported));
       }
     });
     return () => {
@@ -125,7 +120,10 @@ export function DashboardPageClient({
           />
         </div>
         <div
-          className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "order-1 md:order-none md:col-span-1 xl:col-span-6")}
+          className={cn(
+            DASHBOARD_WIDGET_SLOT_CLASS,
+            "order-1 md:order-none md:col-span-1 xl:col-span-6"
+          )}
           data-operator-animate="fade-up"
           data-operator-animate-delay="3"
         >
@@ -135,7 +133,10 @@ export function DashboardPageClient({
         </div>
         {showFinanceWidget ? (
           <div
-            className={cn(DASHBOARD_WIDGET_SLOT_CLASS, "order-2 md:order-none md:col-span-2 xl:col-span-6")}
+            className={cn(
+              DASHBOARD_WIDGET_SLOT_CLASS,
+              "order-2 md:order-none md:col-span-2 xl:col-span-6"
+            )}
             data-operator-animate="fade-up"
             data-operator-animate-delay="4"
           >

@@ -178,27 +178,28 @@ describe("auth-bff-login-codes.spec.ts", () => {
     }
   });
 
-  it("BFF-LOGIN-07 login-web-session rejects non-owner JWT (DEC-P9-018)", async () => {
+  it("BFF-LOGIN-07 login-web-session rejects member and accepts admin", async () => {
     const prevNodeEnv = process.env.NODE_ENV;
     const prevDevSession = process.env.ALLOW_DEV_WEB_SESSION;
     process.env.NODE_ENV = "development";
     process.env.ALLOW_DEV_WEB_SESSION = "true";
-    const payload = Buffer.from(
-      JSON.stringify({
-        sub: "00000000-0000-4000-8000-000000000103",
-        tenant_id: "00000000-0000-4000-8000-000000000014",
-        role: "admin",
-        exp: Math.floor(Date.now() / 1000) + 3600,
-      })
-    ).toString("base64url");
-    const adminToken = `header.${payload}.sig`;
+    let role = "member";
+    const tokenForRole = () =>
+      `header.${Buffer.from(
+        JSON.stringify({
+          sub: "00000000-0000-4000-8000-000000000103",
+          tenant_id: "00000000-0000-4000-8000-000000000014",
+          role,
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        })
+      ).toString("base64url")}.sig`;
     const originalFetch = globalThis.fetch;
     const prevApiBase = process.env.TOUR_OPS_API_URL;
     process.env.TOUR_OPS_API_URL = "http://127.0.0.1:3001";
     globalThis.fetch = async () =>
       new Response(
         JSON.stringify({
-          sessionToken: adminToken,
+          sessionToken: tokenForRole(),
           userId: "00000000-0000-4000-8000-000000000103",
           tenantId: "00000000-0000-4000-8000-000000000014",
         }),
@@ -222,6 +223,16 @@ describe("auth-bff-login-codes.spec.ts", () => {
       assert.equal(body.error?.code, "AUTH_OWNER_PANEL_ONLY");
       assert.equal(body.error?.message, undefined);
       assert.equal(res.headers.get("set-cookie"), null);
+      role = "admin";
+      const adminResponse = await POST(
+        new Request("http://denali.localhost:3000/api/auth/login-web-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", host: "denali.localhost:3000" },
+          body: JSON.stringify({ phone: "+15550001002", otp: "1234", challenge_id: "c1" }),
+        })
+      );
+      assert.equal(adminResponse.status, 200);
+      assert.match(adminResponse.headers.get("set-cookie") ?? "", /HttpOnly/i);
     } finally {
       globalThis.fetch = originalFetch;
       if (prevApiBase === undefined) {

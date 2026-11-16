@@ -5,10 +5,8 @@ import type { TenantAuthz } from "@app-tour/workspace-sdk";
 
 import { isExtendedOperatorWorkspace } from "@/workspace/is-extended-operator-workspace";
 import { sessionTenantMatchesHost } from "@/tenant/session-host-binding";
-import {
-  SESSION_COOKIE_MAX_AGE_SECONDS,
-  SESSION_TOKEN_COOKIE,
-} from "@/auth/build-session-cookie";
+import { allowsWorkspaceAdminPath } from "@/admin/operator-admin-access";
+import { SESSION_COOKIE_MAX_AGE_SECONDS, SESSION_TOKEN_COOKIE } from "@/auth/build-session-cookie";
 
 export const OPERATOR_APP_ROUTE_PREFIX = "/(app)" as const;
 export const OPERATOR_LOGIN_PATH = "/auth/login" as const;
@@ -68,7 +66,10 @@ export function requireOperatorSessionWeb(
         redirectTo: `${OPERATOR_LOGIN_PATH}?access=tenant-mismatch`,
       };
     }
-    if (!isOwnerRole(params.session.role)) {
+    if (
+      !isOwnerRole(params.session.role) &&
+      !allowsWorkspaceAdminPath(params.session.role, params.pathname)
+    ) {
       return {
         allowed: false,
         redirectTo: `${OPERATOR_LOGIN_PATH}?access=${OPERATOR_OWNER_PANEL_ACCESS_QUERY}`,

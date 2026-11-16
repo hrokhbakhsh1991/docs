@@ -115,11 +115,12 @@ describe("operator-login-ui-contract.spec.ts", () => {
     assert.doesNotMatch(operatorShell, /window\.location\.href/);
   });
 
-  it("WEB-LOGIN-UI-07 owner-only panel gate wired (DEC-P9-018)", () => {
+  it("WEB-LOGIN-UI-07 owner and admin login and protected panel gate are wired", () => {
     assert.match(loginForm, /shouldShowOwnerOnlyBanner/);
     assert.match(loginForm, /OPERATOR_LOGIN_TEST_IDS\.ownerOnlyBanner/);
     assert.match(loginSessionRoute, /AUTH_OWNER_PANEL_ONLY/);
     assert.match(loginSessionRoute, /sessionRole !== "owner"/);
+    assert.match(loginSessionRoute, /sessionRole !== "admin"/);
     const middleware = readFileSync(join(WEB_ROOT, "middleware.ts"), "utf8");
     assert.match(middleware, /AUTH_OWNER_PANEL_ONLY/);
     assert.match(middleware, /owner-only/);

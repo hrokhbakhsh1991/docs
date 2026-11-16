@@ -47,11 +47,28 @@ export function isOwnerRole(role: OperatorSessionContext["role"]): boolean {
   return role === "owner";
 }
 
+/** DEC-P9-018 is superseded for these admin operational pages only. */
+export function isAdminOperationalPath(
+  role: OperatorSessionContext["role"],
+  pathname: string
+): boolean {
+  return (
+    role === "admin" &&
+    (["/dashboard", "/tours", "/bookings"].some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    ) ||
+      pathname === "/settings/me")
+  );
+}
+
 export function requireOperatorSessionWeb(
   params: RequireOperatorSessionWebParams
 ): RequireOperatorSessionWebResult {
   if (params.session !== null && params.session.userId.trim().length > 0) {
-    if (!isOwnerRole(params.session.role)) {
+    if (
+      !isOwnerRole(params.session.role) &&
+      !isAdminOperationalPath(params.session.role, params.pathname)
+    ) {
       return {
         allowed: false,
         redirectTo: `${OPERATOR_LOGIN_PATH}?access=${OPERATOR_OWNER_PANEL_ACCESS_QUERY}`,

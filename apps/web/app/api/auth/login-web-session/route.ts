@@ -77,11 +77,11 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const claims = decodeJwtPayload(sessionToken);
   const sessionRole = typeof claims?.role === "string" ? claims.role.trim() : "";
-  // Active admin/member accounts must not enter the owner panel directly.
+  // Owners and admins enter the operator shell; other roles need a specific team surface.
   // A pending invite is the one deliberate exception: it needs a constrained
   // session so the invite-login flow can call the accept endpoint, after which
   // the backend membership status becomes active.
-  if (sessionRole !== "owner" && backendBody.pendingInvite !== true) {
+  if (sessionRole !== "owner" && sessionRole !== "admin" && backendBody.pendingInvite !== true) {
     return bffCodedError("AUTH_OWNER_PANEL_ONLY", 403);
   }
 

@@ -1,4 +1,3 @@
-import { isAdminOrOwnerRole } from "@/features/bookings/bookings-command-center-types";
 import {
   buildFinanceKpiCards,
   parseFinanceSummary,
@@ -11,11 +10,8 @@ export const FINANCE_DASHBOARD_WIDGET_TEST_IDS = {
   kpiStrip: "dashboard-finance-kpi-strip",
 } as const;
 
-export function shouldShowFinanceDashboardWidget(
-  pluginId: string,
-  role: string
-): boolean {
-  return shouldShowFinanceNav(pluginId) && isAdminOrOwnerRole(role);
+export function shouldShowFinanceDashboardWidget(pluginId: string, role: string): boolean {
+  return shouldShowFinanceNav(pluginId) && role === "owner";
 }
 
 export function buildDashboardFinanceKpiCards(summary: FinanceSummary) {

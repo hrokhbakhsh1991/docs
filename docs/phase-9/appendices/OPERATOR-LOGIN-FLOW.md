@@ -19,17 +19,17 @@ research:
 
 > End-to-end specification for **operator admin panel login** — phone OTP → session cookie → membership hydrate → `(app)/dashboard`. Trunk must reproduce **legacy UX and security semantics** (DEC-P9-012), implemented with Fastify/Prisma/BFF — not Nest lift-and-shift.
 
-### Admin access model (locked)
+### Admin access model
 
 | Rule | Trunk behavior |
 | ---- | -------------- |
 | **No public registration** | `(app)/**` is **invite-only**. There is **no** self-signup form on the admin panel. |
-| **Login only** | Canonical entry: `/auth/login` (alias `/login`). Two-step phone + OTP. |
+| **Login only** | Canonical entry: `/auth/login` (alias `/login`). Two-step phone + OTP or a previously configured password. |
 | **New operators** | Owner/admin sends invite (`POST /users/invite`) → invitee opens `/auth/invite/[token]` → signs in with invited phone. |
 | **Unknown phone before OTP** | `POST /auth/phone-preflight` + gated `request-otp` → `403 AUTH_PHONE_NOT_AUTHORIZED`. **Web:** stay on phone step — **never** advance to OTP. |
 | **Unknown phone after OTP** | Legacy `requires_registration` preserved on `verify-otp` for API parity; **admin web must not reach this** when preflight gate is active. |
 | **`/auth/register`** | **Redirect only** → `/auth/login?access=invite-only` (no registration UI). |
-| **Owner-only panel (DEC-P9-018)** | `(app)/` + `/tours/new` require **`role=owner`** after OTP. Admin/member/viewer → BFF **403** `AUTH_OWNER_PANEL_ONLY` (no cookie) · redirect `?access=owner-only`. Future admin panel is a separate surface. |
+| **Operator panel access** | Active owners and admins can create an operator session with OTP or password. Admin access is restricted to dashboard, tours, bookings, their own profile and explicitly allowed BFF routes; owner management and other settings remain owner-only. Member/viewer sessions cannot enter this operator shell. Tenant/host binding remains mandatory. This supersedes the owner-only login portion of DEC-P9-018. |
 
 Public tour registration (`(public)/catalog/**`) is a **separate Marketing funnel** — out of Phase 9 admin scope.
 

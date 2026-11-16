@@ -354,26 +354,21 @@ test.describe("operator-smoke.spec.ts — Phase 9.8 E2E", () => {
     );
   });
 
-  test("SMK-P9-USERS-04 admin OTP login blocked from owner panel (DEC-P9-018)", async ({
+  test("SMK-P9-USERS-04 admin OTP login reaches dashboard without owner access", async ({
     page,
   }) => {
-    const otpRes = await page.request.post("/api/auth/request-otp", {
-      data: { phone: OPERATOR_ADMIN_MOBILE },
-    });
-    expect(otpRes.ok()).toBeTruthy();
-    const otpBody = (await otpRes.json()) as { challenge_id?: string };
-    expect(typeof otpBody.challenge_id).toBe("string");
-
-    const loginRes = await page.request.post("/api/auth/login-web-session", {
-      data: {
-        phone: OPERATOR_ADMIN_MOBILE,
-        otp: "1234",
-        challenge_id: otpBody.challenge_id,
-      },
-    });
-    expect(loginRes.status()).toBe(403);
-    const loginBody = (await loginRes.json()) as { error?: { code?: string } };
-    expect(loginBody.error?.code).toBe("AUTH_OWNER_PANEL_ONLY");
+    await page.goto("/auth/login");
+    await typeLoginPhone(page, OPERATOR_ADMIN_MOBILE);
+    await page.getByRole("button", { name: /send code|ارسال رمز/i }).click();
+    await expect(page.locator("[data-otp-segment-input]")).toBeVisible({ timeout: 15_000 });
+    for (const [index, digit] of [..."1234"].entries()) {
+      await page.locator(`[data-otp-cell="${index}"]`).fill(digit);
+    }
+    await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
+    await expect(page.getByTestId("operator-dashboard-grid")).toBeVisible({ timeout: 15_000 });
+    expect((await page.request.get("/api/users")).status()).toBe(403);
+    await page.goto("/settings");
+    await expect(page).toHaveURL(/\/auth\/login\?.*access=owner-only/);
   });
 
   test("SMK-P9-USERS-03 ownership transfer panel lists admin candidate (R5 E2E)", async ({
