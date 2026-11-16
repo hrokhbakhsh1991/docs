@@ -81,7 +81,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       );
     if (typeof payload.sessionToken !== "string" || !payload.sessionToken)
       return bffCodedError("SESSION_TOKEN_MISSING", 502);
-    if (decodeJwtPayload(payload.sessionToken)?.role !== "owner")
+    if (!["owner", "admin"].includes(String(decodeJwtPayload(payload.sessionToken)?.role)))
       return bffCodedError("AUTH_OWNER_PANEL_ONLY", 403);
     const response = NextResponse.json({ ok: true });
     setSessionCookieOnResponse(response.headers, payload.sessionToken);

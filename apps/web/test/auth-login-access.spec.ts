@@ -22,7 +22,7 @@ describe("auth-login-access.spec.ts — Phase 9.1", () => {
     }
   });
 
-  it("WEB-9.1-02 admin session denied owner panel redirect", () => {
+  it("WEB-9.1-02 admin session denied owner settings", () => {
     const result = requireOperatorSessionWeb({
       session: {
         userId: "00000000-0000-4000-8000-000000000103",
@@ -30,7 +30,7 @@ describe("auth-login-access.spec.ts — Phase 9.1", () => {
         role: "admin",
         workspaceType: "denali",
       },
-      pathname: "/dashboard",
+      pathname: "/settings",
     });
     assert.equal(result.allowed, false);
     if (!result.allowed) {

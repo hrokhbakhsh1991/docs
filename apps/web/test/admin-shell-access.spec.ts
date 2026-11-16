@@ -32,7 +32,7 @@ describe("admin-shell-access.spec.ts — Phase 9.2", () => {
     assert.equal(result.allowed, true);
   });
 
-  it("CP-9.2-03 admin session denied owner panel (DEC-P9-018)", () => {
+  it("CP-9.2-03 admin session denied owner settings", () => {
     const result = requireOperatorSessionWeb({
       session: {
         userId: "00000000-0000-4000-8000-000000000103",
@@ -40,7 +40,7 @@ describe("admin-shell-access.spec.ts — Phase 9.2", () => {
         role: "admin",
         workspaceType: "denali",
       },
-      pathname: "/dashboard",
+      pathname: "/settings",
     });
     assert.equal(result.allowed, false);
     if (!result.allowed) {

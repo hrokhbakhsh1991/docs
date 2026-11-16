@@ -14,10 +14,11 @@ import {
 import { ensureFinanceNavSupported } from "../src/finance/finance-nav-enablement";
 
 describe("finance-dashboard-widget.spec.ts — Phase 9.7 R1", () => {
-  it("WEB-9.7-DASH-01 shouldShowFinanceDashboardWidget is denali admin/owner only", async () => {
+  it("WEB-9.7-DASH-01 finance widget is limited to the owner finance surface", async () => {
     await ensureFinanceNavSupported("denali");
     await ensureFinanceNavSupported("urban");
     assert.equal(shouldShowFinanceDashboardWidget("denali", "owner"), true);
+    assert.equal(shouldShowFinanceDashboardWidget("denali", "admin"), false);
     assert.equal(shouldShowFinanceDashboardWidget("denali", "member"), false);
     assert.equal(shouldShowFinanceDashboardWidget("urban", "owner"), false);
   });
@@ -26,7 +27,10 @@ describe("finance-dashboard-widget.spec.ts — Phase 9.7 R1", () => {
     const cards = buildDashboardFinanceKpiCards(
       parseDashboardFinanceSummary({ pendingManualPayments: 2, pendingReceiptReviews: 1 })
     );
-    assert.equal(cards.some((card) => card.id === "overdue-installments"), false);
+    assert.equal(
+      cards.some((card) => card.id === "overdue-installments"),
+      false
+    );
     assert.equal(cards.length, 3);
   });
 

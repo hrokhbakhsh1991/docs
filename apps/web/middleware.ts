@@ -40,6 +40,7 @@ import {
   isOperatorTicketsTeamAccessPath,
 } from "@/features/tickets/resolve-operator-tickets-middleware-access";
 import { allowsOperatorFinanceReceiptReviewTeamAccess } from "@/finance/resolve-operator-finance-middleware-access";
+import { allowsWorkspaceAdminPath } from "@/admin/operator-admin-access";
 
 const ADMIN_PATH_PREFIXES = [
   "/dashboard",
@@ -380,6 +381,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     );
     if (
       validation.role !== "owner" &&
+      !allowsWorkspaceAdminPath(validation.role, pathname) &&
       !isInviteBootstrap &&
       !allowsTicketingTeamAccess &&
       !allowsFinanceReceiptReviewTeamAccess
