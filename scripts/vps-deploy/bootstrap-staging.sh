@@ -9,7 +9,7 @@ ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
 PROD_ENV="${PROD_ENV:-/etc/app-tour}"
 APP_USER="${APP_USER:-app-tour}"
 UNIT_PREFIX="${UNIT_PREFIX:-app-tour-staging}"
-VPS_IP="${VPS_IP:-89.42.210.252}"
+VPS_IP="${VPS_IP:-86.106.142.79}"
 PUBLIC_ROOT_DOMAIN="${PUBLIC_ROOT_DOMAIN:-shenski.com}"
 PUBLIC_TENANT_LABEL="${PUBLIC_TENANT_LABEL:-denali}"
 # Staging must remain on its own public origins. Falling back to the canonical

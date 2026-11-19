@@ -1,5 +1,5 @@
 /**
- * Staging env/deploy contract guards — Denali Profile B (89.42.210.252).
+ * Staging env/deploy contract guards — Denali Profile B (86.106.142.79).
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -10,7 +10,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const STAGING_IP = "89.42.210.252";
+const STAGING_IP = "86.106.142.79";
 const LEGACY_IP = "89.45.89.206";
 
 function read(rel) {
@@ -20,7 +20,7 @@ function read(rel) {
 describe("staging-env-contract", () => {
   it("REG-STG-ENV-01 wave-c bootstrap sets denali fallback, MinIO public endpoint, portal internal URL", () => {
     const sh = read("scripts/wave-c-staging-env-bootstrap.sh");
-    assert.match(sh, /STAGING_PUBLIC_IP="\$\{STAGING_PUBLIC_IP:-89\.42\.210\.252\}"/);
+    assert.match(sh, /STAGING_PUBLIC_IP="\$\{STAGING_PUBLIC_IP:-86\.106\.142\.79\}"/);
     assert.match(sh, /MINIO_PUBLIC_HOST=\$\{STAGING_PUBLIC_MINIO_HOST\}/);
     assert.match(sh, /MINIO_PUBLIC_ENDPOINT=https:\/\/\$\{STAGING_PUBLIC_MINIO_HOST\}/);
     assert.match(sh, /PORTAL_INTERNAL_URL=http:\/\/127\.0\.0\.1:23003/);

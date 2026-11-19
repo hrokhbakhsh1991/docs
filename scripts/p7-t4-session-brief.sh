@@ -6,9 +6,9 @@ cat <<'CARD'
 ╔══════════════════════════════════════════════════════════════╗
 ║  P7 T4 — Customer sign-off session (~30 min)                 ║
 ╠══════════════════════════════════════════════════════════════╣
-║  Admin      http://89.42.210.252:23000/auth/login             ║
-║  Marketing  http://89.42.210.252:23002/tours                ║
-║  Portal     http://89.42.210.252:23003                        ║
+║  Admin      https://staging-admin-denali.shenski.com/auth/login ║
+║  Marketing  https://staging-denali.shenski.com/tours            ║
+║  Portal     https://staging-portal-denali.shenski.com           ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  Operator OTP: 09174070937 / 1234                         ║
 ║  Fresh guest (VS-03..05): +15550002002 / 1234              ║
