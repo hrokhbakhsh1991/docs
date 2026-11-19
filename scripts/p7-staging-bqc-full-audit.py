@@ -10,7 +10,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from typing import Any
 
-VPS = "89.42.210.252"
+VPS = "86.106.142.79"
 PORTS = {"api": 23001, "web": 23000, "mkt": 23002, "ptl": 23003}
 OTP = "1234"
 OPERATOR_TENANT = "00000000-0000-4000-8000-000000000014"

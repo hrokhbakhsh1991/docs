@@ -4,7 +4,7 @@ set -euo pipefail
 
 ENV_DIR="${ENV_DIR:-/etc/app-tour}"
 api_env="${ENV_DIR}/api.env"
-VPS_IP="${VPS_IP:-89.42.210.252}"
+VPS_IP="${VPS_IP:-86.106.142.79}"
 LABEL="${PUBLIC_TENANT_FALLBACK_LABEL:-denali}"
 
 [[ -f "$api_env" ]] || {

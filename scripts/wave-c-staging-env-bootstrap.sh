@@ -3,7 +3,7 @@
 set -euo pipefail
 ENV_DIR="${ENV_DIR:-/etc/app-tour-staging}"
 DEPLOY_PATH="${DEPLOY_PATH:-/workspace}"
-STAGING_PUBLIC_IP="${STAGING_PUBLIC_IP:-89.42.210.252}"
+STAGING_PUBLIC_IP="${STAGING_PUBLIC_IP:-86.106.142.79}"
 STAGING_PUBLIC_MINIO_HOST="${STAGING_PUBLIC_MINIO_HOST:-storage.denali.shenski.com}"
 VPS_IP="${VPS_IP:-$(hostname -I | awk '{print $1}')}"
 PUBLIC_IP="${PUBLIC_IP:-$(curl -fsS --max-time 3 ifconfig.me 2>/dev/null || echo "$STAGING_PUBLIC_IP")}"
