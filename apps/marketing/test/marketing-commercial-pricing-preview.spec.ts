@@ -106,11 +106,20 @@ describe("marketing-commercial-pricing-preview", () => {
     const sticky = readRepo("apps/marketing/src/catalog/catalog-tour-detail-sticky-bar.tsx");
 
     assert.match(card, /const visiblePricingPreview = showPrice \? pricingPreview : null/);
-    assert.match(card, /const visiblePricingPreviewStatus = showPrice \? pricingPreviewStatus : "anonymous"/);
+    assert.match(
+      card,
+      /const visiblePricingPreviewStatus = showPrice \? pricingPreviewStatus : "anonymous"/
+    );
     assert.match(rail, /preview=\{showCommercialPricing \? pricingPreview : null\}/);
     assert.match(sticky, /preview=\{showCommercialPricing \? pricingPreview : null\}/);
-    assert.match(rail, /pricingPreviewStatus=\{showCommercialPricing \? pricingPreviewStatus : "anonymous"\}/);
-    assert.match(sticky, /pricingPreviewStatus=\{showCommercialPricing \? pricingPreviewStatus : "anonymous"\}/);
+    assert.match(
+      rail,
+      /pricingPreviewStatus=\{showCommercialPricing \? pricingPreviewStatus : "anonymous"\}/
+    );
+    assert.match(
+      sticky,
+      /pricingPreviewStatus=\{showCommercialPricing \? pricingPreviewStatus : "anonymous"\}/
+    );
   });
 
   it("BUG-STG-025 never renders a numeric price for free collection", () => {
@@ -165,15 +174,18 @@ describe("marketing-commercial-pricing-preview", () => {
     assert.doesNotMatch(route, /Promise\.allSettled/);
   });
 
-  it("MKT-MEMBER-PRICE-07 copy and theme cover list, detail, and ancillary rows", () => {
+  it("MKT-MEMBER-PRICE-07 labels organized transport fees without implying a car", () => {
     const fa = readRepo("apps/marketing/messages/fa/catalog.json");
+    const en = readRepo("apps/marketing/messages/en/catalog.json");
     const theme = readRepo("packages/workspaces/denali/theme/marketing/components/26-pr-21-p1.css");
     const railTheme = readRepo(
       "packages/workspaces/denali/theme/marketing/components/03-pr-d6-p2.css"
     );
     assert.match(fa, /تخفیف عضویت/);
     assert.match(fa, /قیمت برای شما/);
-    assert.match(fa, /خودرو/);
+    assert.match(fa, /"transport":\s*"هزینه حمل‌ونقل"/);
+    assert.match(fa, /دونگی/);
+    assert.match(en, /"transport":\s*"Transport fee"/);
     assert.match(theme, /data-marketing-catalog-card-member-price/);
     assert.match(railTheme, /data-marketing-commercial-pricing-row="payable"/);
   });

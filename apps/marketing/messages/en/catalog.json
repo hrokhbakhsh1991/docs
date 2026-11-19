@@ -119,7 +119,7 @@
     "yourPrice": "Your price",
     "unavailable": "Member price is temporarily unavailable",
     "ancillary": {
-      "transport": "Vehicle",
+      "transport": "Transport fee",
       "dong": "Shared ride"
     }
   },

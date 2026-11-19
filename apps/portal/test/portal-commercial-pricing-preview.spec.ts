@@ -50,10 +50,13 @@ describe("portal-commercial-pricing-preview", () => {
     assert.match(route, /registrantTarget === "self"/);
   });
 
-  it("PREVIEW-UX-04 localized copy includes discount, payable, and ancillary labels", () => {
+  it("PREVIEW-UX-04 labels organized transport fees without implying a car", () => {
     const fa = readRepo("apps/portal/messages/fa/catalogRegistration.json");
+    const en = readRepo("apps/portal/messages/en/catalogRegistration.json");
     assert.match(fa, /تخفیف عضویت/);
     assert.match(fa, /قیمت برای شما/);
-    assert.match(fa, /خودرو/);
+    assert.match(fa, /"transport":\s*"هزینه حمل‌ونقل"/);
+    assert.match(fa, /دنگ خودرو/);
+    assert.match(en, /"transport":\s*"Transport fee"/);
   });
 });
