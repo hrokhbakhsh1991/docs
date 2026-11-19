@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Transfer built artifact to VPS and install (no pnpm install/build on VPS).
 #
-#   VPS_HOST=89.42.210.252 VPS_USER=root \
+#   VPS_HOST=86.106.142.79 VPS_USER=root \
 #   ARTIFACT=dist/staging-artifacts/app-tour-staging-<sha>.tar.zst \
 #   bash scripts/vps-deploy/deploy-staging-artifact-remote.sh
 set -euo pipefail

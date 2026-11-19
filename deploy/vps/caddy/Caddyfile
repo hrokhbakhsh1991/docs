@@ -11,6 +11,8 @@
 }
 
 http://*.admin.{$PLATFORM_ROOT_DOMAIN} {
+	@adminRoot path /
+	redir @adminRoot https://{host}/dashboard 307
 	reverse_proxy 127.0.0.1:{$PROD_WEB_PORT} {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
@@ -27,6 +29,8 @@ http://*.admin.{$PLATFORM_ROOT_DOMAIN} {
 # Canonical sibling host: admin.{club}.{root}; the wildcard above keeps the
 # legacy {club}.admin.{root} address working during migration.
 http://admin.{$CANONICAL_TENANT_LABEL}.{$PLATFORM_ROOT_DOMAIN} {
+	@adminRoot path /
+	redir @adminRoot https://{host}/dashboard 307
 	reverse_proxy 127.0.0.1:{$PROD_WEB_PORT} {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
