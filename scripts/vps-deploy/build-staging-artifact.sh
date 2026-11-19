@@ -58,7 +58,7 @@ export PREBUILT_WORKSPACE_DEPS=1
 export NODE_ENV=production
 export CI=true
 export NEXT_FONT_OFFLINE=1
-export MARKETING_IMAGE_REMOTE_HOSTS="${MARKETING_IMAGE_REMOTE_HOSTS:-89.42.210.252:9002}"
+export MARKETING_IMAGE_REMOTE_HOSTS="${MARKETING_IMAGE_REMOTE_HOSTS:-storage.denali.shenski.com}"
 # shellcheck disable=SC1090
 eval "$(node "${REPO_ROOT}/scripts/vps-deploy/resolve-staging-web-plugin-allow-env.mjs")"
 [[ "${ALLOW_DENALI_WEB_PLUGIN:-}" == "true" ]] || {
