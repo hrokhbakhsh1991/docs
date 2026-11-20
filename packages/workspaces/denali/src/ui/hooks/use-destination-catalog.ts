@@ -13,9 +13,7 @@ import { useDenaliWizardCatalogPrefetch } from "./denali-wizard-catalog-prefetch
 
 export type { DenaliDestinationCatalogState, DestinationResource };
 
-const destinationCatalogPatchListeners = new Set<
-  (destination: DestinationResource) => void
->();
+const destinationCatalogPatchListeners = new Set<(destination: DestinationResource) => void>();
 
 export function subscribeDenaliDestinationCatalogPatch(
   listener: (destination: DestinationResource) => void
@@ -64,15 +62,23 @@ export function useDenaliDestinationCatalog(
   readonly reload: () => void;
 } {
   const { initialLocationsResponse } = useDenaliWizardCatalogPrefetch();
+  const requestGeneration = useRef(0);
+  useEffect(
+    () => () => {
+      requestGeneration.current += 1;
+    },
+    []
+  );
   const skipInitialFetchRef = useRef(initialLocationsResponse !== null);
   const [state, setState] = useState(() =>
     resolveInitialDenaliDestinationCatalogState(initialLocationsResponse)
   );
 
   const reload = useCallback(() => {
+    const request = ++requestGeneration.current;
     setState((previous) => ({ ...previous, loading: true }));
     void fetchDenaliDestinationCatalogClient().then((next) => {
-      setState(next);
+      if (requestGeneration.current === request) setState(next);
     });
   }, []);
 

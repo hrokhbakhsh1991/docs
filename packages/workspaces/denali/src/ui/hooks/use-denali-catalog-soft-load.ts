@@ -22,22 +22,32 @@ export function useDenaliCatalogSoftLoad<T>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestGeneration = useRef(0);
+  useEffect(
+    () => () => {
+      requestGeneration.current += 1;
+    },
+    []
+  );
   const loadRef = useRef(load);
   loadRef.current = load;
 
   const reload = useCallback(() => {
+    const request = ++requestGeneration.current;
     setLoading(true);
     void loadRef
       .current()
       .then((next) => {
+        if (requestGeneration.current !== request) return;
         setData(next);
         setError(null);
       })
       .catch((caught: unknown) => {
+        if (requestGeneration.current !== request) return;
         setError(catalogLoadErrorMessage(caught, fallbackErrorCode));
       })
       .finally(() => {
-        setLoading(false);
+        if (requestGeneration.current === request) setLoading(false);
       });
   }, [fallbackErrorCode]);
 

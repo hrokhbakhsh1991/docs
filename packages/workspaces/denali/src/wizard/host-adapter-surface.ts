@@ -16,6 +16,7 @@ export const WIZARD_HOST_ADAPTER_SURFACE_KEY = "app-cloud.wizardHostAdapterSurfa
 export type WizardCatalogPrefetchProviderProps = {
   readonly children: ReactNode;
   readonly initialLocationsResponse?: unknown | null;
+  readonly canQuickAddCatalog?: boolean;
 };
 
 export type WizardHostAdapterSurface = {

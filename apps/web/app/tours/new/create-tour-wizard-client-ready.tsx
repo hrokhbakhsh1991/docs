@@ -157,9 +157,11 @@ export function OperatorCreateTourWizardClientReady({
  */
 export function OperatorCreateTourWizardCatalogShell({
   initialLocationsResponse,
+  canQuickAddCatalog = false,
   children,
 }: {
   readonly initialLocationsResponse?: unknown | null;
+  readonly canQuickAddCatalog?: boolean;
   readonly children: React.ReactNode;
 }) {
   const session = useAppSession();
@@ -168,5 +170,12 @@ export function OperatorCreateTourWizardCatalogShell({
   if (Provider == null) {
     return <>{children}</>;
   }
-  return <Provider initialLocationsResponse={initialLocationsResponse}>{children}</Provider>;
+  return (
+    <Provider
+      initialLocationsResponse={initialLocationsResponse}
+      canQuickAddCatalog={canQuickAddCatalog}
+    >
+      {children}
+    </Provider>
+  );
 }

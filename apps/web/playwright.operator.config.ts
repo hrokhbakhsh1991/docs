@@ -28,6 +28,7 @@ export default defineConfig({
   testMatch: [
     "operator-smoke.spec.ts",
     "denali-itinerary-wizard.spec.ts",
+    "denali-catalog-quick-add.spec.ts",
     "denali-finance-confidence.spec.ts",
     "denali-finance-ux2-browser-qa.spec.ts",
     "denali-workspace-finance-inbox.spec.ts",

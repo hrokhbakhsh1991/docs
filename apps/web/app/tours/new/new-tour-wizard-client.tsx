@@ -12,6 +12,7 @@ import { OperatorCreateTourWizardClient } from "./create-tour-wizard-client";
 type NewTourWizardClientProps = {
   readonly initialTemplateResponse?: unknown | null;
   readonly initialLocationsResponse?: unknown | null;
+  readonly canQuickAddCatalog?: boolean;
 };
 
 function NewTourWizardClientInner(props: NewTourWizardClientProps) {

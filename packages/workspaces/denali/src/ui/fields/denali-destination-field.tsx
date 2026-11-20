@@ -1,5 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { DenaliCatalogQuickAdd } from "../components/denali-catalog-quick-add";
+import { useDenaliWizardCatalogPrefetch } from "../hooks/denali-wizard-catalog-prefetch-context";
+import { isDenaliDestinationOfferedForTourKind } from "../logic/denali-destination-picker-filter";
+import { patchDenaliDestinationCatalogCache } from "../hooks/use-destination-catalog";
+import { retireObservedRows } from "../logic/quick-add";
 import { useTranslations } from "next-intl";
 
 import {
@@ -51,9 +57,25 @@ export function DenaliDestinationField({
   const { options, destinationById, loading, error, reload } = useDenaliDestinationCatalog({
     tourKind,
   });
+  const { canQuickAddCatalog } = useDenaliWizardCatalogPrefetch();
+  const [recent, setRecent] = useState<readonly DestinationResource[]>([]);
+  useEffect(() => {
+    const observed = new Set(options.map((option) => option.value));
+    for (const [id, row] of destinationById) if (!row.isActive) observed.add(id);
+    setRecent((previous) => retireObservedRows(previous, observed));
+  }, [options, destinationById]);
+  const extendedDestinations = new Map(destinationById);
+  const extendedOptions = [...options];
+  for (const row of recent) {
+    if (extendedDestinations.get(row.id)?.isActive === false) continue;
+    if (!extendedDestinations.has(row.id)) extendedDestinations.set(row.id, row);
+    if (!extendedOptions.some((option) => option.value === row.id)) {
+      extendedOptions.push({ value: row.id, label: row.name });
+    }
+  }
   const visibleOptions = filterDenaliDestinationPickerOptions({
-    options,
-    destinationById,
+    options: extendedOptions,
+    destinationById: extendedDestinations,
     tourKind,
     selectedDestinationId: value,
   });
@@ -87,11 +109,34 @@ export function DenaliDestinationField({
               return;
             }
             commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
-              applyDestinationSelection(base, canonicalPath, nextId, destinationById)
+              applyDestinationSelection(base, canonicalPath, nextId, extendedDestinations)
             );
           }}
         />
       </label>
+      {canQuickAddCatalog ? (
+        <DenaliCatalogQuickAdd
+          kind="destination"
+          getDraftRevision={() => draftRef.current}
+          onUncertain={reload}
+          offerType={(type) => isDenaliDestinationOfferedForTourKind(type, tourKind)}
+          onCreated={(row) => {
+            const latestKind = getCanonicalStringValue(draftRef.current, "category");
+            if (
+              !row.isActive ||
+              !isDenaliDestinationOfferedForTourKind(row.locationType, latestKind)
+            )
+              return false;
+            setRecent((previous) => [...previous.filter((entry) => entry.id !== row.id), row]);
+            patchDenaliDestinationCatalogCache(row);
+            commitWizardDraftEdit(draftRef, onDraftChange, (base) =>
+              applyDestinationSelection(base, canonicalPath, row.id, new Map([[row.id, row]]))
+            );
+            reload();
+            return true;
+          }}
+        />
+      ) : null}
       <DenaliCatalogLoadNotice error={error} onRetry={reload} />
       {visibleOptions.length === 0 && !loading && error === null ? (
         <DenaliDestinationOfferedEmptyNotice onRetry={reload} />
