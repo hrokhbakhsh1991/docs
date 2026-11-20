@@ -11,6 +11,7 @@ import type { MarketingTourDetailCtaModel } from "./resolve-marketing-tour-detai
 import { isAppLocale, resolveIntlDateLocale, type AppLocale } from "@/i18n/routing";
 import { resolveCatalogPriceDisplay } from "./resolve-catalog-price-display";
 import { resolveCatalogFreeCollectionLabel } from "./resolve-catalog-free-label";
+import { hasMarketingCatalogSurface } from "./resolve-marketing-catalog-surface";
 
 export type CatalogTourDetailBookingRailProps = {
   readonly tour: MarketingCatalogCard;
@@ -21,21 +22,41 @@ export type CatalogTourDetailBookingRailProps = {
   readonly pricingPreviewStatus?: MarketingCommercialPricingPreviewStatus;
 };
 
-export async function CatalogTourDetailBookingRail({
+export async function CatalogTourDetailBookingRail(props: CatalogTourDetailBookingRailProps) {
+  if (
+    props.cta.primaryHref == null &&
+    props.registration.state !== "past" &&
+    props.registration.state !== "closed"
+  ) {
+    return null;
+  }
+
+  const t = await getTranslations("catalog");
+  const localeRaw = await getLocale();
+  return (
+    <CatalogTourDetailBookingRailContent
+      {...props}
+      t={t}
+      locale={isAppLocale(localeRaw) ? localeRaw : "fa"}
+    />
+  );
+}
+
+type CatalogTourDetailBookingRailContentProps = CatalogTourDetailBookingRailProps & {
+  readonly t: Awaited<ReturnType<typeof getTranslations<"catalog">>>;
+  readonly locale: AppLocale;
+};
+
+export function CatalogTourDetailBookingRailContent({
   tour,
   pluginId,
   registration,
   cta,
   pricingPreview = null,
   pricingPreviewStatus = "anonymous",
-}: CatalogTourDetailBookingRailProps) {
-  if (cta.primaryHref == null && registration.state !== "past" && registration.state !== "closed") {
-    return null;
-  }
-
-  const t = await getTranslations("catalog");
-  const localeRaw = await getLocale();
-  const locale: AppLocale = isAppLocale(localeRaw) ? localeRaw : "fa";
+  t,
+  locale,
+}: CatalogTourDetailBookingRailContentProps) {
   const dateLocale = resolveIntlDateLocale(locale);
   const priceDisplayPolicy = resolveCatalogPriceDisplay(pluginId);
   const priceLine = shouldShowCatalogPrice(tour)
@@ -51,11 +72,13 @@ export async function CatalogTourDetailBookingRail({
   const freeCollectionLabel = resolveCatalogFreeCollectionLabel(t, locale);
 
   const capacityLine =
-    tour.spotsRemaining != null
-      ? t("detail.spotsRemaining", { count: tour.spotsRemaining })
-      : tour.totalCapacity != null
-        ? t("detail.capacity", { count: tour.totalCapacity })
-        : null;
+    registration.state === "past" && hasMarketingCatalogSurface(pluginId)
+      ? null
+      : tour.spotsRemaining != null
+        ? t("detail.spotsRemaining", { count: tour.spotsRemaining })
+        : tour.totalCapacity != null
+          ? t("detail.capacity", { count: tour.totalCapacity })
+          : null;
 
   return (
     <aside
