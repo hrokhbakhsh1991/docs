@@ -619,6 +619,7 @@
     "MANUAL_PAYMENT_FAILED": "ثبت پرداخت دستی ناموفق بود.",
     "SUBMIT_RECEIPT_FAILED": "ارسال رسید ناموفق بود.",
     "RECORD_PREPAYMENT_FAILED": "ثبت پیش‌پرداخت ناموفق بود.",
+    "SCHEDULE_INVOICE_MISMATCH": "مبلغ کل فاکتور پس از تخفیف و ارز همان فاکتور را وارد کنید؛ فقط ماندهٔ قابل پرداخت را وارد نکنید.",
     "GENERATE_SCHEDULE_FAILED": "تولید برنامه اقساط ناموفق بود.",
     "SCHEDULE_ITEM_PATCH_FAILED": "به‌روزرسانی قسط ناموفق بود. دوباره تلاش کنید.",
     "SET_OBLIGATION_OVERRIDE_FAILED": "به‌روزرسانی مبلغ مورد انتظار ثبت‌نام ناموفق بود.",

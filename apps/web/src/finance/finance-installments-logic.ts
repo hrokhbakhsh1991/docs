@@ -241,3 +241,15 @@ export function parseScheduleItemPatchResponse(raw: unknown): PaymentScheduleIte
   }
   return parseScheduleItem(itemRaw as Record<string, unknown>);
 }
+
+
+export function mapGenerateScheduleHttpError(status: number, body: unknown): string {
+  if (
+    status === 422 &&
+    body !== null &&
+    typeof body === "object" &&
+    "code" in body &&
+    body.code === "SCHEDULE_INVOICE_MISMATCH"
+  ) return "SCHEDULE_INVOICE_MISMATCH";
+  return "GENERATE_SCHEDULE_FAILED";
+}

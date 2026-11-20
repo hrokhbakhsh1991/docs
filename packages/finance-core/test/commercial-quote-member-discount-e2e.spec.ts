@@ -95,6 +95,7 @@ function createHarness(input: {
   obligation?: LiveRegistrationObligation;
   tenantId?: string;
   membershipDiscount?: MembershipDiscountReadPort;
+  schedules?: typeof FakeSchedules;
 }) {
   const tenantId = input.tenantId ?? TENANT_A;
   const obligation: LiveRegistrationObligation = input.obligation ?? {
@@ -152,7 +153,7 @@ function createHarness(input: {
     FakeProof,
     FakeCapability,
     FakeAuthz,
-    FakeSchedules,
+    input.schedules ?? FakeSchedules,
     FakeLogger,
     FakeClock,
     obligationPort,
@@ -161,13 +162,53 @@ function createHarness(input: {
     commercialQuotes
   );
 
-  return { finance, quoteRepo, tenantId };
+  return { finance, quoteRepo, tenantId, commercialQuotes };
 }
 
 describe("commercial-quote-member-discount-e2e.spec.ts — CQ-2D", () => {
   beforeEach(() => {
     resetInMemoryFinanceRepositoryForTests();
     resetInMemoryCommercialQuoteRepositoryForTests();
+  });
+
+  it("rejects a gross or wrong-currency schedule for a discounted offline booking", async () => {
+    const registrationId = randomUUID();
+    let writes = 0;
+    const { finance, quoteRepo, commercialQuotes } = createHarness({
+      tourCanonical: tourCanonicalGate(true),
+      schedules: {
+        ...FakeSchedules,
+        async putSchedule() { writes++; },
+      },
+    });
+    const template = {
+      depositPercent: 25,
+      installmentCount: 1,
+      firstDueAt: "2026-12-01T00:00:00Z",
+      invoiceTotalMinor: "4000000",
+      currency: "IRR",
+    };
+    for (const bad of [
+      { ...template, invoiceTotalMinor: "5000000" },
+      { ...template, currency: "USD" },
+    ]) {
+      await assert.rejects(finance.generatePaymentSchedule(opsAuth(), {
+        registrationId, template: bad,
+      }), /SCHEDULE_INVOICE_MISMATCH/);
+    }
+    assert.equal(writes, 0);
+    assert.equal(await quoteRepo.getActive(TENANT_A, registrationId), null);
+    const valid = await finance.generatePaymentSchedule(opsAuth(), { registrationId, template });
+    assert.equal(writes, 1);
+    assert.deepEqual(valid.items.map(({ amountMinor }) => amountMinor), ["1000000", "3000000"]);
+    await commercialQuotes.lockQuoteChain(TENANT_A, registrationId);
+    const lockedBefore = await quoteRepo.getActive(TENANT_A, registrationId);
+    assert.equal(lockedBefore?.status, "LOCKED");
+    await assert.rejects(finance.generatePaymentSchedule(opsAuth(), {
+      registrationId, template: { ...template, invoiceTotalMinor: "5000000" },
+    }), { message: "SCHEDULE_INVOICE_MISMATCH" });
+    assert.equal(writes, 1);
+    assert.deepEqual(await quoteRepo.getActive(TENANT_A, registrationId), lockedBefore);
   });
 
   it("CQ-E2E-01: tour gate true + 20% membership → member_discount", async () => {

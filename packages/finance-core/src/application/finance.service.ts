@@ -1731,7 +1731,38 @@ export class FinanceService {
   async generatePaymentSchedule(auth: FinanceActorContext, body: GenerateScheduleBody) {
     await this.gate(auth);
     this.authorization.assertOperatorAccess(auth);
-    await this.ensureQuoteFrozenForMoneyPath(auth.tenantId, body.registrationId);
+    if (this.commercialQuotes !== null) {
+      const collection = await this.obligation.resolveRegistrationPaymentCollection({
+        tenantId: auth.tenantId,
+        registrationId: body.registrationId,
+      });
+      const assertDiscountedSchedule = (
+        quote: { source: string; payableMinor: string; currency: string } | null
+      ) => {
+        if (
+          collection === "offline" &&
+          quote?.source === "member_discount" &&
+          (
+            !/^\d+$/.test(body.template.invoiceTotalMinor) ||
+            BigInt(body.template.invoiceTotalMinor) !== BigInt(quote.payableMinor) ||
+            body.template.currency.trim().toUpperCase() !== quote.currency.trim().toUpperCase()
+          )
+        ) {
+          throw new Error("SCHEDULE_INVOICE_MISMATCH");
+        }
+      };
+      if (collection === "offline") {
+        const active = await this.commercialQuotes.getActiveQuote(auth.tenantId, body.registrationId);
+        const expected = active?.status === "LOCKED"
+          ? active
+          : await this.commercialQuotes.resolveCommercialQuotePreview(auth.tenantId, body.registrationId);
+        assertDiscountedSchedule(expected);
+      }
+      const frozen = await this.commercialQuotes.ensureFrozenForMoneyPath(
+        auth.tenantId, body.registrationId
+      );
+      assertDiscountedSchedule(frozen);
+    }
     const items = buildPaymentScheduleItems({
       registrationId: body.registrationId,
       template: body.template,

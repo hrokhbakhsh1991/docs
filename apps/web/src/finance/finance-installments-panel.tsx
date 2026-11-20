@@ -21,6 +21,7 @@ import {
   buildWaiveScheduleItemRequestBody,
   groupInstallmentsByBoardColumn,
   installmentProgressPercent,
+  mapGenerateScheduleHttpError,
   parseScheduleItemPatchResponse,
   parseSchedulesListResponse,
   validateGenerateScheduleForm,
@@ -318,7 +319,8 @@ export function FinanceInstallmentsPanel({ session }: FinanceInstallmentsPanelPr
         body: JSON.stringify(validated.value),
       });
       if (!response.ok) {
-        throw new Error(`GENERATE_SCHEDULE_HTTP_${response.status}`);
+        const body: unknown = await response.json().catch(() => null);
+        throw new Error(mapGenerateScheduleHttpError(response.status, body));
       }
       setForm(EMPTY_GENERATE_FORM);
       refresh();
