@@ -13,6 +13,10 @@ import {
 import { DENALI_BOOKING_STATUS_PIPELINE } from "../src/booking/status";
 import { getDenaliWorkspacePlugin } from "../src/denali.plugin";
 
+it("opts into prominent booking directory search from the workspace manifest", () => {
+  assert.equal(denaliRegistrationOpsManifest.directorySearchPresentation, "prominent");
+});
+
 describe("bookings-ops-manifest.spec.ts — workspace-denali", () => {
   it("DN-9.5-01 denaliRegistrationOpsManifest includes inbox_table default", () => {
     const manifest = getDenaliRegistrationOpsManifest();

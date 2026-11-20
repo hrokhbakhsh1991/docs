@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { afterEach, test } from "node:test";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
@@ -12,14 +13,14 @@ import enMessages from "../messages/en/bookings.json";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 afterEach(cleanup);
 
-function mount(locale: "fa" | "en", denaliSearch: boolean) {
+function mount(locale: "fa" | "en", prominentSearch: boolean) {
   const messages = { bookings: locale === "fa" ? faMessages : enMessages };
   const assigned: string[] = [];
   function Harness() {
     const [searchInput, setSearchInput] = useState("");
     return (
       <BookingsDirectoryControls
-        denaliSearch={denaliSearch}
+        prominentSearch={prominentSearch}
         query={DEFAULT_BOOKINGS_COMMAND_CENTER_QUERY}
         searchInput={searchInput}
         onSearchInputChange={(value) => {
@@ -64,4 +65,20 @@ test("the existing non-Denali controls keep their original textbox", () => {
   const field = getByPlaceholderText(enMessages.searchPlaceholder) as HTMLInputElement;
   assert.equal(field.type, "text");
   assert.equal(queryByRole("searchbox"), null);
+});
+
+test("only the workspace-owned ops manifest can opt a standalone route into prominent search", () => {
+  const page = readFileSync(new URL("../app/(app)/bookings/page.tsx", import.meta.url), "utf8");
+  const shell = readFileSync(
+    new URL("../src/features/bookings/bookings-command-center-shell.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(page, /resolveBookingOpsCapabilityForHub\(null, session\.pluginId\)/);
+  assert.match(
+    page,
+    /prominentDirectorySearch=\{opsManifest\?\.directorySearchPresentation === "prominent"\}/
+  );
+  assert.match(shell, /prominentDirectorySearch = false/);
+  assert.match(shell, /<BookingsDirectoryControls\s+prominentSearch=\{prominentDirectorySearch\}/);
+  assert.doesNotMatch(shell, /pluginId\s*===\s*["']denali["']/);
 });

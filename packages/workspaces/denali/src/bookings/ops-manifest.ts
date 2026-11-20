@@ -15,6 +15,7 @@ import {
 export const denaliRegistrationOpsManifest = Object.freeze({
   id: "denali_registration_ops",
   defaultView: "inbox_table",
+  directorySearchPresentation: "prominent",
   views: Object.freeze(["inbox_table", "tour_board", "departure_timeline"] as const),
   statusPipeline: BOOKING_STATUS_PIPELINE,
   kpiCards: Object.freeze([

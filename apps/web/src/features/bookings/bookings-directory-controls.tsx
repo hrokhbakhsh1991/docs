@@ -44,7 +44,7 @@ type BookingsDirectoryControlsProps = {
   readonly tourChips?: readonly BookingTourChip[];
   readonly showTourFilter?: boolean;
   readonly showTourScope?: boolean;
-  readonly denaliSearch?: boolean;
+  readonly prominentSearch?: boolean;
 };
 
 function resolveTourChipTitle(
@@ -63,7 +63,7 @@ export function BookingsDirectoryControls({
   tourChips = [],
   showTourFilter = false,
   showTourScope = false,
-  denaliSearch = false,
+  prominentSearch = false,
 }: BookingsDirectoryControlsProps) {
   const t = useTranslations("bookings");
   const filtersDirty = bookingsAdvancedFiltersDirty(query);
@@ -155,7 +155,7 @@ export function BookingsDirectoryControls({
   return (
     <div className="space-y-3" data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.controls}>
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
-        {denaliSearch ? (
+        {prominentSearch ? (
           <OperatorDirectorySearchField
             label={t("directorySearchLabel")}
             placeholder={t("searchPlaceholder")}

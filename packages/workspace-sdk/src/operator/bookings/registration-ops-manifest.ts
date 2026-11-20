@@ -31,6 +31,8 @@ export type RegistrationOpsManifest = {
   readonly statusPipeline: readonly string[];
   readonly kpiCards: readonly RegistrationOpsKpiCardId[];
   readonly filters: readonly RegistrationOpsFilterId[];
+  /** Optional standalone directory presentation; omitted uses legacy chrome. */
+  readonly directorySearchPresentation?: "prominent";
   readonly columns: {
     readonly inbox_table: readonly string[];
     readonly tour_board: { readonly groupBy: "tourId"; readonly columns: readonly string[] };

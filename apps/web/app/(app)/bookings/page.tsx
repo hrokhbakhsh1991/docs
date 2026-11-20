@@ -75,6 +75,7 @@ export default async function OperatorBookingsPage({ searchParams }: OperatorBoo
       session={session}
       initialPrefetch={initialPrefetch}
       opsActions={opsActions}
+      prominentDirectorySearch={opsManifest?.directorySearchPresentation === "prominent"}
     />
   );
 }

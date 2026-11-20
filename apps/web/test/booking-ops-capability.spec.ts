@@ -21,6 +21,8 @@ describe("BK-B1.6 booking ops capability", () => {
     assert.equal(denali.id, "denali_registration_ops");
     assert.equal(ws2.id, "booking_ws2_registration_ops");
     assert.notEqual(denali.id, ws2.id);
+    assert.equal(denali.directorySearchPresentation, "prominent");
+    assert.equal(ws2.directorySearchPresentation, undefined);
     assert.equal(denali.actions.bulkApprove.maxBatch, 25);
     assert.equal(ws2.actions.bulkApprove.maxBatch, 10);
     assert.equal(denali.actions.reject.requiresReason, false);

@@ -117,6 +117,7 @@ type BookingsPageClientProps = {
   readonly initialPrefetch?: BookingsServerPrefetch | null;
   /** UX-BKG-46 — defaults when omitted (stories / legacy callers). */
   readonly opsActions?: BookingsOpsActionChrome;
+  readonly prominentDirectorySearch?: boolean;
   /**
    * TW-C-01 — Tour Workspace embed: lock inbox to one tour (hide tour chips).
    * @see docs/phase-9/appendices/TOURS-WORKSPACE-COMPLETE.md §6
@@ -148,6 +149,7 @@ export function BookingsPageClient({
   leaderAlias = false,
   initialPrefetch = null,
   opsActions = DEFAULT_BOOKINGS_OPS_ACTION_CHROME,
+  prominentDirectorySearch = false,
   lockedTourId,
   embedded = false,
   lockedStatus,
@@ -1129,7 +1131,7 @@ export function BookingsPageClient({
         />
       ) : (
         <BookingsDirectoryControls
-          denaliSearch={session.pluginId === "denali"}
+          prominentSearch={prominentDirectorySearch}
           query={query}
           searchInput={searchInput}
           onSearchInputChange={setSearchInput}
