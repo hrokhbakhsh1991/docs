@@ -7,7 +7,7 @@ import {
 } from "@app-tour/workspace-sdk";
 import type { DraftSchemaGate, DraftStatus } from "@app-tour/draft-engine";
 import type { ValidationIssue } from "@app-tour/wizard-navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 
 import { createDenaliDraftSchemaGate } from "../../draft/create-denali-draft-schema-gate";
 import type {
@@ -32,6 +32,11 @@ import {
   useDenaliWizardRuleSync,
   useDenaliWizardRules,
 } from "../hooks/use-wizard-rule-sync";
+import {
+  beginDenaliExistingTourSave,
+  denaliPhotoUploadPending,
+  subscribeDenaliPhotoUploadPending,
+} from "../adapters/photo-edit-activity";
 import { runDenaliFlatEditPatch, type DenaliFlatEditPatchIntent } from "./flat-edit-patch-logic";
 import {
   isDenaliFlatEditDraftUnstamped,
@@ -122,6 +127,29 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
   );
   const [pending, startTransition] = useTransition();
   const suppressTourSeedRef = useRef(false);
+  // The synchronous guard covers composite or already-queued handlers before
+  // the disabled fieldset renders and until the async draft reset finishes.
+  const patchInFlightRef = useRef<DenaliFlatEditPatchIntent | null>(null);
+  const { wizardSessionId } = input;
+  const editScopeKey = JSON.stringify([input.tenantId, input.tourId, wizardSessionId]);
+  const committedEditScopeRef = useRef<{ readonly key: string } | null>(null);
+  useLayoutEffect(() => {
+    const scope = { key: editScopeKey };
+    committedEditScopeRef.current = scope;
+    if (patchInFlightRef.current !== null) {
+      patchInFlightRef.current = null;
+      setPendingIntent(null);
+    }
+    suppressTourSeedRef.current = false;
+    return () => {
+      committedEditScopeRef.current = null;
+    };
+  }, [editScopeKey]);
+  const photoUploadPending = useSyncExternalStore(
+    useCallback((listener: () => void) => subscribeDenaliPhotoUploadPending(wizardSessionId, listener), [wizardSessionId]),
+    useCallback(() => denaliPhotoUploadPending(wizardSessionId), [wizardSessionId]),
+    () => false
+  );
 
   // A single client component may remain mounted while the route changes.
   // Never carry an explicit legacy-draft decision from one tour into another.
@@ -203,13 +231,14 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
   const setEnvelope = useCallback(
     (prepared: DenaliFlatEditDraftEnvelope) => {
       input.draftSync.setData(prepared);
+      envelopeRef.current = prepared;
     },
     [input.draftSync]
   );
 
   const getEnvelope = useCallback(() => envelopeRef.current, []);
 
-  const { wizardRuleEvalContext, onDraftChange } = useDenaliWizardRuleSync({
+  const { wizardRuleEvalContext, onDraftChange: persistDraftChange } = useDenaliWizardRuleSync({
     plugin: input.plugin,
     draft,
     getEnvelope,
@@ -224,6 +253,15 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
     },
     themeCatalog,
   });
+
+  const onDraftChange = useCallback(
+    (next: DenaliTourWizardDraft) => {
+      if (patchInFlightRef.current !== "save") {
+        persistDraftChange(next);
+      }
+    },
+    [persistDraftChange]
+  );
 
   useEffect(() => {
     if (!input.gate.published || tourBaseline === null) {
@@ -256,6 +294,18 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
 
   const handlePatch = useCallback(
     (patchIntent: DenaliFlatEditPatchIntent) => {
+      const scope = committedEditScopeRef.current;
+      if (scope?.key !== editScopeKey || patchInFlightRef.current !== null) {
+        return;
+      }
+      const isCurrentScope = () => committedEditScopeRef.current === scope;
+      const finishSave =
+        patchIntent === "save" ? beginDenaliExistingTourSave(wizardSessionId) : null;
+      if (patchIntent === "save" && finishSave === null) {
+        return;
+      }
+      patchInFlightRef.current = patchIntent;
+      const submittedDraft = patchIntent === "save" ? envelopeRef.current?.form ?? draft : draft;
       setSubmitError(null);
       setSubmitValidationIssues(null);
       setSaved(false);
@@ -266,7 +316,7 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
         try {
           const outcome = await runDenaliFlatEditPatch({
             plugin: input.plugin,
-            draft,
+            draft: submittedDraft,
             denaliRules: denaliRules as unknown as StrictDenaliWizardRulesModule | null,
             wizardRuleEvalContext,
             tenantId: input.tenantId,
@@ -280,6 +330,9 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
             loadCatalog: input.loadSubmitCatalog,
             updateTour: input.updateTour,
           });
+          if (!isCurrentScope()) {
+            return;
+          }
           if (!outcome.ok) {
             if (outcome.failure.kind === "validation") {
               setSubmitValidationIssues(outcome.failure.validationIssues ?? null);
@@ -295,20 +348,22 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
             } else {
               setSubmitError(outcome.failure.code);
             }
-            setPendingIntent(null);
             return;
           }
           if (outcome.patchIntent === "publish") {
             setPublished(true);
           } else if (outcome.patchIntent === "unpublish") {
             setUnpublished(true);
-          } else {
-            setSaved(true);
           }
-          setPendingIntent(null);
+          if (outcome.patchIntent !== "save") {
+            setPendingIntent(null);
+          }
           suppressTourSeedRef.current = true;
           try {
             const reloaded = await input.loadTourBaseline(input.tourId);
+            if (!isCurrentScope()) {
+              return;
+            }
             if (reloaded.ok) {
               setDetail(reloaded.detail);
               setTourBaseline(reloaded.baseline);
@@ -322,7 +377,7 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
             } else {
               setRowVersion(outcome.rowVersion);
               await replaceDenaliFlatEditDraftAfterSuccessfulPatch({
-                baseline: draft,
+                baseline: submittedDraft,
                 envelopeMeta: input.envelopeMeta,
                 tourRowVersion: outcome.rowVersion,
                 draftSync: input.draftSync,
@@ -331,12 +386,25 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
           } catch {
             // Tour PATCH already succeeded. Draft reset is best-effort — do not
             // remap a reset failure to unknown_error (operator would think save failed).
-            setRowVersion(outcome.rowVersion);
+            if (isCurrentScope()) {
+              setRowVersion(outcome.rowVersion);
+            }
           } finally {
-            suppressTourSeedRef.current = false;
+            if (isCurrentScope()) {
+              suppressTourSeedRef.current = false;
+            }
+          }
+          if (!isCurrentScope()) {
+            return;
+          }
+          if (outcome.patchIntent === "save") {
+            setSaved(true);
           }
           input.onAfterPatchSuccess();
         } catch {
+          if (!isCurrentScope()) {
+            return;
+          }
           setSubmitError(
             encodeTourActionSubmitError({
               status: 500,
@@ -344,11 +412,16 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
               message: "unknown_error",
             })
           );
-          setPendingIntent(null);
+        } finally {
+          finishSave?.();
+          if (isCurrentScope()) {
+            patchInFlightRef.current = null;
+            setPendingIntent(null);
+          }
         }
       });
     },
-    [input, draft, denaliRules, wizardRuleEvalContext, rowVersion, tourBaseline]
+    [input, draft, denaliRules, wizardRuleEvalContext, rowVersion, tourBaseline, wizardSessionId, editScopeKey]
   );
 
   const formReady = envelope !== null;
@@ -396,6 +469,8 @@ export function useDenaliFlatEditPageCore(input: DenaliFlatEditPageCoreInput) {
     unpublished,
     pending,
     pendingIntent,
+    explicitSaveLocked: pendingIntent === "save",
+    photoUploadPending,
     canPublish: input.canPublish,
     canUnpublish,
     legacyDraftRecoveryRequired,

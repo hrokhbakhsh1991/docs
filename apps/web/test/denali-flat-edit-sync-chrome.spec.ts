@@ -33,16 +33,24 @@ describe("denali-flat-edit-sync-chrome.spec.ts — Phase 5B", () => {
     assert.doesNotMatch(flatEditChrome, /from "@\/draft\/draft-sync-indicator"/);
   });
 
-  it("WEB-P11-SYMM-03 flat-edit passes navLocked to OperatorFlatEditForm fieldset", () => {
+  it("WEB-P11-SYMM-03 flat-edit passes draft sync and explicit-Save locks to the form fieldset", () => {
     const flatEdit = readWebSource("app/(app)/tours/[id]/edit/flat-edit-page-client.tsx");
     const formShim = readWebSource("src/wizard/flat-edit-form-shell.tsx");
     const form = readFileSync(
       join(WEB_ROOT, "..", "..", "packages/workspaces/denali/src/ui/chrome/denali-flat-edit-form.tsx"),
       "utf8"
     );
-    assert.match(flatEdit, /navLocked=\{readyCore\.draftSync\.navLocked\}/);
+    assert.match(flatEdit, /navLocked=\{readyCore\.draftSync\.navLocked \|\| readyCore\.explicitSaveLocked\}/);
     assert.match(formShim, /wizard-flat-edit-form-registry/);
     assert.match(form, /fieldset disabled=\{navLocked\}/);
+  });
+
+  it("remounts the Ready draft engine when edit identity changes", () => {
+    const source = readWebSource("app/(app)/tours/[id]/edit/flat-edit-page-client.tsx");
+    assert.match(
+      source,
+      /<OperatorFlatEditPageClientReady\s+key=\{JSON\.stringify\(\[session\.tenantId, session\.userId, workspaceId, tourId\]\)\}/
+    );
   });
 
   it("WEB-P11-SYMM-04 flat-edit wires schemaGate like create-tour", () => {

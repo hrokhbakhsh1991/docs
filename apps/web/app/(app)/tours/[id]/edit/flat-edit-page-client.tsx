@@ -20,6 +20,7 @@ import {
 
 import type { OperatorSessionContext } from "@/admin/require-operator-session";
 import { Button } from "@/components/ui/button";
+import { useAppSession } from "@/providers/app-session-context";
 import { TOUR_EDIT_TEST_IDS } from "@/features/tours/operator-tour-detail-types";
 import type { TourUiStatus } from "@/features/tours/operator-tours-types";
 import { TourInternalLink } from "@/features/tours/tour-internal-link";
@@ -84,6 +85,7 @@ async function warmFlatEditOperatorShell(pluginId: string): Promise<WorkspacePlu
 
 /** Wave B.c / I.6 — load plugin via registry (session.pluginId), then mount orchestration hook. */
 export function OperatorFlatEditPageClient({ session, tourId }: OperatorFlatEditPageClientProps) {
+  const { workspaceId } = useAppSession();
   const [plugin, setPlugin] = useState<WorkspacePlugin | null>(() => {
     const cached = readCachedTourPlugin(session.pluginId);
     // Create warm alone leaves flat-edit surfaces cold — do not mount Ready from that cache.
@@ -138,7 +140,16 @@ export function OperatorFlatEditPageClient({ session, tourId }: OperatorFlatEdit
     return <CreateTourWizardLoadingMessage testId={TOUR_EDIT_TEST_IDS.page} />;
   }
 
-  return <OperatorFlatEditPageClientReady session={session} tourId={tourId} plugin={plugin} />;
+  // Keep an already-running draft reset bound to its original engine/config.
+  // Reusing the Ready component would switch that engine's live callbacks.
+  return (
+    <OperatorFlatEditPageClientReady
+      key={JSON.stringify([session.tenantId, session.userId, workspaceId, tourId])}
+      session={session}
+      tourId={tourId}
+      plugin={plugin}
+    />
+  );
 }
 
 function OperatorFlatEditWarmError({
@@ -259,13 +270,11 @@ function OperatorFlatEditPageClientReady({
             priceLabel,
             seatsLabel,
           ]);
-          const saveDisabled = readyCore.pending || readyCore.draftSync.navLocked;
-          const saveLabel =
-            readyCore.pending && readyCore.pendingIntent === "save"
-              ? tCommon("saving")
-              : t("saveChanges");
+          const lifecycleDisabled =
+            readyCore.pending || readyCore.explicitSaveLocked || readyCore.draftSync.navLocked;
+          const saveDisabled = lifecycleDisabled || readyCore.photoUploadPending;
+          const saveLabel = readyCore.explicitSaveLocked ? tCommon("saving") : t("saveChanges");
           const handleSave = () => void readyCore.handlePatch("save");
-          const lifecycleDisabled = readyCore.pending || readyCore.draftSync.navLocked;
 
           return (
             <OperatorFlatEditPageShell testId={TOUR_EDIT_TEST_IDS.page}>
@@ -302,7 +311,8 @@ function OperatorFlatEditPageClientReady({
                   <OperatorFlatEditStickyActionBar
                     saveLabel={saveLabel}
                     saveDisabled={saveDisabled}
-                    saveBusy={readyCore.pending && readyCore.pendingIntent === "save"}
+                    saveBusy={readyCore.explicitSaveLocked}
+                    saveBlockedHint={readyCore.photoUploadPending ? t("waitForPhotoUpload") : undefined}
                     onSave={handleSave}
                     canPublish={readyCore.canPublish}
                     canUnpublish={readyCore.canUnpublish}
@@ -334,7 +344,7 @@ function OperatorFlatEditPageClientReady({
                     tenantId={session.tenantId}
                     draft={readyCore.draft}
                     onDraftChange={readyCore.onDraftChange}
-                    navLocked={readyCore.draftSync.navLocked}
+                    navLocked={readyCore.draftSync.navLocked || readyCore.explicitSaveLocked}
                     templateSteps={readyCore.gate.templateSteps}
                     allowedCanonicalPaths={readyCore.gate.allowedCanonicalPaths}
                     wizardRuleEvalContext={readyCore.wizardRuleEvalContext}

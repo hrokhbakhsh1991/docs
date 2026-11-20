@@ -69,9 +69,10 @@ export function useOperatorFlatEditPage({
 } {
   const appSession = useAppSession();
   const router = useRouter();
+  // A reused page must not carry photo-upload activity into a different tour/workspace.
   const wizardSessionId = useMemo(
     () => createWizardDraftSessionIdForPlugin(plugin),
-    [plugin]
+    [plugin, appSession.workspaceId, tourId]
   );
   const editTourDraftIdentity = useMemo(
     () =>
