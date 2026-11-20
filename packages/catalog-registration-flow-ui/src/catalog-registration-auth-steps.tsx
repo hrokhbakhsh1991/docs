@@ -15,12 +15,22 @@ import {
   type RegistrationFlowStepProps,
 } from "@app-tour/workspace-sdk";
 import { useTranslations } from "next-intl";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { readCatalogRegistrationFlowData } from "./flow-data";
 import { useGuestAuthHost, type GuestAuthHost } from "./guest-auth-host";
 import { readGuestAuthFailureCode } from "./guest-auth-transport";
 import { OtpSegmentInput } from "./otp-segment-input";
+
+/** Fold only localized digits here, preserving phone prefixes and separators. */
+function normalizeGuestPhoneFieldValue(value: string): string {
+  return guestLoginPhoneFieldValue(
+    value.replace(/[۰-۹٠-٩]/g, (digit) => {
+      const code = digit.charCodeAt(0);
+      return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
+    })
+  );
+}
 
 /** SSR-stable login egress from flow context — never `window` during render. */
 function readMemberLoginEgress(context: RegistrationFlowContext): boolean {
@@ -70,6 +80,12 @@ export function CatalogRegistrationPhoneStep({
   const [passwordMode, setPasswordMode] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const focusOnMethodSwitch = useRef(false);
+  const focusMethodInput = useCallback((input: HTMLInputElement | null) => {
+    if (input === null || !focusOnMethodSwitch.current) return;
+    focusOnMethodSwitch.current = false;
+    input.focus();
+  }, []);
 
   useEffect(() => {
     setClientReady(true);
@@ -91,7 +107,7 @@ export function CatalogRegistrationPhoneStep({
   }, [transport]);
 
   useEffect(() => {
-    const nextPhone = guestLoginPhoneFieldValue(data.phone);
+    const nextPhone = normalizeGuestPhoneFieldValue(data.phone);
     if (nextPhone === data.phone) {
       return;
     }
@@ -102,7 +118,7 @@ export function CatalogRegistrationPhoneStep({
     if (readMemberLoginEgress(context)) {
       return;
     }
-    const visiblePhone = guestLoginPhoneFieldValue(data.phone);
+    const visiblePhone = normalizeGuestPhoneFieldValue(data.phone);
     if (classifyPublicRegistrationMobileInput(visiblePhone) !== null) {
       setPhoneHint(null);
       return;
@@ -117,7 +133,7 @@ export function CatalogRegistrationPhoneStep({
   }
 
   async function requestOtp(): Promise<void> {
-    const visiblePhone = guestLoginPhoneFieldValue(data.phone);
+    const visiblePhone = normalizeGuestPhoneFieldValue(data.phone);
     const mobileCode = classifyPublicRegistrationMobileInput(visiblePhone);
     if (mobileCode !== null) {
       setError(resolveError(mobileCode));
@@ -149,7 +165,7 @@ export function CatalogRegistrationPhoneStep({
   }
 
   function choosePassword(): void {
-    const visiblePhone = guestLoginPhoneFieldValue(data.phone);
+    const visiblePhone = normalizeGuestPhoneFieldValue(data.phone);
     const mobileCode = classifyPublicRegistrationMobileInput(visiblePhone);
     if (mobileCode !== null) {
       setError(resolveError(mobileCode));
@@ -157,6 +173,7 @@ export function CatalogRegistrationPhoneStep({
     }
     mergeFlowState(state, dispatch, { phone: normalizePublicRegistrationMobile(visiblePhone) });
     setError(null);
+    focusOnMethodSwitch.current = true;
     setPasswordMode(true);
   }
 
@@ -205,6 +222,7 @@ export function CatalogRegistrationPhoneStep({
           <h2>{t("password.title")}</h2>
           <label htmlFor="guest-password">{t("password.label")}</label>
           <Input
+            ref={focusMethodInput}
             id="guest-password"
             name="password"
             type={showPassword ? "text" : "password"}
@@ -239,6 +257,7 @@ export function CatalogRegistrationPhoneStep({
             onClick={() => {
               setPassword("");
               setError(null);
+              focusOnMethodSwitch.current = true;
               setPasswordMode(false);
             }}
           >
@@ -261,9 +280,10 @@ export function CatalogRegistrationPhoneStep({
           {phoneHint === "new" ? <p>{t("phone.newHint")}</p> : null}
           <label htmlFor="phone">{t("phone.label")}</label>
           <Input
+            ref={focusMethodInput}
             id="phone"
             name="guest-mobile"
-            value={guestLoginPhoneFieldValue(data.phone)}
+            value={normalizeGuestPhoneFieldValue(data.phone)}
             autoComplete="off"
             inputMode="tel"
             autoCorrect="off"
@@ -271,7 +291,7 @@ export function CatalogRegistrationPhoneStep({
             onChange={(event) => {
               setError(null);
               mergeFlowState(state, dispatch, {
-                phone: guestLoginPhoneFieldValue(event.target.value),
+                phone: normalizeGuestPhoneFieldValue(event.target.value),
               });
             }}
             onBlur={() => void refreshPhoneHint()}

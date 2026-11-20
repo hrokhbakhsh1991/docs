@@ -435,6 +435,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@prisma/config@6.19.3>effect": "3.22.1",
       "brace-expansion": "2.1.7",
       "deepmerge-ts": "8.0.2",
       "nanoid": "3.3.18",
