@@ -74,3 +74,9 @@ Recovery measurement now separates transport availability from UI latency. After
 A scoped `typecheck:session-sync` command and project config now check the regression suite and its imported native-browser helper in the Marketing package; CI runs it before browser installation. This avoids silently leaving E2E TypeScript outside the application's normal typecheck scope.
 
 The revised recovery measurement passed **three production-browser repetitions** (`e2e-transport-production.log`, 3 passed / 0 failed / 0 skipped). Scoped regression TypeScript, formatting and diff checks passed. Application source and production builds remain identical to the previous full matrix; remote acceptance is still pending the new pushed test revision.
+
+## Post-deployment staging checks (2026-11-04)
+
+Runtime release `a46fbd85ccb578cc7eea5eafaa392c9b2671b634` was independently confirmed from all four systemd process working directories. Native Chrome hidden-tab polling pause and activation passed three staging repetitions; PDP login passed desktop and mobile checks.
+
+The expiry test initially failed before expiration because staging overrides `MEMBER_SESSION_COOKIE_NAME`. Set `SESSION_SYNC_MEMBER_COOKIE_NAME` to that deployment's configured cookie name when running this suite (staging: `atour_mb_session_staging`). The default remains `atour_mb_session` for existing local/CI fixtures. All cookie assertions use the same exact configured name; no assertions or timing limits were relaxed. With this test-only correction, the expiry scenario passed three staging repetitions. This simulates browser cookie expiry; it does not prove backend token TTL expiry. Cross-tenant, custom-domain and injected service-error behavior are not established by these staging checks.
