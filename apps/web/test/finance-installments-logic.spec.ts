@@ -95,3 +95,10 @@ describe("finance-installments-logic.spec.ts — Phase 9.7 R3", () => {
     assert.equal(validated.ok, true);
   });
 });
+
+it("maps only the exact schedule invoice mismatch to localized actionable copy", async () => {
+  const { mapGenerateScheduleHttpError } = await import("../src/finance/finance-installments-logic");
+  assert.equal(mapGenerateScheduleHttpError(422, { code: "SCHEDULE_INVOICE_MISMATCH" }), "SCHEDULE_INVOICE_MISMATCH");
+  assert.equal(mapGenerateScheduleHttpError(403, { code: "SCHEDULE_INVOICE_MISMATCH" }), "GENERATE_SCHEDULE_FAILED");
+  assert.equal(mapGenerateScheduleHttpError(422, { code: "OTHER", error: "5000000" }), "GENERATE_SCHEDULE_FAILED");
+});

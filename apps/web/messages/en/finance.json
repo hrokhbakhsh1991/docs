@@ -619,6 +619,7 @@
     "MANUAL_PAYMENT_FAILED": "Manual payment create failed.",
     "SUBMIT_RECEIPT_FAILED": "Receipt submit failed.",
     "RECORD_PREPAYMENT_FAILED": "Prepayment record failed.",
+    "SCHEDULE_INVOICE_MISMATCH": "Enter the full invoice total after discounts and select its currency. Do not enter only the remaining balance.",
     "GENERATE_SCHEDULE_FAILED": "Schedule generation failed.",
     "SCHEDULE_ITEM_PATCH_FAILED": "Could not update the installment. Try again.",
     "SET_OBLIGATION_OVERRIDE_FAILED": "Updating the expected registration balance failed.",

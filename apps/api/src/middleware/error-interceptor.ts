@@ -368,7 +368,7 @@ function mapErrorMessageToStatus(message: string): number {
   if (message === "FINANCE_APPROVE_CONFLICT") return 409;
   if (message === "FINANCE_DUPLICATE_OBLIGATION_CREDIT") return 409;
   if (message === "FINANCE_LEDGER_CAPTURE_EMPTY") return 422;
-  if (message === "FINANCE_OBLIGATION_OVERPAY") return 422;
+  if (message === "FINANCE_OBLIGATION_OVERPAY" || message === "SCHEDULE_INVOICE_MISMATCH") return 422;
   if (
     message === "FINANCE_PAYMENT_IDEMPOTENCY_CONFLICT" ||
     message === "FINANCE_RECEIPT_IDEMPOTENCY_CONFLICT"
