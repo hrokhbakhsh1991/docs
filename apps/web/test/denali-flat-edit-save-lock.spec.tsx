@@ -1,22 +1,30 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { File } from "node:buffer";
 
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, waitFor } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
+import React, { useMemo, useRef, useState } from "react";
 
 import { useDraftEngine } from "@app-tour/draft-engine/react";
-import type { UpdateTourPayload, WorkspacePlugin } from "@app-tour/workspace-sdk";
-import { useMemo, useRef, useState } from "react";
-import { beginDenaliPhotoUpload } from "../../../packages/workspaces/denali/src/ui/adapters/photo-edit-activity";
-import { prepareDenaliFlatEditSeedEnvelope } from "../../../packages/workspaces/denali/src/ui/chrome/flat-edit-draft-authority";
 import {
-  useDenaliFlatEditPageCore,
-  type DenaliFlatEditDraftEnvelope,
-  type DenaliFlatEditPageCoreInput,
+  denaliWizardFlatEditChromeSurface,
   type DenaliFlatEditTourLoadResult,
-} from "../../../packages/workspaces/denali/src/ui/chrome/use-flat-edit-page-core";
+} from "@app-tour/workspace-denali/host/ui/chrome/wizard-flat-edit-chrome-surface";
+import {
+  DENALI_PHOTOS_TEST_IDS,
+  DenaliPhotosField,
+} from "@app-tour/workspace-denali/host/ui/fields/photos";
+import type { UpdateTourPayload, WorkspacePlugin } from "@app-tour/workspace-sdk";
+
+import { loadAppMessages } from "../src/i18n/load-messages";
+
+const { useFlatEditPageCore: useDenaliFlatEditPageCore } = denaliWizardFlatEditChromeSurface;
+type DenaliFlatEditPageCoreInput = Parameters<typeof useDenaliFlatEditPageCore>[0];
+type DenaliFlatEditDraftEnvelope = NonNullable<DenaliFlatEditPageCoreInput["draftSync"]["data"]>;
 
 const draft = (title: string) => ({ data: { title } });
-const meta = { pluginId: "denali", wizardSessionId: "synthetic-edit-save" };
+const meta = { pluginId: "denali", wizardSessionId: "a1b2c3d4-e5f6-4789-a012-3456789abcde" };
 const baseline = (title: string, rowVersion: number): DenaliFlatEditTourLoadResult => ({
   ok: true,
   rowVersion,
@@ -60,7 +68,16 @@ const gate = {
 };
 
 test("explicit Save locks editing through PATCH, canonical reload and async draft reset", async (t) => {
-  t.mock.method(globalThis, "fetch", async () => Response.json({ items: [] }));
+  const priorReact = Object.getOwnPropertyDescriptor(globalThis, "React");
+  Object.defineProperty(globalThis, "React", { configurable: true, value: React });
+  t.after(() => {
+    if (priorReact === undefined) Reflect.deleteProperty(globalThis, "React");
+    else Object.defineProperty(globalThis, "React", priorReact);
+  });
+  const uploadGate = Promise.withResolvers<Response>();
+  t.mock.method(globalThis, "fetch", async (path: string) =>
+    path === "/api/tours/wizard-photos" ? uploadGate.promise : Response.json({ items: [] })
+  );
   const patch = Promise.withResolvers<{ ok: true; rowVersion: number }>();
   const abortedPatch = Promise.withResolvers<never>();
   const reload = Promise.withResolvers<DenaliFlatEditTourLoadResult>();
@@ -93,7 +110,7 @@ test("explicit Save locks editing through PATCH, canonical reload and async draf
     const draftSchemaGateRef =
       useRef<DenaliFlatEditPageCoreInput["draftSchemaGateRef"]["current"]>(null);
     const [data, setData] = useState(() =>
-      prepareDenaliFlatEditSeedEnvelope(draft("Before save"), meta, 1)
+      ({ form: draft("Before save"), meta: { ...meta, currentStepIndex: 0, sourceRowVersion: 1 } })
     );
     const draftSync = useMemo<DenaliFlatEditPageCoreInput["draftSync"]>(
       () => ({
@@ -143,19 +160,32 @@ test("explicit Save locks editing through PATCH, canonical reload and async draf
 
   const saveBeforeRender = form.result.current.core.handlePatch;
   const lateHandler = form.result.current.core.onDraftChange;
-  let finishUpload: (() => void) | null = null;
-  act(() => {
-    finishUpload = beginDenaliPhotoUpload(meta.wizardSessionId);
-    saveBeforeRender("save");
+  const photoId = "synthetic-photo";
+  const messages = await loadAppMessages("fa");
+  const photo = render(
+    <NextIntlClientProvider locale="fa" timeZone="UTC" messages={messages}>
+      <DenaliPhotosField
+        draft={{ data: { category: "mountain_day", photos: [{ id: photoId, label: "Photo" }] } }}
+        onDraftChange={() => lateHandler(draft("Uploaded photo"))}
+        wizardSessionId={meta.wizardSessionId}
+      />
+    </NextIntlClientProvider>
+  );
+  t.after(() => photo.unmount());
+  fireEvent.change(photo.getByTestId(DENALI_PHOTOS_TEST_IDS.uploadInput), {
+    target: { files: [new File(["synthetic"], "photo.png", { type: "image/png" })] },
   });
-  assert.equal(form.result.current.core.photoUploadPending, true);
+  await waitFor(() => assert.equal(form.result.current.core.photoUploadPending, true));
+  act(() => saveBeforeRender("save"));
   assert.equal(form.result.current.core.explicitSaveLocked, false);
   assert.equal(submitted.length, 0);
+  await act(async () => uploadGate.resolve(
+    Response.json({ storageKey: "synthetic-storage-key", photoId, contentType: "image/png" })
+  ));
+  await waitFor(() => assert.equal(form.result.current.core.photoUploadPending, false));
+  assert.equal(writes.at(-1)?.form.data.title, "Uploaded photo");
   act(() => {
-    // The upload completion (storage pointer represented by this draft write)
-    // is accepted first, even if Save runs before React publishes a new render.
     lateHandler(draft("Submitted title"));
-    finishUpload?.();
     saveBeforeRender("save");
   });
   await waitFor(() => assert.equal(submitted.length, 1));

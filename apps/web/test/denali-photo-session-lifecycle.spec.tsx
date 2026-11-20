@@ -5,11 +5,10 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import React from "react";
 
-import { denaliPhotoUploadPending } from "../../../packages/workspaces/denali/src/ui/adapters/photo-edit-activity";
 import {
   DENALI_PHOTOS_TEST_IDS,
   DenaliPhotosField,
-} from "../../../packages/workspaces/denali/src/ui/fields/denali-photos-field";
+} from "@app-tour/workspace-denali/host/ui/fields/photos";
 import { loadAppMessages } from "../src/i18n/load-messages";
 
 test("a delayed photo upload for tour A cannot update reused tour B with the same photo id", async (t) => {
@@ -54,30 +53,27 @@ test("a delayed photo upload for tour A cannot update reused tour B with the sam
     });
   choosePhoto();
   await waitFor(() => assert.equal(fetchMock.mock.callCount(), 1));
-  assert.equal(denaliPhotoUploadPending(sessionA), true);
+  assert.equal(uploadInput().disabled, true, "A has an active upload");
   view.rerender(<View sessionId={sessionB} label="Tour B" />);
-  assert.equal(denaliPhotoUploadPending(sessionB), false);
 
   assert.equal(uploadInput().disabled, false, "B starts with fresh local upload state");
   choosePhoto();
   await waitFor(() => assert.equal(fetchMock.mock.callCount(), 2));
-  assert.equal(denaliPhotoUploadPending(sessionB), true);
+  assert.equal(uploadInput().disabled, true, "B has its own active upload");
 
   await act(async () => {
     networkA.resolve(
       Response.json({ storageKey: "old-tour-A-photo", photoId, contentType: "image/png" })
     );
   });
-  await waitFor(() => assert.equal(denaliPhotoUploadPending(sessionA), false));
   assert.deepEqual(states, [], "a completed upload from a previous tour must not change the draft");
-  assert.equal(denaliPhotoUploadPending(sessionB), true, "A's release leaves B pending");
   assert.equal(uploadInput().disabled, true);
   await act(async () => {
     networkB.resolve(
       Response.json({ storageKey: "current-tour-B-photo", photoId, contentType: "image/png" })
     );
   });
-  await waitFor(() => assert.equal(denaliPhotoUploadPending(sessionB), false));
+  await waitFor(() => assert.equal(uploadInput().disabled, false));
   const serialized = JSON.stringify(states);
   assert.equal(states.length, 1);
   assert.match(serialized, /current-tour-B-photo/);
