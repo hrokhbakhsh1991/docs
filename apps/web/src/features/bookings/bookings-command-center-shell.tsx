@@ -1129,6 +1129,7 @@ export function BookingsPageClient({
         />
       ) : (
         <BookingsDirectoryControls
+          denaliSearch={session.pluginId === "denali"}
           query={query}
           searchInput={searchInput}
           onSearchInputChange={setSearchInput}

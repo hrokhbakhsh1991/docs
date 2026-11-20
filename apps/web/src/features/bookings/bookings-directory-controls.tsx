@@ -4,6 +4,7 @@ import { Filter, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 
+import { OperatorDirectorySearchField } from "@/admin/patterns/operator-directory-search-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ type BookingsDirectoryControlsProps = {
   readonly tourChips?: readonly BookingTourChip[];
   readonly showTourFilter?: boolean;
   readonly showTourScope?: boolean;
+  readonly denaliSearch?: boolean;
 };
 
 function resolveTourChipTitle(
@@ -61,6 +63,7 @@ export function BookingsDirectoryControls({
   tourChips = [],
   showTourFilter = false,
   showTourScope = false,
+  denaliSearch = false,
 }: BookingsDirectoryControlsProps) {
   const t = useTranslations("bookings");
   const filtersDirty = bookingsAdvancedFiltersDirty(query);
@@ -152,15 +155,25 @@ export function BookingsDirectoryControls({
   return (
     <div className="space-y-3" data-testid={BOOKINGS_COMMAND_CENTER_TEST_IDS.controls}>
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
-        <div className="relative min-w-0 max-w-xl flex-1">
-          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="ps-9"
+        {denaliSearch ? (
+          <OperatorDirectorySearchField
+            label={t("directorySearchLabel")}
             placeholder={t("searchPlaceholder")}
             value={searchInput}
-            onChange={(event) => onSearchInputChange(event.target.value)}
+            onValueChange={onSearchInputChange}
+            testId="operator-bookings-search-field"
           />
-        </div>
+        ) : (
+          <div className="relative min-w-0 max-w-xl flex-1">
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="ps-9"
+              placeholder={t("searchPlaceholder")}
+              value={searchInput}
+              onChange={(event) => onSearchInputChange(event.target.value)}
+            />
+          </div>
+        )}
 
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           {showTourFilter ? (

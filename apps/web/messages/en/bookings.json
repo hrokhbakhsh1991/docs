@@ -14,6 +14,7 @@
   "leaderReviewTitle": "Leader review queue",
   "leaderReviewNote": "Legacy leader review alias — shared bookings shell",
   "newRegistration": "New registration",
+  "directorySearchLabel": "Search bookings",
   "searchPlaceholder": "Search name, phone, or email…",
   "loadMore": "Load more",
   "loadingMore": "Loading…",
