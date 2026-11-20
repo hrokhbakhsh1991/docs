@@ -1,7 +1,7 @@
 "use client";
 
 import { createClientSafeUuid } from "@app-tour/draft-engine";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { isDenaliHttpsImageUrl } from "../../schemas/denaliFileAssetSchema";
 import { isDenaliWizardDraftSessionId } from "../../draft";
 import { useTranslations } from "next-intl";
@@ -14,6 +14,7 @@ import {
 } from "../../draft/denali-tour-wizard-draft";
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { resolveDenaliPhotoUploadError } from "../adapters/photo-upload-errors";
+import { beginDenaliPhotoUpload } from "../adapters/photo-edit-activity";
 import { uploadDenaliWizardPhoto } from "../adapters/photo-upload-client";
 import { Button, Input, Select, type SelectOption } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
@@ -253,7 +254,13 @@ function DenaliPhotoCardEditor({
   );
 }
 
-export function DenaliPhotosField({
+export function DenaliPhotosField(props: DenaliPhotosFieldProps) {
+  // Preserve the parent's canonical draft, but never reuse local upload state
+  // and callbacks when navigation changes the wizard's media session.
+  return <DenaliPhotosFieldSession key={props.wizardSessionId} {...props} />;
+}
+
+function DenaliPhotosFieldSession({
   draft,
   onDraftChange,
   required = false,
@@ -273,11 +280,14 @@ export function DenaliPhotosField({
   const [photoUploadErrors, setPhotoUploadErrors] = useState<Record<string, string>>({});
   const [localPreviews, setLocalPreviews] = useState<Record<string, string>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const sessionActiveRef = useRef(false);
   const localPreviewsRef = useRef(localPreviews);
   localPreviewsRef.current = localPreviews;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    sessionActiveRef.current = true;
     return () => {
+      sessionActiveRef.current = false;
       for (const url of Object.values(localPreviewsRef.current)) {
         URL.revokeObjectURL(url);
       }
@@ -413,7 +423,12 @@ export function DenaliPhotosField({
   );
 
   const handleFileSelected = async (photoId: string, file: File | undefined) => {
-    if (!uploadEnabled || file === undefined) {
+    if (
+      !sessionActiveRef.current ||
+      !uploadEnabled ||
+      wizardSessionId === undefined ||
+      file === undefined
+    ) {
       return;
     }
     const normalizedId = photoId.trim();
@@ -428,20 +443,29 @@ export function DenaliPhotosField({
       return;
     }
 
-    setLocalPreview(normalizedId, file);
-    setPhotoUploading(normalizedId, true);
-    setPhotoUploadErrors((previous) => {
-      const next = { ...previous };
-      delete next[normalizedId];
-      return next;
-    });
+    const finishUpload = beginDenaliPhotoUpload(wizardSessionId);
+    if (finishUpload === null) {
+      const input = fileInputRefs.current[normalizedId];
+      if (input != null) input.value = "";
+      return;
+    }
 
     try {
+      setLocalPreview(normalizedId, file);
+      setPhotoUploading(normalizedId, true);
+      setPhotoUploadErrors((previous) => {
+        const next = { ...previous };
+        delete next[normalizedId];
+        return next;
+      });
       const result = await uploadDenaliWizardPhoto({
-        sessionId: wizardSessionId!,
+        sessionId: wizardSessionId,
         photoId: normalizedId,
         file,
       });
+      if (!sessionActiveRef.current) {
+        return;
+      }
       updatePhotoById(normalizedId, {
         storageKey: result.storageKey,
         contentType: result.contentType,
@@ -449,15 +473,21 @@ export function DenaliPhotosField({
       });
       revokeLocalPreview(normalizedId);
     } catch (error: unknown) {
+      if (!sessionActiveRef.current) {
+        return;
+      }
       const code = error instanceof Error ? error.message : null;
       const message =
         resolveDenaliPhotoUploadError(t, code) || t("composites.photos.uploadFailed");
       setPhotoUploadErrors((previous) => ({ ...previous, [normalizedId]: message }));
     } finally {
-      setPhotoUploading(normalizedId, false);
-      const input = fileInputRefs.current[normalizedId];
-      if (input !== null && input !== undefined) {
-        input.value = "";
+      finishUpload();
+      if (sessionActiveRef.current) {
+        setPhotoUploading(normalizedId, false);
+        const input = fileInputRefs.current[normalizedId];
+        if (input !== null && input !== undefined) {
+          input.value = "";
+        }
       }
     }
   };

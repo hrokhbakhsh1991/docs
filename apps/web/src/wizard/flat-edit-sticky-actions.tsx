@@ -18,6 +18,7 @@ type OperatorFlatEditStickyActionBarProps = {
   readonly saveLabel: string;
   readonly saveDisabled: boolean;
   readonly saveBusy: boolean;
+  readonly saveBlockedHint?: string;
   readonly onSave: () => void;
   readonly canPublish: boolean;
   readonly canUnpublish: boolean;
@@ -41,6 +42,7 @@ export function OperatorFlatEditStickyActionBar({
   saveLabel,
   saveDisabled,
   saveBusy,
+  saveBlockedHint,
   onSave,
   canPublish,
   canUnpublish,
@@ -144,7 +146,15 @@ export function OperatorFlatEditStickyActionBar({
         )}
       </div>
 
-      {draftStatus === "DIRTY" ? (
+      {saveBusy ? (
+        <p className="sr-only" role="status">
+          {saveLabel}
+        </p>
+      ) : saveBlockedHint !== undefined ? (
+        <p className="new-tour-wizard-page__sticky-actions-hint" role="status">
+          {saveBlockedHint}
+        </p>
+      ) : draftStatus === "DIRTY" ? (
         <p className="new-tour-wizard-page__sticky-actions-hint" role="status">
           {t("unsavedHint")}
         </p>

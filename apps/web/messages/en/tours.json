@@ -136,6 +136,7 @@
     "unpublished": "Tour moved to draft.",
     "cancelEdits": "Cancel",
     "moreActions": "More",
+    "waitForPhotoUpload": "Wait for the photo upload to finish before saving changes.",
     "unsavedHint": "Unsaved changes",
     "wizardTitle": "Edit tour",
     "loading": "Loading tour…",
