@@ -26,6 +26,7 @@ type WizardBootstrapState =
 type OperatorCreateTourWizardClientProps = {
   readonly initialTemplateResponse?: unknown | null;
   readonly initialLocationsResponse?: unknown | null;
+  readonly canQuickAddCatalog?: boolean;
 };
 
 /**
@@ -35,6 +36,7 @@ type OperatorCreateTourWizardClientProps = {
  */
 export function OperatorCreateTourWizardClient({
   initialTemplateResponse = null,
+  canQuickAddCatalog = false,
   initialLocationsResponse = null,
 }: OperatorCreateTourWizardClientProps) {
   const session = useAppSession();
@@ -66,7 +68,10 @@ export function OperatorCreateTourWizardClient({
 
   if (bootstrap.status === "loading") {
     return (
-      <OperatorCreateTourWizardCatalogShell initialLocationsResponse={initialLocationsResponse}>
+      <OperatorCreateTourWizardCatalogShell
+        initialLocationsResponse={initialLocationsResponse}
+        canQuickAddCatalog={canQuickAddCatalog}
+      >
         <CreateTourWizardBootstrapFrame>
           <CreateTourWizardLoadingMessage />
         </CreateTourWizardBootstrapFrame>
@@ -76,7 +81,10 @@ export function OperatorCreateTourWizardClient({
 
   if (bootstrap.status === "error") {
     return (
-      <OperatorCreateTourWizardCatalogShell initialLocationsResponse={initialLocationsResponse}>
+      <OperatorCreateTourWizardCatalogShell
+        initialLocationsResponse={initialLocationsResponse}
+        canQuickAddCatalog={canQuickAddCatalog}
+      >
         <CreateTourWizardBootstrapFrame>
           <CreateTourWizardLoadError
             code={bootstrap.code}
@@ -88,7 +96,10 @@ export function OperatorCreateTourWizardClient({
   }
 
   return (
-    <OperatorCreateTourWizardCatalogShell initialLocationsResponse={initialLocationsResponse}>
+    <OperatorCreateTourWizardCatalogShell
+      initialLocationsResponse={initialLocationsResponse}
+      canQuickAddCatalog={canQuickAddCatalog}
+    >
       <OperatorCreateTourWizardClientReady
         plugin={bootstrap.plugin}
         initialTemplateResponse={initialTemplateResponse}

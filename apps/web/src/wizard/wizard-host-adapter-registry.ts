@@ -20,6 +20,7 @@ export type ExposureCatalogFieldForLocalization = {
 export type WizardCatalogPrefetchProviderProps = {
   readonly children: ReactNode;
   readonly initialLocationsResponse?: unknown | null;
+  readonly canQuickAddCatalog?: boolean;
 };
 
 export type WizardCatalogPrefetch = {

@@ -1,7 +1,7 @@
 "use client";
 
 import { readDenaliCanonicalBasics } from "../../adapters/denaliCanonicalBasicsControl";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
 import {
@@ -15,6 +15,9 @@ import type { EquipmentResource, TourThemesListResponse } from "../adapters/cata
 import { resolveDenaliFieldLabel } from "../adapters/field-labels";
 import { Input } from "../adapters/platform-primitives";
 import { commitWizardDraftEdit, useLatestWizardDraft } from "../adapters/wizard-draft-edit";
+import { DenaliCatalogQuickAdd } from "../components/denali-catalog-quick-add";
+import { useDenaliWizardCatalogPrefetch } from "../hooks/denali-wizard-catalog-prefetch-context";
+import { appendGearSelection, mergeConfirmedRows, retireObservedRows } from "../logic/quick-add";
 import { fetchDenaliCatalogJsonWithSoftRetry } from "../adapters/catalog-soft-fail";
 import { DenaliCatalogLoadNotice } from "../components/denali-catalog-load-notice";
 import { DenaliOptionalEmptyNotice } from "../components/denali-optional-empty-notice";
@@ -82,26 +85,30 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
   const draftRef = useLatestWizardDraft(draft);
 
   const selected = parseDenaliGearItems(getCanonicalValue(draft, "participants.gearItems"));
-  const { data, loading, error, reload } = useDenaliCatalogSoftLoad(
-    async () => {
-      const [equipmentPayload, themesPayload] = await Promise.all([
-        fetchDenaliCatalogJsonWithSoftRetry<{ items: EquipmentResource[] }>(
-          DENALI_SUBMIT_CATALOG_BFF_PATHS.equipment,
-          "EQUIPMENT"
-        ),
-        fetchDenaliCatalogJsonWithSoftRetry<TourThemesListResponse>(
-          DENALI_SUBMIT_CATALOG_BFF_PATHS.tourThemes,
-          "TOUR_THEMES"
-        ),
-      ]);
-      return {
-        catalog: equipmentPayload.items ?? [],
-        themes: (themesPayload.items ?? []).filter((theme) => theme.isActive),
-      };
-    },
-    "EQUIPMENT_LOAD_FAILED"
-  );
-  const catalog = data?.catalog ?? [];
+  const { data, loading, error, reload } = useDenaliCatalogSoftLoad(async () => {
+    const [equipmentPayload, themesPayload] = await Promise.all([
+      fetchDenaliCatalogJsonWithSoftRetry<{ items: EquipmentResource[] }>(
+        DENALI_SUBMIT_CATALOG_BFF_PATHS.equipment,
+        "EQUIPMENT"
+      ),
+      fetchDenaliCatalogJsonWithSoftRetry<TourThemesListResponse>(
+        DENALI_SUBMIT_CATALOG_BFF_PATHS.tourThemes,
+        "TOUR_THEMES"
+      ),
+    ]);
+    return {
+      catalog: equipmentPayload.items ?? [],
+      themes: (themesPayload.items ?? []).filter((theme) => theme.isActive),
+    };
+  }, "EQUIPMENT_LOAD_FAILED");
+  const { canQuickAddCatalog } = useDenaliWizardCatalogPrefetch();
+  const [recent, setRecent] = useState<readonly EquipmentResource[]>([]);
+  useEffect(() => {
+    if (!data) return;
+    const observed = new Set(data.catalog.map((row) => row.id));
+    setRecent((previous) => retireObservedRows(previous, observed));
+  }, [data]);
+  const catalog = useMemo(() => mergeConfirmedRows(data?.catalog ?? [], recent), [data, recent]);
   const themes = data?.themes ?? [];
   const [searchQuery, setSearchQuery] = useState("");
   const [pickerExpanded, setPickerExpanded] = useState(resolveDenaliCatalogPickerDefaultExpanded);
@@ -233,6 +240,27 @@ export function DenaliGearField({ draft, onDraftChange, invalid = false }: Denal
       <div className="denali-wizard-composite__header">
         <div className="denali-gear-picker__header-row">
           <h3 className="denali-wizard-composite__title">{label}</h3>
+          {canQuickAddCatalog ? (
+            <DenaliCatalogQuickAdd
+              kind="equipment"
+              disabled={loading}
+              getDraftRevision={() => draftRef.current}
+              onUncertain={reload}
+              onCreated={(row, required) => {
+                setRecent((previous) => [...previous.filter((entry) => entry.id !== row.id), row]);
+                reload();
+                const current = draftRef.current;
+                const kind = getCanonicalStringValue(current, "category").trim();
+                const category = readDenaliCanonicalBasics(
+                  kind as Parameters<typeof readDenaliCanonicalBasics>[0]
+                )?.category;
+                const themeIds = parseThemeIds(getCanonicalValue(current, "program.themeIds"));
+                if (!isEquipmentVisibleInWizard(row, category, themeIds)) return false;
+                writeItems([...appendGearSelection(readSelected(), row, required)]);
+                return true;
+              }}
+            />
+          ) : null}
           {visibleCatalog.length > 0 ? (
             <button
               type="button"
