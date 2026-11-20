@@ -112,6 +112,12 @@ export function LoginForm({
   const [loading, setLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const focusOnMethodSwitch = useRef(false);
+  const focusMethodInput = useCallback((input: HTMLInputElement | null) => {
+    if (input === null || !focusOnMethodSwitch.current) return;
+    focusOnMethodSwitch.current = false;
+    input.focus();
+  }, []);
   const loginInFlightRef = useRef(false);
   const devOtpBootstrappedRef = useRef(false);
   const devLoginAttemptedRef = useRef(false);
@@ -407,6 +413,7 @@ export function LoginForm({
               <div className="space-y-2">
                 <Label htmlFor="phone">{t("phoneLabel")}</Label>
                 <LocalizedNumericInput
+                  ref={focusMethodInput}
                   id="phone"
                   disabled={!hydrated}
                   autoComplete="tel"
@@ -457,6 +464,7 @@ export function LoginForm({
                     }
                     setPhone(value);
                     setPhoneError(null);
+                    focusOnMethodSwitch.current = true;
                     setStep("password");
                   }}
                 >
@@ -474,6 +482,7 @@ export function LoginForm({
             >
               <Label htmlFor="operator-password">{t("passwordLabel")}</Label>
               <Input
+                ref={focusMethodInput}
                 id="operator-password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
@@ -507,7 +516,10 @@ export function LoginForm({
                 variant="ghost"
                 className="w-full"
                 disabled={loading}
-                onClick={handleChangePhone}
+                onClick={() => {
+                  focusOnMethodSwitch.current = true;
+                  handleChangePhone();
+                }}
               >
                 {t("passwordUseOtp")}
               </Button>
