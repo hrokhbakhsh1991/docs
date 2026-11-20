@@ -171,6 +171,8 @@ install_unit() {
 Description=App Tour Staging ${suffix} (artifact)
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -183,8 +185,6 @@ ${extra_env}
 ExecStart=${exec_start}
 Restart=on-failure
 RestartSec=5
-StartLimitIntervalSec=300
-StartLimitBurst=5
 NoNewPrivileges=true
 
 [Install]

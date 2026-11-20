@@ -500,4 +500,13 @@ describe("staging-env-contract", () => {
     assert.ok(stop >= 0, "service stop exists");
     assert.ok(validate < stop, "invalid config must fail before stopping the stack");
   });
+
+  it("REG-STG-ENV-16 puts systemd restart limits in the unit section", () => {
+    const install = read("scripts/vps-deploy/install-staging-artifact.sh");
+    assert.match(
+      install,
+      /\[Unit\][\s\S]*?StartLimitIntervalSec=300\nStartLimitBurst=5\n\n\[Service\]/
+    );
+    assert.doesNotMatch(install, /\[Service\][\s\S]*?StartLimitIntervalSec=300/);
+  });
 });
